@@ -1,67 +1,84 @@
 import pysam
 import vcf
 
+from SomaticHaplotype import PhaseSet
+
 ################################################################################
 # bam functions
 ################################################################################
 
-def extract_phase_set_from_read(read):
+def extract_read_info(read):
   # Given a read from a bam, extract the phase set if it exists, else NA
   # Also report the position of the read and read quality metrics
   if read.is_duplicate or read.is_qcfail or read.is_secondary or not read.is_proper_pair:
-    return(1)
+    return("read is bad quality")
   elif read.has_tag("PS"): # read is part of phase set
     tags_dict = {x:y for (x,y) in read.get_tags()}
-    tags_dict["mapping_quality"] = read.mapping_quality
-    tags_dict["reference_start"] = read.reference_start
-    tags_dict["reference_end"] = read.reference_end
+    if "MI" not in tags_dict:
+      tags_dict["MI"] = None
     return(tags_dict)
   else: # read is not part of a phase set
-    return(2)
+    return("read is not part of phase set")
 
-def extract_phase_sets_from_bam(bam_filename, 
-  chr = None, start_bp = None, end_bp = None):
+def extract_phase_sets_from_bam(bam_filename, chr = None, start_bp = None, end_bp = None):
+  
   samfile = pysam.AlignmentFile(bam_filename, "rb")
+  
   phase_set_dict = {"n_total_reads" : 0, "n_reads_bad_quality" : 0,
     "n_reads_good_quality" : 0, "n_reads_phased" : 0, "n_reads_not_phased" : 0,
     "phase_sets" : {} }
+  
   for read in samfile.fetch(chr, start_bp, end_bp):
     phase_set_dict["n_total_reads"] += 1
-    read_info = extract_phase_set_from_read(read)
-    if read_info == 1:
+    read_info = extract_read_info(read)
+    if read_info == "read is bad quality":
       phase_set_dict["n_reads_bad_quality"] += 1
-    elif read_info == 2:
+    elif read_info == "read is not part of phase set":
       phase_set_dict["n_reads_not_phased"] += 1
       phase_set_dict["n_reads_good_quality"] += 1
     else:
+      
       phase_set_dict["n_reads_phased"] += 1
       phase_set_dict["n_reads_good_quality"] += 1
+      
       ps_id = read.reference_name + ":" + str(read_info["PS"])
+
       if ps_id in phase_set_dict["phase_sets"]:
-        if int(read_info["reference_start"]) < phase_set_dict["phase_sets"][ps_id]["min_position"]:
-          phase_set_dict["phase_sets"][ps_id]["min_position"] = int(read_info["reference_start"])
-        if int(read_info["reference_start"]) > phase_set_dict["phase_sets"][ps_id]["max_position"]:
-          phase_set_dict["phase_sets"][ps_id]["max_position"] = int(read_info["reference_end"])
-        phase_set_dict["phase_sets"][ps_id]["n_single_end_reads"] += 1
+        
+        if int(read.reference_start) < phase_set_dict["phase_sets"][ps_id].psStart():
+          phase_set_dict["phase_sets"][ps_id].updateStart(read.reference_start)
+        if int(read.reference_end) > phase_set_dict["phase_sets"][ps_id].psEnd():
+          phase_set_dict["phase_sets"][ps_id].updateEnd(read.reference_end)
+        
+        phase_set_dict["phase_sets"][ps_id].addSingleEndRead()
+
         if read_info["HP"] == 1:
-          phase_set_dict["phase_sets"][ps_id]["n_support_H1"] += 1
+          phase_set_dict["phase_sets"][ps_id].addSupportH1()
+          phase_set_dict["phase_sets"][ps_id].addMoleculeH1(read_info["MI"])
+        elif read_info["HP"] == 2:
+          phase_set_dict["phase_sets"][ps_id].addSupportH2()
+          phase_set_dict["phase_sets"][ps_id].addMoleculeH2(read_info["MI"])
         else:
-          phase_set_dict["phase_sets"][ps_id]["n_support_H2"] += 1
-        if "MI" not in read_info:
-          read_info["MI"] = None
-        if read_info["MI"] in phase_set_dict["phase_sets"][ps_id]["molecules"]:
-          phase_set_dict["phase_sets"][ps_id]["molecules"][read_info["MI"]] += 1
-        else:
-          phase_set_dict["phase_sets"][ps_id]["molecules"][read_info["MI"]] = 1
+          sys.exit("Whoa no H1 or H2 support for\n" + read)
+
       else:
-        phase_set_dict["phase_sets"][ps_id] = {"chromosome" : read.reference_name, "min_position" : int(read_info["reference_start"]),
-          "max_position" : int(read_info["reference_end"]),
-          "n_single_end_reads" : 1, "n_support_H1" : 0, "n_support_H2" : 0,
-          "molecules" : {read_info["MI"] : 1} }
+      
+        phase_set_dict["phase_sets"][ps_id] = PhaseSet(ps_id = ps_id, 
+          chromosome = read.reference_name, 
+          start_bp = int(read.reference_start), 
+          end_bp = int(read.reference_end))
+
+        phase_set_dict["phase_sets"][ps_id].addSingleEndRead()
+
         if read_info["HP"] == 1:
-          phase_set_dict["phase_sets"][ps_id]["n_support_H1"] += 1
+          phase_set_dict["phase_sets"][ps_id].addSupportH1()
+          phase_set_dict["phase_sets"][ps_id].addMoleculeH1(read_info["MI"])
+        elif read_info["HP"] == 2:
+          phase_set_dict["phase_sets"][ps_id].addSupportH2()
+          phase_set_dict["phase_sets"][ps_id].addMoleculeH2(read_info["MI"])
         else:
-          phase_set_dict["phase_sets"][ps_id]["n_support_H2"] += 1
+          sys.exit("Whoa no H1 or H2 support for\n" + read)
+        
   samfile.close()
   return(phase_set_dict)
 
