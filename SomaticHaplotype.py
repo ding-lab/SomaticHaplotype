@@ -43,12 +43,6 @@ class PhaseSet:
   def addSupportH2(self):
     self._n_support_H2 += 1
 
-  #def returnMoleculesH1(self):
-  #  return(self._moleculesH1)
-
-  #def returnMoleculesH2(self):
-  #  return(self._moleculesH2)
-
   def addMoleculeH1(self, molecule):
     if molecule in self._moleculesH1:
       self._moleculesH1[molecule] += 1
@@ -93,13 +87,14 @@ def parse_input_arguments():
 
   # Required positional arguments
   parser.add_argument("module", help = "Module the program should run. Could be phaseset, summarize, visualize, extend, somatic.")
-  parser.add_argument("out", help = "Path to output file")
+  parser.add_argument("output_directory", help = "Absolute or relative path to output directory")
+  parser.add_argument("output_prefix", help = "Prefix for file names in output directory")
 
   # Optional named arguments
   parser.add_argument('--bam', action = 'store', help = "Path to bam file")
   parser.add_argument('--vcf', action = 'store', help = "Path to VCF file")
   parser.add_argument('--vcf_id', action = 'store', help = "Sample ID from VCF file")
-  parser.add_argument('--range', action = 'store', help = "Genomic range chr:start-stop")
+  parser.add_argument('--range', action = 'store', help = "Genomic range chr:start-stop, chr, chr:start, chr:-stop")
   parser.add_argument('--ps1', action = 'store', help = "Path to first phase set file")
   parser.add_argument('--ps2', action = 'store', help = "Path to second phase set file")
   parser.add_argument('--version', action = 'version', version = '%(prog)s 0.1')
