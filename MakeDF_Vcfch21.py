@@ -20,7 +20,7 @@ from scipy import stats
 #in VCFs, the rows represent variants and the columns represent patient samples
 
 #insert the pathway to the file in katmai or denali
-vcf_reader = vcf.Reader(open('~/jbaral/chr21.1kg.phase3.v5a.vcf.gz.tbi', 'r'))
+vcf_reader = vcf.Reader(open('/diskmnt/Projects/SomaticHaplotype/Data/1000G/chr21.1kg.phase3.v5a.vcf.gz.tbi', 'r'))
 
 variantPosition_list = []
 variantID_list = []
