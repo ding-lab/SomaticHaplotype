@@ -19,7 +19,8 @@ from scipy import stats
 
 #in VCFs, the rows represent variants and the columns represent patient samples
 
-vcf_reader = vcf.Reader(open('/Users/jessikabaral/Downloads/chr21.1kg.phase3.v5a.vcf.gz', 'r'))
+#insert the pathway to the file in katmai or denali
+vcf_reader = vcf.Reader(open('~/jbaral/chr21.1kg.phase3.v5a.vcf.gz.tbi', 'r'))
 
 variantPosition_list = []
 variantID_list = []
