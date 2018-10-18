@@ -12,10 +12,54 @@ class PhaseSet:
   def __init__(self, ps_id, chromosome, start_bp, end_bp):
     self._psid = ps_id
     self._chr = chromosome
-    self._start = start_bp
-    self._end = end_bp
+    self._start = int(start_bp)
+    self._end = int(end_bp)
     self._key = chromosome + ":" + ps_id
+    self._n_single_end_reads = 0
+    self._n_support_H1 = 0
+    self._n_support_H2 = 0
+    self._moleculesH1 = {}
+    self._moleculesH2 = {}
     self._variants = {}
+
+  def psStart(self):
+    return(int(self._start))
+
+  def updateStart(self, new_start_bp):
+    self._start = int(new_start_bp)
+
+  def psEnd(self):
+    return(int(self._end))
+
+  def updateEnd(self, new_end_bp):
+    self._end = int(new_end_bp)
+
+  def addSingleEndRead(self):
+    self._n_single_end_reads += 1
+
+  def addSupportH1(self):
+    self._n_support_H1 += 1
+
+  def addSupportH2(self):
+    self._n_support_H2 += 1
+
+  #def returnMoleculesH1(self):
+  #  return(self._moleculesH1)
+
+  #def returnMoleculesH2(self):
+  #  return(self._moleculesH2)
+
+  def addMoleculeH1(self, molecule):
+    if molecule in self._moleculesH1:
+      self._moleculesH1[molecule] += 1
+    else:
+      self._moleculesH1[molecule] = 1
+
+  def addMoleculeH2(self, molecule):
+    if molecule in self._moleculesH2:
+      self._moleculesH2[molecule] += 1
+    else:
+      self._moleculesH2[molecule] = 1
 
   def length(self, start_bp, end_bp):
     phase_set_length = end_bp - start_bp
@@ -28,7 +72,7 @@ class PhaseSet:
       self._variants[variant.getVariantKey] = variant
 
   def __str__(self):
-    print_result = self._id + "\t" + self._chr + ":" + self._start + "-" + self._end
+    print_result = self._psid + "\t" + self._chr + ":" + str(self._start) + "-" + str(self._end)
     return(print_result)
 
 class Variant:
@@ -87,7 +131,8 @@ def main():
         error_message.append("The phaseset module requires a --range.")
       if no_error:
         x = phaseset.main(args)
-        print(x)
+        for y in x["phase_sets"]:
+          print(x["phase_sets"][y])
       else:
         sys.exit("\n".join(error_message))
     
