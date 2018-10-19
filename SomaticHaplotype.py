@@ -70,15 +70,43 @@ class PhaseSet:
     return(print_result)
 
 class Variant:
-  def __init__(self, chromosome, position, REF, ALT, ps_id):
-    self._chr = chromosome
-    self._pos = position
-    self._ref = REF
-    self._alt = ALT
-    self._psid = ps_id
+  def __init__(self, record, sampld_id):
+    self._sampleid = sample_id
+    self._chr = record.CHROM,
+    self._start = record.start, 
+    self._end = record.end, 
+    self._ref = record.REF, 
+    self._alt = record.ALT, 
+    self._filter = record.FILTER,
+    self._psid = extract_variant_phase_set_from_VCF_record(record, sample_id), 
+    self._genotype = record.genotype(sample_id).data.GT, 
+    self._phased = record.genotype(sample_id).is_phased,
+    self._heterozygote = record.genotype(sample_id).is_het
+    self._moleculesH1 = {}
+    self._moleculesH2 = {}
+
+  def extract_variant_phase_set_from_VCF_record():
+    # extract the phase set from a pyVCF record
+    chrom = record.CHROM
+    ps = record.genotype(sample_id).data.PS
+    return(str(chrom) + ":" + str(ps))
+
+  def addMoleculeH1(self, molecule):
+    if molecule 
+
+  def addMoleculeH2(self):
+
+  def is_phased_heterozygote(self):
+  # determine if Varaint refers to a phased heterozygote (return True)
+  # otherwise, variants are not useful for phasing
+  if self._phased and self._heterozygote:
+    return(True)
+  else:
+    return(False)
 
   def getVariantKey(self):
-    variant_key = ":".join([self._chr, self._pos, self._ref, self._alt, self._psid])
+    key_list = [ self._chr, self._start, self._end, self._REF, ",".join([ str(x) for x in self._ALT ]) ]
+    variant_key = ':'.join( [ str(x) for x in key_list ] )
     return(variant_key)
 
 def parse_input_arguments():
