@@ -72,53 +72,54 @@ class PhaseSet:
 class Variant:
   def __init__(self, record, sample_id):
     self._sampleid = sample_id
-    self._chr = record.CHROM,
-    self._start = record.start, 
-    self._end = record.end, 
-    self._ref = record.REF, 
-    self._alt = record.ALT, 
-    self._filter = record.FILTER,
-    self._is_filtered = record.is_filtered
-    self._psid = extract_variant_phase_set_from_VCF_record(record, sample_id), 
+    self._chr = record.CHROM
+    self._start = record.start
+    self._end = record.end
+    self._ref = record.REF 
+    self._alt = record.ALT 
+    self._filter = record.FILTER
     self._genotype = record.genotype(sample_id).data.GT, 
-    self._is_phased = record.genotype(sample_id).is_phased,
+    self._is_phased = record.genotype(sample_id).phased,
     self._is_heterozygote = record.genotype(sample_id).is_het
     self._is_snp = record.is_snp,
-    self._molecules = extract_molecules_from_VCF_record(record, sample_id)
+    self.extract_variant_phase_set_from_VCF_record(record, sample_id)
+    self.extract_molecules_from_VCF_record(record, sample_id)
 
-  def extract_molecules_from_VCF_record(record, sample_id):
+
+  def extract_molecules_from_VCF_record(self, record, sample_id):
     # add molecules supporting each allele
     molecule_dictionary = {}
-    molecules = record.genotype(sample_id).data.BX
-    molecules_split_by_allele = molecules.split(",")
-    n_alleles = length(molecules_split_by_allele)
+    #molecules = record.genotype(sample_id).data.BX
+    #molecules_split_by_allele = molecules.split(",")
+    molecules_split_by_allele = record.genotype(sample_id).data.BX
+    n_alleles = len(molecules_split_by_allele)
     for allele in range(n_alleles):
       if allele not in molecule_dictionary:
         molecule_dictionary[allele] = {}
       molecules_supporting_this_allele = molecules_split_by_allele[allele].split(";")
       for mol_qual in molecules_supporting_this_allele:
-        mol = mol_qual.split("_")[0]
+        molecule = mol_qual.split("_")[0]
         quality_list = mol_qual.split("_")[1:]
         for qual in quality_list:
           if molecule in molecule_dictionary[allele]:
             sys.exit("Whoa, molecule already in molecule dictionary")
           else:
             molecule_dictionary[allele][molecule] = quality_list
-    return(molecule_dictionary)
+    self._molecules = molecule_dictionary
 
-  def extract_variant_phase_set_from_VCF_record(record, sample_id):
+  def extract_variant_phase_set_from_VCF_record(self, record, sample_id):
     # extract the phase set from a pyVCF record
     chrom = record.CHROM
     ps = record.genotype(sample_id).data.PS
-    return(str(chrom) + ":" + str(ps))
+    self._psid = str(chrom) + ":" + str(ps)
 
   def is_phased_heterozygote(self):
   # determine if Varaint refers to a phased heterozygote (return True)
   # otherwise, variants are not useful for phasing
-  if self._is_phased and self._is_heterozygote:
-    return(True)
-  else:
-    return(False)
+    if self._is_phased and self._is_heterozygote:
+      return(True)
+    else:
+      return(False)
 
   def getVariantKey(self):
     key_list = [ self._chr, self._start, self._end, self._REF, ",".join([ str(x) for x in self._ALT ]) ]
@@ -174,8 +175,9 @@ def main():
         error_message.append("The phaseset module requires a --range.")
       if no_error:
         x = phaseset.main(args)
-        for y in x["phase_sets"]:
-          print(x["phase_sets"][y])
+        print(x)
+        #for y in x["phase_sets"]:
+        #  print(x["phase_sets"][y])
       else:
         sys.exit("\n".join(error_message))
     
