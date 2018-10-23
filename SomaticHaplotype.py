@@ -81,9 +81,9 @@ class Variant:
     self._is_filtered = record.is_filtered
     self._psid = extract_variant_phase_set_from_VCF_record(record, sample_id), 
     self._genotype = record.genotype(sample_id).data.GT, 
-    self._phased = record.genotype(sample_id).is_phased,
-    self._heterozygote = record.genotype(sample_id).is_het
-    self._snp = record.is_snp,
+    self._is_phased = record.genotype(sample_id).is_phased,
+    self._is_heterozygote = record.genotype(sample_id).is_het
+    self._is_snp = record.is_snp,
     self._molecules = {}
 
   def extract_variant_phase_set_from_VCF_record():
@@ -104,7 +104,7 @@ class Variant:
   def is_phased_heterozygote(self):
   # determine if Varaint refers to a phased heterozygote (return True)
   # otherwise, variants are not useful for phasing
-  if self._phased and self._heterozygote:
+  if self._is_phased and self._is_heterozygote:
     return(True)
   else:
     return(False)
@@ -113,6 +113,10 @@ class Variant:
     key_list = [ self._chr, self._start, self._end, self._REF, ",".join([ str(x) for x in self._ALT ]) ]
     variant_key = ':'.join( [ str(x) for x in key_list ] )
     return(variant_key)
+
+  def __str__(self):
+    print_result = self.getVariantKey()
+    return(print_result)
 
 def parse_input_arguments():
   
