@@ -78,12 +78,13 @@ class Variant:
     self._ref = record.REF, 
     self._alt = record.ALT, 
     self._filter = record.FILTER,
+    self._is_filtered = record.is_filtered
     self._psid = extract_variant_phase_set_from_VCF_record(record, sample_id), 
     self._genotype = record.genotype(sample_id).data.GT, 
     self._phased = record.genotype(sample_id).is_phased,
     self._heterozygote = record.genotype(sample_id).is_het
-    self._moleculesH1 = {}
-    self._moleculesH2 = {}
+    self._snp = record.is_snp,
+    self._molecules = {}
 
   def extract_variant_phase_set_from_VCF_record():
     # extract the phase set from a pyVCF record
@@ -91,10 +92,14 @@ class Variant:
     ps = record.genotype(sample_id).data.PS
     return(str(chrom) + ":" + str(ps))
 
-  def addMoleculeH1(self, molecule):
-    if molecule 
-
-  def addMoleculeH2(self):
+  def addAlleleMolecule(self, allele, molecule, quality):
+    # allele is 0 for reference, 1 for for first alternate, 2 for second, etc.
+    if allele not in self._molecules:
+      self._molecules[allele] = {}
+    if molecule in self._molecules[allele]:
+      self._molecules[allele][molecule].append(quality)
+    else:
+      self._molecules[allele][molecule] = [quality]
 
   def is_phased_heterozygote(self):
   # determine if Varaint refers to a phased heterozygote (return True)
