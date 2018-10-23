@@ -70,7 +70,7 @@ class PhaseSet:
     return(print_result)
 
 class Variant:
-  def __init__(self, record, sampld_id):
+  def __init__(self, record, sample_id):
     self._sampleid = sample_id
     self._chr = record.CHROM,
     self._start = record.start, 
@@ -84,22 +84,33 @@ class Variant:
     self._is_phased = record.genotype(sample_id).is_phased,
     self._is_heterozygote = record.genotype(sample_id).is_het
     self._is_snp = record.is_snp,
-    self._molecules = {}
+    self._molecules = extract_molecules_from_VCF_record(record, sample_id)
 
-  def extract_variant_phase_set_from_VCF_record():
+  def extract_molecules_from_VCF_record(record, sample_id):
+    # add molecules supporting each allele
+    molecule_dictionary = {}
+    molecules = record.genotype(sample_id).data.BX
+    molecules_split_by_allele = molecules.split(",")
+    n_alleles = length(molecules_split_by_allele)
+    for allele in range(n_alleles):
+      if allele not in molecule_dictionary:
+        molecule_dictionary[allele] = {}
+      molecules_supporting_this_allele = molecules_split_by_allele[allele].split(";")
+      for mol_qual in molecules_supporting_this_allele:
+        mol = mol_qual.split("_")[0]
+        quality_list = mol_qual.split("_")[1:]
+        for qual in quality_list:
+          if molecule in molecule_dictionary[allele]:
+            sys.exit("Whoa, molecule already in molecule dictionary")
+          else:
+            molecule_dictionary[allele][molecule] = quality_list
+    return(molecule_dictionary)
+
+  def extract_variant_phase_set_from_VCF_record(record, sample_id):
     # extract the phase set from a pyVCF record
     chrom = record.CHROM
     ps = record.genotype(sample_id).data.PS
     return(str(chrom) + ":" + str(ps))
-
-  def addAlleleMolecule(self, allele, molecule, quality):
-    # allele is 0 for reference, 1 for for first alternate, 2 for second, etc.
-    if allele not in self._molecules:
-      self._molecules[allele] = {}
-    if molecule in self._molecules[allele]:
-      self._molecules[allele][molecule].append(quality)
-    else:
-      self._molecules[allele][molecule] = [quality]
 
   def is_phased_heterozygote(self):
   # determine if Varaint refers to a phased heterozygote (return True)
