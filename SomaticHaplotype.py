@@ -1,4 +1,5 @@
 import argparse
+import pickle
 import sys
 
 # Import modules from this repo
@@ -59,11 +60,14 @@ class PhaseSet:
     phase_set_length = end_bp - start_bp
     return(phase_set_length)
 
-  def addVariants(self, variant):
-    if variant.getVariantKey in self._variants:
+  def addVariant(self, variant):
+    if variant.getVariantKey() in self._variants:
       sys.exit("Whoa, variant already in PhaseSet.")
     else:
-      self._variants[variant.getVariantKey] = variant
+      self._variants[variant.getVariantKey()] = variant
+
+  def getVariants(self):
+    return(self._variants)
 
   def __str__(self):
     print_result = self._psid + "\t" + self._chr + ":" + str(self._start) + "-" + str(self._end)
@@ -78,13 +82,13 @@ class Variant:
     self._ref = record.REF 
     self._alt = record.ALT 
     self._filter = record.FILTER
-    self._genotype = record.genotype(sample_id).data.GT, 
-    self._is_phased = record.genotype(sample_id).phased,
+    self._genotype = record.genotype(sample_id).data.GT
+    self._is_phased = record.genotype(sample_id).phased
     self._is_heterozygote = record.genotype(sample_id).is_het
-    self._is_snp = record.is_snp,
+    self._is_snp = record.is_snp
     self.extract_variant_phase_set_from_VCF_record(record, sample_id)
     self.extract_molecules_from_VCF_record(record, sample_id)
-
+    self.determine_if_phased_heterozygote()
 
   def extract_molecules_from_VCF_record(self, record, sample_id):
     # add molecules supporting each allele
@@ -92,19 +96,24 @@ class Variant:
     #molecules = record.genotype(sample_id).data.BX
     #molecules_split_by_allele = molecules.split(",")
     molecules_split_by_allele = record.genotype(sample_id).data.BX
+    #print(molecules_split_by_allele)
     n_alleles = len(molecules_split_by_allele)
+    #print(n_alleles)
     for allele in range(n_alleles):
       if allele not in molecule_dictionary:
         molecule_dictionary[allele] = {}
+      #print(molecule_dictionary)
       molecules_supporting_this_allele = molecules_split_by_allele[allele].split(";")
+      #print(molecules_supporting_this_allele)
       for mol_qual in molecules_supporting_this_allele:
         molecule = mol_qual.split("_")[0]
         quality_list = mol_qual.split("_")[1:]
-        for qual in quality_list:
-          if molecule in molecule_dictionary[allele]:
+        if molecule in molecule_dictionary[allele]:
             sys.exit("Whoa, molecule already in molecule dictionary")
-          else:
-            molecule_dictionary[allele][molecule] = quality_list
+        else:
+          #print(quality_list)
+          molecule_dictionary[allele][molecule] = quality_list
+
     self._molecules = molecule_dictionary
 
   def extract_variant_phase_set_from_VCF_record(self, record, sample_id):
@@ -113,16 +122,22 @@ class Variant:
     ps = record.genotype(sample_id).data.PS
     self._psid = str(chrom) + ":" + str(ps)
 
-  def is_phased_heterozygote(self):
+  def determine_if_phased_heterozygote(self):
   # determine if Varaint refers to a phased heterozygote (return True)
   # otherwise, variants are not useful for phasing
     if self._is_phased and self._is_heterozygote:
-      return(True)
+      self._is_phased_heterozygote = True
     else:
-      return(False)
+      self._is_phased_heterozygote = False
+
+  def getPhasedHeterozygoteStatus(self):
+    return(self._is_phased_heterozygote)
+
+  def getVariantPhaseSet(self):
+    return(self._psid)
 
   def getVariantKey(self):
-    key_list = [ self._chr, self._start, self._end, self._REF, ",".join([ str(x) for x in self._ALT ]) ]
+    key_list = [ self._chr, self._start, self._end, self._ref, ",".join([ str(x) for x in self._alt ]) ]
     variant_key = ':'.join( [ str(x) for x in key_list ] )
     return(variant_key)
 
@@ -175,9 +190,6 @@ def main():
         error_message.append("The phaseset module requires a --range.")
       if no_error:
         x = phaseset.main(args)
-        print(x)
-        #for y in x["phase_sets"]:
-        #  print(x["phase_sets"][y])
       else:
         sys.exit("\n".join(error_message))
     
