@@ -1,3 +1,5 @@
+import os
+import pickle
 import pysam
 import vcf
 
@@ -104,6 +106,22 @@ def extract_variants_from_VCF(vcf_filename, sample_id, chr = None, start_bp = No
 
 
 ################################################################################
+# Combined bam phase set and VCF variants functions
+################################################################################
+
+def add_variants_to_phase_sets(bam_phase_set_dictionary, vcf_variants_dictionary):
+  bam_phase_set_dictionary["phase_sets"]["variant_not_phased_heterozygote"] = {}
+  for variant_key in vcf_variants_dictionary:
+    variant_psid = vcf_variants_dictionary[variant_key].getVariantPhaseSet()
+    if variant_psid in bam_phase_set_dictionary["phase_sets"]:
+      bam_phase_set_dictionary["phase_sets"][variant_psid].addVariant(vcf_variants_dictionary[variant_key])
+    elif not vcf_variants_dictionary[variant_key].getPhasedHeterozygoteStatus():
+      bam_phase_set_dictionary["phase_sets"]["variant_not_phased_heterozygote"][variant_key] = vcf_variants_dictionary[variant_key]
+    else:
+      sys.exit("Whoa, variant phase set not in bam phase set dictionary or not not phased heterozygote.")
+
+
+################################################################################
 # main
 ################################################################################   
 
@@ -121,13 +139,13 @@ def main(args):
     end = None
 
   # bam phase set dictionary
-  #bam_phase_set_dictionary = extract_phase_sets_from_bam(
-  #  args.bam,
-  #  chr = chrom, 
-  #  start_bp = start, 
-  #  end_bp = end)
+  bam_phase_set_dictionary = extract_phase_sets_from_bam(
+    args.bam,
+    chr = chrom, 
+    start_bp = start, 
+    end_bp = end)
   
-  # vcf phase set dictionary
+  # vcf variant dictionary
   vcf_variants_dictionary = extract_variants_from_VCF(
     args.vcf,
     args.vcf_id,
@@ -135,9 +153,15 @@ def main(args):
     start_bp = start,
     end_bp = end)
 
-  return(vcf_variants_dictionary)
+  # add variants to bam phase set dictionary
+  add_variants_to_phase_sets(bam_phase_set_dictionary, vcf_variants_dictionary)
 
-  #return(bam_phase_set_dictionary)
+  os.makedirs(args.output_directory, exist_ok = True)
+  output_file_path = os.path.join(args.output_directory, args.output_prefix + ".phaseset.pkl")
+  output_file = open(output_file_path, 'wb')
+  pickle.dump(bam_phase_set_dictionary, output_file, pickle.HIGHEST_PROTOCOL)
+  pickle.dump(vcf_variants_dictionary, output_file, pickle.HIGHEST_PROTOCOL)
+  output_file.close()
 
 if __name__ == '__main__':
   main(args)
