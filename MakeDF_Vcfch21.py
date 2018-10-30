@@ -54,4 +54,10 @@ df['PatientCount'] = (df['numberHomozygousRef'] + df['numberHomozygousAlt'] + df
 
 df['MutantAlleleFrequency'] = (df['numHet'] + (2*df['numberHomozygousAlt']))/(2*(df['numberHomozygousRef'] + df['numberHomozygousAlt'] + df['numHet']))
 
+#one method of doing it
+# outfile = open('/diskmnt/Projects/Users/jbaral/SomaticHaplotypeFiles/testHaplotypeText.txt', 'w')
+# for line in df:
+#     outfile.write(
 
+#I will try just outputting a csv file
+df.to_csv('/diskmnt/Projects/Users/jbaral/SomaticHaplotypeFiles/testCSV.csv', sep=',')
