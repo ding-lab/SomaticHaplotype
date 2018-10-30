@@ -34,20 +34,16 @@ variantHet_list = []
 variantHomRef_list = []
 variantHomAlt_list = []
 
-i  = 0
+
 for record in vcf_reader:
-    if (i < 10000):
-        if(record.is_snp):
-            variantPosition_list.append(record.POS)
-            variantID_list.append(record.ID)
-            variantRef_list.append(record.REF)
-            variantAlt_list.append(record.ALT)
-            variantHet_list.append(record.num_het)
-            variantHomRef_list.append(record.num_hom_ref)
-            variantHomAlt_list.append(record.num_hom_alt)
-            i += 1
-    else:
-        break
+    if(record.is_snp):
+        variantPosition_list.append(record.POS)
+        variantID_list.append(record.ID)
+        variantRef_list.append(record.REF)
+        variantAlt_list.append(record.ALT)
+        variantHet_list.append(record.num_het)
+        variantHomRef_list.append(record.num_hom_ref)
+        variantHomAlt_list.append(record.num_hom_alt)
 
 
 df = pd.DataFrame({'Position': variantPosition_list, 'Chrom': "21", 'ID': variantID_list, 'Reference': variantRef_list, \
@@ -58,10 +54,4 @@ df['PatientCount'] = (df['numberHomozygousRef'] + df['numberHomozygousAlt'] + df
 
 df['MutantAlleleFrequency'] = (df['numHet'] + (2*df['numberHomozygousAlt']))/(2*(df['numberHomozygousRef'] + df['numberHomozygousAlt'] + df['numHet']))
 
-#one method of doing it
-# outfile = open('/diskmnt/Projects/Users/jbaral/SomaticHaplotypeFiles/testHaplotypeText.txt', 'w')
-# for line in df:
-#     outfile.write(
-
-#I will try just outputting a csv file
-df.to_csv('/diskmnt/Projects/Users/jbaral/SomaticHaplotypeFiles/testCSV.csv', sep=',')
+df.to_csv('/diskmnt/Projects/Users/jbaral/SomaticHaplotypeFiles/finalCSV_chr21_phase3v5a.csv', sep=',')
