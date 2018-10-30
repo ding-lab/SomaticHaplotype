@@ -17,6 +17,8 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy import stats
 
+print("starting program")
+
 #in VCFs, the rows represent variants and the columns represent patient samples
 
 #insert the pathway to the file in katmai or denali
