@@ -22,6 +22,8 @@ from scipy import stats
 #insert the pathway to the file in katmai or denali
 vcf_reader = vcf.Reader(open('/diskmnt/Projects/SomaticHaplotype/Data/1000G/chr21.1kg.phase3.v5a.vcf.gz.tbi', 'r'))
 
+print("got the vcf in")
+
 variantPosition_list = []
 variantID_list = []
 variantRef_list = []
