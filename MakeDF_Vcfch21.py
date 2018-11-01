@@ -68,4 +68,4 @@ df['PatientCount'] = (df['numberHomozygousRef'] + df['numberHomozygousAlt'] + df
 
 df['MutantAlleleFrequency'] = (df['numHet'] + (2*df['numberHomozygousAlt']))/(2*(df['numberHomozygousRef'] + df['numberHomozygousAlt'] + df['numHet']))
 
-df.to_csv('/diskmnt/Projects/Users/jbaral/SomaticHaplotypeFiles/finalCSV_chr21_phase3v5a.csv', sep=',')
+df.to_csv('/diskmnt/Projects/Users/jbaral/SomaticHaplotypeFiles/finalCSV_chr21_phase3v5a_110118.csv', sep=',')
