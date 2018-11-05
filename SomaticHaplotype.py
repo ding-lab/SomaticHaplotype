@@ -3,7 +3,7 @@ import sys
 
 # Import modules from this repo
 import phaseset
-#import summarize
+import summarize
 #import visualize
 #import extend
 #import somatic
@@ -191,7 +191,14 @@ def main():
         x = phaseset.main(args)
       else:
         sys.exit("\n".join(error_message))
-    
+    elif args.module == "summarize":
+      if args.ps1 is None:
+        no_error = False
+        error_message.append("The summarize module requires a --ps1 (phase set file)."
+      if no_error:
+        x = summarize.main(args)
+      else:
+        sys.exit("\n."join(error_message))
     else:
       print("Not X")
   
