@@ -194,11 +194,11 @@ def main():
     elif args.module == "summarize":
       if args.ps1 is None:
         no_error = False
-        error_message.append("The summarize module requires a --ps1 (phase set file)."
+        error_message.append("The summarize module requires a --ps1 (phase set file).")
       if no_error:
         x = summarize.main(args)
       else:
-        sys.exit("\n."join(error_message))
+        sys.exit("\n".join(error_message))
     else:
       print("Not X")
   

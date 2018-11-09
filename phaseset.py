@@ -61,7 +61,7 @@ def extract_phase_sets_from_bam(bam_filename, chr = None, start_bp = None, end_b
           phase_set_dict["phase_sets"][ps_id].addSupportH2()
           phase_set_dict["phase_sets"][ps_id].addMoleculeH2(read_info["MI"])
         else:
-          sys.exit("Whoa no H1 or H2 support for\n" + read)
+          sys.exit("Whoa no H1 or H2 support for\n" + str(read))
 
       else:
       
@@ -79,7 +79,7 @@ def extract_phase_sets_from_bam(bam_filename, chr = None, start_bp = None, end_b
           phase_set_dict["phase_sets"][ps_id].addSupportH2()
           phase_set_dict["phase_sets"][ps_id].addMoleculeH2(read_info["MI"])
         else:
-          sys.exit("Whoa no H1 or H2 support for\n" + read)
+          sys.exit("Whoa no H1 or H2 support for\n" + str(read))
         
   samfile.close()
   return(phase_set_dict)
@@ -98,7 +98,7 @@ def extract_variants_from_VCF(vcf_filename, sample_id, chr = None, start_bp = No
   for record in this_vcf.fetch( str(chr) , start_bp, end_bp ): # loop over each record in VCF
     this_variant = Variant(record, sample_id)
     if this_variant.getVariantKey() in variant_dict: # check if variant already in dictionary
-      sys.exit("Whoa variant already exists in variant dictionary\n" + record)
+      sys.exit("Whoa variant already exists in variant dictionary\n" + str(record))
     else:
       variant_dict[this_variant.getVariantKey()] = this_variant
 
@@ -119,7 +119,6 @@ def add_variants_to_phase_sets(bam_phase_set_dictionary, vcf_variants_dictionary
       bam_phase_set_dictionary["phase_sets"]["variant_not_phased_heterozygote"][variant_key] = vcf_variants_dictionary[variant_key]
     else:
       sys.exit("Whoa, variant phase set not in bam phase set dictionary or not not phased heterozygote.")
-
 
 ################################################################################
 # main
