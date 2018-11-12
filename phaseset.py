@@ -99,7 +99,6 @@ def extract_variants_from_VCF(vcf_filename, sample_id, chr = None, start_bp = No
     this_variant = Variant(record, sample_id)
     if this_variant.getVariantKey() in variant_dict: # check if variant already in dictionary
       variant_dict[this_variant.getVariantKey()].append(this_variant)
-      #sys.exit("Whoa variant already exists in variant dictionary\n" + str(record))
     else:
       variant_dict[this_variant.getVariantKey()] = [this_variant]
 
