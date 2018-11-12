@@ -112,18 +112,22 @@ def extract_variants_from_VCF(vcf_filename, sample_id, chr = None, start_bp = No
 
 def add_variants_to_phase_sets(bam_phase_set_dictionary, vcf_variants_dictionary):
   bam_phase_set_dictionary["phase_sets"]["variant_not_phased_heterozygote"] = {}
+  bam_phase_set_dictionary["phase_sets"]["variant_phase_set_not_in_bam"] = {}
   for variant_key in vcf_variants_dictionary:
     for variant in vcf_variants_dictionary[variant_key]:
       variant_psid = variant.getVariantPhaseSet()
-      if variant_psid in bam_phase_set_dictionary["phase_sets"]:
-        bam_phase_set_dictionary["phase_sets"][variant_psid].addVariant(variant)
-      elif not variant.getPhasedHeterozygoteStatus():
+      if not variant.getPhasedHeterozygoteStatus():
         if variant_key in bam_phase_set_dictionary["phase_sets"]["variant_not_phased_heterozygote"]:
           bam_phase_set_dictionary["phase_sets"]["variant_not_phased_heterozygote"][variant_key].append(variant)
         else:
           bam_phase_set_dictionary["phase_sets"]["variant_not_phased_heterozygote"][variant_key] = [variant]
+      elif variant_psid in bam_phase_set_dictionary["phase_sets"]:
+        bam_phase_set_dictionary["phase_sets"][variant_psid].addVariant(variant)
       else:
-        sys.exit("Whoa, variant phase set not in bam phase set dictionary or not not phased heterozygote.")
+        if variant_key in bam_phase_set_dictionary["phase_sets"]["variant_phase_set_not_in_bam"]:
+          bam_phase_set_dictionary["phase_sets"]["variant_phase_set_not_in_bam"][variant_key].append(variant)
+        else:
+          bam_phase_set_dictionary["phase_sets"]["variant_phase_set_not_in_bam"][variant_key] = [variant]
 
 ################################################################################
 # main
