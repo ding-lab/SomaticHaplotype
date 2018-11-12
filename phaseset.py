@@ -98,9 +98,10 @@ def extract_variants_from_VCF(vcf_filename, sample_id, chr = None, start_bp = No
   for record in this_vcf.fetch( str(chr) , start_bp, end_bp ): # loop over each record in VCF
     this_variant = Variant(record, sample_id)
     if this_variant.getVariantKey() in variant_dict: # check if variant already in dictionary
-      sys.exit("Whoa variant already exists in variant dictionary\n" + str(record))
+      variant_dict[this_variant.getVariantKey()].append(this_variant)
+      #sys.exit("Whoa variant already exists in variant dictionary\n" + str(record))
     else:
-      variant_dict[this_variant.getVariantKey()] = this_variant
+      variant_dict[this_variant.getVariantKey()] = [this_variant]
 
   return(variant_dict)
 
@@ -112,13 +113,17 @@ def extract_variants_from_VCF(vcf_filename, sample_id, chr = None, start_bp = No
 def add_variants_to_phase_sets(bam_phase_set_dictionary, vcf_variants_dictionary):
   bam_phase_set_dictionary["phase_sets"]["variant_not_phased_heterozygote"] = {}
   for variant_key in vcf_variants_dictionary:
-    variant_psid = vcf_variants_dictionary[variant_key].getVariantPhaseSet()
-    if variant_psid in bam_phase_set_dictionary["phase_sets"]:
-      bam_phase_set_dictionary["phase_sets"][variant_psid].addVariant(vcf_variants_dictionary[variant_key])
-    elif not vcf_variants_dictionary[variant_key].getPhasedHeterozygoteStatus():
-      bam_phase_set_dictionary["phase_sets"]["variant_not_phased_heterozygote"][variant_key] = vcf_variants_dictionary[variant_key]
-    else:
-      sys.exit("Whoa, variant phase set not in bam phase set dictionary or not not phased heterozygote.")
+    for variant in vcf_variants_dictionary[variant_key]:
+      variant_psid = variant.getVariantPhaseSet()
+      if variant_psid in bam_phase_set_dictionary["phase_sets"]:
+        bam_phase_set_dictionary["phase_sets"][variant_psid].addVariant(variant)
+      elif not variant.getPhasedHeterozygoteStatus():
+        if variant_key in bam_phase_set_dictionary["phase_sets"]["variant_not_phased_heterozygote"]:
+          bam_phase_set_dictionary["phase_sets"]["variant_not_phased_heterozygote"][variant_key].append(variant)
+        else:
+          bam_phase_set_dictionary["phase_sets"]["variant_not_phased_heterozygote"][variant_key] = [variant]
+      else:
+        sys.exit("Whoa, variant phase set not in bam phase set dictionary or not not phased heterozygote.")
 
 ################################################################################
 # main

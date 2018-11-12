@@ -61,9 +61,9 @@ class PhaseSet:
 
   def addVariant(self, variant):
     if variant.getVariantKey() in self._variants:
-      sys.exit("Whoa, variant already in PhaseSet.")
+      self._variants[variant.getVariantKey()].append(variant)
     else:
-      self._variants[variant.getVariantKey()] = variant
+      self._variants[variant.getVariantKey()] = [variant]
 
   def getVariants(self):
     return(self._variants)
@@ -92,25 +92,18 @@ class Variant:
   def extract_molecules_from_VCF_record(self, record, sample_id):
     # add molecules supporting each allele
     molecule_dictionary = {}
-    #molecules = record.genotype(sample_id).data.BX
-    #molecules_split_by_allele = molecules.split(",")
     molecules_split_by_allele = record.genotype(sample_id).data.BX
-    #print(molecules_split_by_allele)
     n_alleles = len(molecules_split_by_allele)
-    #print(n_alleles)
     for allele in range(n_alleles):
       if allele not in molecule_dictionary:
         molecule_dictionary[allele] = {}
-      #print(molecule_dictionary)
       molecules_supporting_this_allele = molecules_split_by_allele[allele].split(";")
-      #print(molecules_supporting_this_allele)
       for mol_qual in molecules_supporting_this_allele:
         molecule = mol_qual.split("_")[0]
         quality_list = mol_qual.split("_")[1:]
         if molecule in molecule_dictionary[allele]:
             sys.exit("Whoa, molecule already in molecule dictionary")
         else:
-          #print(quality_list)
           molecule_dictionary[allele][molecule] = quality_list
 
     self._molecules = molecule_dictionary
