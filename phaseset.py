@@ -128,6 +128,10 @@ def add_variants_to_phase_sets(bam_phase_set_dictionary, vcf_variants_dictionary
           bam_phase_set_dictionary["phase_sets"]["variant_phase_set_not_in_bam"][variant_key].append(variant)
         else:
           bam_phase_set_dictionary["phase_sets"]["variant_phase_set_not_in_bam"][variant_key] = [variant]
+  for psid in bam_phase_set_dictionary["phase_sets"]:
+    if psid not in ["variant_not_phased_heterozygote", "variant_phase_set_not_in_bam"]:
+      bam_phase_set_dictionary["phase_sets"][psid].addFirstVariantPosition()
+      bam_phase_set_dictionary["phase_sets"][psid].addLastVariantPosition()
 
 ################################################################################
 # main

@@ -14,6 +14,8 @@ class PhaseSet:
     self._chr = chromosome
     self._start = int(start_bp)
     self._end = int(end_bp)
+    self._firstVariantPosition = None
+    self._lastVariantPosition = None
     self._key = chromosome + ":" + ps_id
     self._n_single_end_reads = 0
     self._n_support_H1 = 0
@@ -67,6 +69,28 @@ class PhaseSet:
 
   def getVariants(self):
     return(self._variants)
+
+  def addFirstVariantPosition(self):
+    min_variant_position = float("inf")
+    for variant_key in self.getVariants():
+      for variant in self.getVariants()[variant_key]:
+        if int(variant.getStartPosition()) < min_variant_position:
+          min_variant_position = int(variant.getStartPosition())
+    self._firstVariantPosition = min_variant_position
+
+  def addLastVariantPosition(self):
+    max_variant_position = float("-inf")
+    for variant_key in self.getVariants():
+      for variant in self.getVariants()[variant_key]:
+        if int(variant.getStartPosition()) > max_variant_position:
+          max_variant_position = int(variant.getStartPosition())
+    self._lastVariantPosition = max_variant_position
+
+  def getFirstVariantPosition(self):
+    return(self._firstVariantPosition)
+
+  def getLastVariantPosition(self):
+    return(self._lastVariantPosition)
 
   def __str__(self):
     print_result = self._psid + "\t" + self._chr + ":" + str(self._start) + "-" + str(self._end)
@@ -132,6 +156,9 @@ class Variant:
     key_list = [ self._chr, self._start, self._end, self._ref, ",".join([ str(x) for x in self._alt ]) ]
     variant_key = ':'.join( [ str(x) for x in key_list ] )
     return(variant_key)
+
+  def getStartPosition(self):
+    return(self._start)
 
   def __str__(self):
     print_result = self.getVariantKey()
