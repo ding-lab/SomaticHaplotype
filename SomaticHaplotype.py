@@ -57,8 +57,11 @@ class PhaseSet:
     else:
       self._moleculesH2[molecule] = 1
 
-  def length(self, start_bp, end_bp):
-    phase_set_length = end_bp - start_bp
+  ##GD
+  # def length(self, start_bp, end_bp):
+    # phase_set_length = end_bp - start_bp
+  def length(self):
+    phase_set_length = self._end - self._start
     return(phase_set_length)
 
   def addVariant(self, variant):
