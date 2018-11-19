@@ -60,9 +60,9 @@ i = 0
 for chromosome in chromosomes_list:
     path = 'chr%s.1kg.phase3.v5a.vcf.gz' % chromosome
     #print path
-    filename = '/diskmnt/Projects/SomaticHaplotype/Data/1000G/%s' % path
-    #print filename
-    vcf_reader = vcf.Reader(filename)
+    fileName = '/diskmnt/Projects/SomaticHaplotype/Data/1000G/%s' % path
+    #print fileName
+    vcf_reader = vcf.Reader(filename = fileName)
     
     variantPosition_list = []
     variantID_list = []
