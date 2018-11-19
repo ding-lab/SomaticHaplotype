@@ -20,8 +20,10 @@ class PhaseSet:
     self._n_single_end_reads = 0
     self._n_support_H1 = 0
     self._n_support_H2 = 0
-    self._moleculesH1 = {}
-    self._moleculesH2 = {}
+    self._n_variants_H1 = 0
+    self._n_variants_H2 = 0
+    self._molecules_H1 = {}
+    self._molecules_H2 = {}
     self._variants = {}
 
   def psStart(self):
@@ -46,26 +48,38 @@ class PhaseSet:
     self._n_support_H2 += 1
 
   def addMoleculeH1(self, molecule):
-    if molecule in self._moleculesH1:
-      self._moleculesH1[molecule] += 1
+    if molecule in self._molecules_H1:
+      self._molecules_H1[molecule] += 1
     else:
-      self._moleculesH1[molecule] = 1
+      self._molecules_H1[molecule] = 1
 
   def addMoleculeH2(self, molecule):
-    if molecule in self._moleculesH2:
-      self._moleculesH2[molecule] += 1
+    if molecule in self._molecules_H2:
+      self._molecules_H2[molecule] += 1
     else:
-      self._moleculesH2[molecule] = 1
+      self._molecules_H2[molecule] = 1
 
   def length(self, start_bp, end_bp):
     phase_set_length = end_bp - start_bp
     return(phase_set_length)
+
+  def addVariantH1(self):
+    self._n_variants_H1 += 1
+
+  def addVariantH2(self):
+    self._n_variants_H2 += 1
 
   def addVariant(self, variant):
     if variant.getVariantKey() in self._variants:
       self._variants[variant.getVariantKey()].append(variant)
     else:
       self._variants[variant.getVariantKey()] = [variant]
+
+    if variant.getPhasedHeterozygoteStatus():
+      if variant.getGenotype()[0] != 0:
+        self._n_variants_H1 += 1
+      elif variant.getGenotype()[2] != 0:
+        self._n_variants_H2 += 1
 
   def getVariants(self):
     return(self._variants)
@@ -76,6 +90,8 @@ class PhaseSet:
       for variant in self.getVariants()[variant_key]:
         if int(variant.getStartPosition()) < min_variant_position:
           min_variant_position = int(variant.getStartPosition())
+    if min_variant_position == float("inf"):
+      min_variant_position = "NA"
     self._firstVariantPosition = min_variant_position
 
   def addLastVariantPosition(self):
@@ -84,6 +100,8 @@ class PhaseSet:
       for variant in self.getVariants()[variant_key]:
         if int(variant.getStartPosition()) > max_variant_position:
           max_variant_position = int(variant.getStartPosition())
+    if max_variant_position == float("-inf"):
+      max_variant_position = "NA"
     self._lastVariantPosition = max_variant_position
 
   def getFirstVariantPosition(self):
@@ -159,6 +177,9 @@ class Variant:
 
   def getStartPosition(self):
     return(self._start)
+
+  def getGenotype(self):
+    return(self._genotype)
 
   def __str__(self):
     print_result = self.getVariantKey()
