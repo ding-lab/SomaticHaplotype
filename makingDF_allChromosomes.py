@@ -35,14 +35,11 @@ filename_list = ['chr1.1kg.phase3.v5a.vcf.gz', 'chr2.1kg.phase3.v5a.vcf.gz',
 
 chromosomes_list = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', 
                     '16', '17', '18', '19', '20', '21', '22', 'X']
-                 
-i = 0
+
 
 for chromosome in chromosomes_list:
     path = 'chr%s.1kg.phase3.v5a.vcf.gz' % chromosome
-    #print path
     fileName = '/diskmnt/Projects/SomaticHaplotype/Data/1000G/%s' % path
-    #print fileName
     vcf_reader = vcf.Reader(filename = fileName)
     
     variantPosition_list = []
@@ -53,31 +50,15 @@ for chromosome in chromosomes_list:
     variantHomRef_list = []
     variantHomAlt_list = []
     
-# =============================================================================
-#     for record in vcf_reader:
-#         if(record.is_snp):
-#             variantPosition_list.append(record.POS)
-#             variantID_list.append(record.ID)
-#             variantRef_list.append(record.REF)
-#             variantAlt_list.append(record.ALT)
-#             variantHet_list.append(record.num_het)
-#             variantHomRef_list.append(record.num_hom_ref)
-#             variantHomAlt_list.append(record.num_hom_alt)
-# =============================================================================
-    
     for record in vcf_reader:
-        if (i < 10):
-            if(record.is_snp):
-                variantPosition_list.append(record.POS)
-                variantID_list.append(record.ID)
-                variantRef_list.append(record.REF)
-                variantAlt_list.append(record.ALT)
-                variantHet_list.append(record.num_het)
-                variantHomRef_list.append(record.num_hom_ref)
-                variantHomAlt_list.append(record.num_hom_alt)
-                i += 1
-        else:
-            break
+        if(record.is_snp):
+            variantPosition_list.append(record.POS)
+            variantID_list.append(record.ID)
+            variantRef_list.append(record.REF)
+            variantAlt_list.append(record.ALT)
+            variantHet_list.append(record.num_het)
+            variantHomRef_list.append(record.num_hom_ref)
+            variantHomAlt_list.append(record.num_hom_alt)
 
     df = pd.DataFrame({'Position': variantPosition_list, 'Chrom': chromosome, 'ID': variantID_list, 'Reference': variantRef_list, \
                        'Alternate': variantAlt_list, 'numHet': variantHet_list, \
@@ -88,8 +69,6 @@ for chromosome in chromosomes_list:
     df['MutantAlleleFrequency'] = (df['numHet'] + (2*df['numberHomozygousAlt']))/(2*(df['numberHomozygousRef'] + df['numberHomozygousAlt'] + df['numHet']))
     
     path_underscores = path.replace(".", "_")
-    fileNameString  = '/diskmnt/Projects/Users/jbaral/SomaticHaplotypeFiles/testCSV2_%s.csv' % path_underscores
+    fileNameString  = '/diskmnt/Projects/Users/jbaral/SomaticHaplotypeFiles/finalCSV_112018_%s.csv' % path_underscores
     df.to_csv(fileNameString, sep=',')
-    i = 0
-
 
