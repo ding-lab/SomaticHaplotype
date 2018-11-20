@@ -9,6 +9,8 @@ Created on Tues Nov 6 1:36 PM
 #generating the data table with all the VCF relevant information 
 #for each vcf file for each chromosome on 1000G
 
+#last edited: nov 20
+
 import vcf
 import pysam
 import vcf.filters
@@ -31,29 +33,8 @@ filename_list = ['chr0.1kg.phase3.v5a.vcf.gz', 'chr1.1kg.phase3.v5a.vcf.gz', 'ch
                  'chr18.1kg.phase3.v5a.vcf.gz', 'chr19.1kg.phase3.v5a.vcf.gz', 'chr20.1kg.phase3.v5a.vcf.gz',
                  'chr21.1kg.phase3.v5a.vcf.gz', 'chr22.1kg.phase3.v5a.vcf.gz', 'chrX.1kg.phase3.v5a.vcf.gz']
 
-chromosomes_list = ['0',
-'1',
-'2',
-'3',
-'4',
-'5',
-'6',
-'7',
-'8',
-'9',
-'10',
-'11',
-'12',
-'13',
-'14',
-'15',
-'16',
-'17',
-'18',
-'19',
-'20',
-'21',
-'22', 'X']
+chromosomes_list = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', 
+                    '16', '17', '18', '19', '20', '21', '22', 'X']
                  
 i = 0
 
@@ -85,7 +66,7 @@ for chromosome in chromosomes_list:
 # =============================================================================
     
     for record in vcf_reader:
-        if (i < 100):
+        if (i < 10):
             if(record.is_snp):
                 variantPosition_list.append(record.POS)
                 variantID_list.append(record.ID)
@@ -107,7 +88,8 @@ for chromosome in chromosomes_list:
     df['MutantAlleleFrequency'] = (df['numHet'] + (2*df['numberHomozygousAlt']))/(2*(df['numberHomozygousRef'] + df['numberHomozygousAlt'] + df['numHet']))
     
     path_underscores = path.replace(".", "_")
-    fileNameString  = '/diskmnt/Projects/Users/jbaral/SomaticHaplotypeFiles/testCSV_%s.csv' % path_underscores
+    fileNameString  = '/diskmnt/Projects/Users/jbaral/SomaticHaplotypeFiles/testCSV2_%s.csv' % path_underscores
     df.to_csv(fileNameString, sep=',')
+    i = 0
 
 
