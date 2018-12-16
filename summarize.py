@@ -25,15 +25,15 @@ def extract_phase_sets(bam_phase_set_dictionary, chrom, start, end):
       end = float('inf')
     for psid in phase_sets.keys():
       if psid not in ["variant_not_phased_heterozygote", "variant_phase_set_not_in_bam"] \
-        and phase_sets[psid]._chr == chrom and phase_sets[psid].psStart() >= start and phase_sets[psid].psEnd() <= end:
+        and phase_sets[psid].return_Chromosome() == chrom and phase_sets[psid].return_Start() >= start and phase_sets[psid].return_End() <= end:
         target_phase_sets[psid] = phase_sets[psid]
   return target_phase_sets
 
-# Find the distribution of phase set lengths, summary stats
+# Find the distribution of phase set lengths (defined by reads), summary stats
 def summarize_phase_set_lengths(target_phase_sets):
   phase_set_lengths = []
   for psid in target_phase_sets.keys():
-    phase_set_lengths.append(target_phase_sets[psid].length())
+    phase_set_lengths.append(target_phase_sets[psid].return_LengthReads())
   summary_stats = pd.Series(phase_set_lengths).describe()
   print("--Distribution of phase set lengths--")
   print(summary_stats)
@@ -67,13 +67,6 @@ def compute_N50(phase_set_lengths):
   print("Miller-style:", N50)
   return N50
 
-# Find number of variants on H1, H2, unphased, and total
-# def summarize_phase_set_variants(target_phase_sets):
-#   num_H1 = 0
-#   num_H2 = 0
-#   num_unphased = 0
-#   for psid in target_phase_sets.keys():
-
 # Write output file with summary stats
 def write_output_summary(output_summary_file, phase_set_lengths_summary_stats, N50):
   output_summary_file.write("\t".join(["", "count", "mean", "std", "min", "25%", "50%", "75%", "max"])+"\n")
@@ -83,12 +76,12 @@ def write_output_summary(output_summary_file, phase_set_lengths_summary_stats, N
 
 # Write output file with info of each phase set
 def write_output_ps(output_ps_file, target_phase_sets):
-  output_ps_file.write("\t".join(["ps_id", "chr", "start", "end", "length", "first_variant_pos", "last_variant_pos", \
-    "n_variants_H1", "n_variants_H2", "n_variants_unphased", "n_variants_total"])+"\n")
+  output_ps_file.write("\t".join(["ps_id", "chr", "start", "end", "length_reads", "first_variant_pos", "last_variant_pos", \
+    "length_variants", "n_variants_H1", "n_variants_H2", "n_variants_total"])+"\n")
   for psid in target_phase_sets.keys():
     ps = target_phase_sets[psid]
-    output_ps_file.write("\t".join([psid, ps._chr, str(ps._start), str(ps._end), str(ps.length()), str(ps.getFirstVariantPosition()), str(ps.getLastVariantPosition()), \
-      "NA", "NA", "NA", str(len(ps.getVariants().keys()))])+"\n")
+    output_ps_file.write("\t".join([psid, ps.return_Chromosome(), str(ps.return_Start()), str(ps.return_End()), str(ps.return_LengthReads()), str(ps.return_FirstVariantPosition()), str(ps.return_LastVariantPosition()), \
+      str(ps.return_LengthVariants()), str(ps.return_nVariantsH1()), str(ps.return_nVariantsH2()), str(len(ps.return_Variants().keys()))])+"\n")
 
 
 ################################################################################
