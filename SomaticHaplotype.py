@@ -79,9 +79,6 @@ class PhaseSet:
       elif variant.return_Genotype()[2] != 0:
         self._n_variants_H2 += 1  
 
-  def length(self, start_bp, end_bp):
-    phase_set_length = end_bp - start_bp
-
   def add_VariantH1(self):
     self._n_variants_H1 += 1
 
