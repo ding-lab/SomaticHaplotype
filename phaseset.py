@@ -47,19 +47,19 @@ def extract_phase_sets_from_bam(bam_filename, chr = None, start_bp = None, end_b
 
       if ps_id in phase_set_dict["phase_sets"]:
         
-        if int(read.reference_start) < phase_set_dict["phase_sets"][ps_id].psStart():
-          phase_set_dict["phase_sets"][ps_id].updateStart(read.reference_start)
-        if int(read.reference_end) > phase_set_dict["phase_sets"][ps_id].psEnd():
-          phase_set_dict["phase_sets"][ps_id].updateEnd(read.reference_end)
+        if int(read.reference_start) < phase_set_dict["phase_sets"][ps_id].return_Start():
+          phase_set_dict["phase_sets"][ps_id].update_Start(read.reference_start)
+        if int(read.reference_end) > phase_set_dict["phase_sets"][ps_id].return_End():
+          phase_set_dict["phase_sets"][ps_id].update_End(read.reference_end)
         
-        phase_set_dict["phase_sets"][ps_id].addSingleEndRead()
+        phase_set_dict["phase_sets"][ps_id].add_SingleEndRead()
 
         if read_info["HP"] == 1:
-          phase_set_dict["phase_sets"][ps_id].addSupportH1()
-          phase_set_dict["phase_sets"][ps_id].addMoleculeH1(read_info["MI"])
+          phase_set_dict["phase_sets"][ps_id].add_SupportH1()
+          phase_set_dict["phase_sets"][ps_id].add_MoleculeH1(read_info["MI"])
         elif read_info["HP"] == 2:
-          phase_set_dict["phase_sets"][ps_id].addSupportH2()
-          phase_set_dict["phase_sets"][ps_id].addMoleculeH2(read_info["MI"])
+          phase_set_dict["phase_sets"][ps_id].add_SupportH2()
+          phase_set_dict["phase_sets"][ps_id].add_MoleculeH2(read_info["MI"])
         else:
           sys.exit("Whoa no H1 or H2 support for\n" + str(read))
 
@@ -70,14 +70,14 @@ def extract_phase_sets_from_bam(bam_filename, chr = None, start_bp = None, end_b
           start_bp = int(read.reference_start), 
           end_bp = int(read.reference_end))
 
-        phase_set_dict["phase_sets"][ps_id].addSingleEndRead()
+        phase_set_dict["phase_sets"][ps_id].add_SingleEndRead()
 
         if read_info["HP"] == 1:
-          phase_set_dict["phase_sets"][ps_id].addSupportH1()
-          phase_set_dict["phase_sets"][ps_id].addMoleculeH1(read_info["MI"])
+          phase_set_dict["phase_sets"][ps_id].add_SupportH1()
+          phase_set_dict["phase_sets"][ps_id].add_MoleculeH1(read_info["MI"])
         elif read_info["HP"] == 2:
-          phase_set_dict["phase_sets"][ps_id].addSupportH2()
-          phase_set_dict["phase_sets"][ps_id].addMoleculeH2(read_info["MI"])
+          phase_set_dict["phase_sets"][ps_id].add_SupportH2()
+          phase_set_dict["phase_sets"][ps_id].add_MoleculeH2(read_info["MI"])
         else:
           sys.exit("Whoa no H1 or H2 support for\n" + str(read))
         
@@ -97,10 +97,10 @@ def extract_variants_from_VCF(vcf_filename, sample_id, chr = None, start_bp = No
 
   for record in this_vcf.fetch( str(chr) , start_bp, end_bp ): # loop over each record in VCF
     this_variant = Variant(record, sample_id)
-    if this_variant.getVariantKey() in variant_dict: # check if variant already in dictionary
-      variant_dict[this_variant.getVariantKey()].append(this_variant)
+    if this_variant.return_VariantKey() in variant_dict: # check if variant already in dictionary
+      variant_dict[this_variant.return_VariantKey()].append(this_variant)
     else:
-      variant_dict[this_variant.getVariantKey()] = [this_variant]
+      variant_dict[this_variant.return_VariantKey()] = [this_variant]
 
   return(variant_dict)
 
@@ -114,14 +114,14 @@ def add_variants_to_phase_sets(bam_phase_set_dictionary, vcf_variants_dictionary
   bam_phase_set_dictionary["phase_sets"]["variant_phase_set_not_in_bam"] = {}
   for variant_key in vcf_variants_dictionary:
     for variant in vcf_variants_dictionary[variant_key]:
-      variant_psid = variant.getVariantPhaseSet()
-      if not variant.getPhasedHeterozygoteStatus():
+      variant_psid = variant.return_VariantPhaseSet()
+      if not variant.return_IsPhasedHeterozygote():
         if variant_key in bam_phase_set_dictionary["phase_sets"]["variant_not_phased_heterozygote"]:
           bam_phase_set_dictionary["phase_sets"]["variant_not_phased_heterozygote"][variant_key].append(variant)
         else:
           bam_phase_set_dictionary["phase_sets"]["variant_not_phased_heterozygote"][variant_key] = [variant]
       elif variant_psid in bam_phase_set_dictionary["phase_sets"]:
-        bam_phase_set_dictionary["phase_sets"][variant_psid].addVariant(variant)
+        bam_phase_set_dictionary["phase_sets"][variant_psid].add_Variant(variant)
       else:
         if variant_key in bam_phase_set_dictionary["phase_sets"]["variant_phase_set_not_in_bam"]:
           bam_phase_set_dictionary["phase_sets"]["variant_phase_set_not_in_bam"][variant_key].append(variant)
@@ -129,8 +129,8 @@ def add_variants_to_phase_sets(bam_phase_set_dictionary, vcf_variants_dictionary
           bam_phase_set_dictionary["phase_sets"]["variant_phase_set_not_in_bam"][variant_key] = [variant]
   for psid in bam_phase_set_dictionary["phase_sets"]:
     if psid not in ["variant_not_phased_heterozygote", "variant_phase_set_not_in_bam"]:
-      bam_phase_set_dictionary["phase_sets"][psid].addFirstVariantPosition()
-      bam_phase_set_dictionary["phase_sets"][psid].addLastVariantPosition()
+      bam_phase_set_dictionary["phase_sets"][psid].add_FirstVariantPosition()
+      bam_phase_set_dictionary["phase_sets"][psid].add_LastVariantPosition()
 
 ################################################################################
 # main
