@@ -112,7 +112,11 @@ class PhaseSet:
     return(self._end - self._start)
 
   def return_LengthVariants(self):
-    return(self._lastVariantPosition - self._firstVariantPosition)
+    # return(self._lastVariantPosition - self._firstVariantPosition)
+    try:
+      return(self._lastVariantPosition - self._firstVariantPosition)
+    except:
+      return("NA")
 
   def return_MoleculesH1(self):
     return(self._moleculesH1)
