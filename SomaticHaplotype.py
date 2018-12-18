@@ -6,7 +6,7 @@ import phaseset
 import summarize
 #import visualize
 #import extend
-#import somatic
+import somatic
 
 class PhaseSet:
   def __init__(self, ps_id, chromosome, start_bp, end_bp):
@@ -74,6 +74,7 @@ class PhaseSet:
       self._variants[variant.return_VariantKey()] = [variant]
 
     if variant.return_IsPhasedHeterozygote():
+      print(variant.return_Genotype())
       if variant.return_Genotype()[0] != 0:
         self._n_variants_H1 += 1
       elif variant.return_Genotype()[2] != 0:
@@ -274,6 +275,7 @@ def parse_input_arguments():
   parser.add_argument('--range', action = 'store', help = "Genomic range chr:start-stop, chr, chr:start, chr:-stop")
   parser.add_argument('--ps1', action = 'store', help = "Path to first phase set file")
   parser.add_argument('--ps2', action = 'store', help = "Path to second phase set file")
+  parser.add_argument('--variant', action = 'store', help = "Variant ID, format chr:start:stop:REF:ALT (ALT is comma separated list of each ALT variant)")
   parser.add_argument('--version', action = 'version', version = '%(prog)s 0.1')
 
   # Return arguments object
@@ -313,8 +315,19 @@ def main():
         x = summarize.main(args)
       else:
         sys.exit("\n".join(error_message))
+    elif args.module == "somatic":
+      if args.ps1 is None:
+        no_error = False
+        error_message.append("The somatic module requires a --ps1 (phase set file).")
+      if args.variant is None:
+        no_error = False
+        error_message.append("The somatic module requires a --variant (variant ID)")
+      if no_error:
+        x = somatic.main(args)
+      else:
+        sys.exit("\n".join(error_message))
     else:
-      print("Not X")
+      print("Not X")  
   
   else:
     sys.exit("Module must be one of " + ', '.join(acceptable_modules) + ".")
