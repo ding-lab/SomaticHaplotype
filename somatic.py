@@ -23,12 +23,12 @@ def return_barcodes_supporting_variant(variant_key, vcf_variants_dictionary):
     molecules_supporting_variant_allele = this_variant.return_Molecules()[variant_allele].keys()
     return(molecules_supporting_variant_allele)
 
-def return_variants_covered_by_barcodes(barcode_list, vcf_variants_dictionary):
+def return_variants_covered_by_barcodes(barcode_list, base_variant, vcf_variants_dictionary):
   
   variant_list = []
   
   for this_variant in vcf_variants_dictionary:
-    if this_variant.determine_if_phased_heterozygote() and this_variant.return_Genotype() in ["0|1", "1|0"] and this_variant.return_IsSNP():
+    if this_variant.return_VariantKey() == base_variant or (this_variant.determine_if_phased_heterozygote() and this_variant.return_Genotype() in ["0|1", "1|0"] and this_variant.return_IsSNP()):
       barcodes_allele0 = this_variant.return_Molecules()[0].keys()
       barcdoes_allele1 = this_variant.return_Molecules()[1].keys()
 
