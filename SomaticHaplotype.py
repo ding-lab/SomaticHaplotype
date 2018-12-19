@@ -74,10 +74,9 @@ class PhaseSet:
       self._variants[variant.return_VariantKey()] = [variant]
 
     if variant.return_IsPhasedHeterozygote():
-      print(variant.return_Genotype())
-      if variant.return_Genotype()[0] != 0:
+      if variant.return_Genotype()[0] != "0":
         self._n_variants_H1 += 1
-      elif variant.return_Genotype()[2] != 0:
+      elif variant.return_Genotype()[2] != "0":
         self._n_variants_H2 += 1  
 
   def add_VariantH1(self):
