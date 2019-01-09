@@ -58,10 +58,7 @@ def return_allele_supported_by_barcode(barcode, variant_key, vcf_variants_dictio
     n_alleles = len(this_variant.return_Molecules())
     for i in range(n_alleles):
       if barcode in this_variant.return_Molecules()[i]:
-        if i == 0:
-          barcode_supports_this_allele = "REF"
-        if i == 1:
-          barcode_supports_this_allele = "ALT"
+        barcode_supports_this_allele = str(i)
     return(barcode_supports_this_allele)
 
 def return_haplotype_supported_by_barcode(barcode, variant_key, vcf_variants_dictionary):
@@ -104,7 +101,7 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary):
       else:
         filter_string = ", ".join(var.return_Filter())
       coverage_dictionary[this_coverage_key].extend([
-        allele_supported_by_barcode, 
+        allele_supported_by_barcode,
         haplotype_supported_by_barcode, 
         var.return_IsPhasedHeterozygote(),
         var.return_Chromosome(), 
@@ -160,7 +157,7 @@ def main(args):
 
   # write output and close files
   os.makedirs(args.output_directory, exist_ok = True)
-  output_file_path = os.path.join(args.output_directory, args.output_prefix + ".FILENAME.tsv")
+  output_file_path = os.path.join(args.output_directory, args.output_prefix + ".barcodes_variants.tsv")
   write_coverage_dictionary(coverage_dictionary, output_file_path)
   
   # write results to output file here
