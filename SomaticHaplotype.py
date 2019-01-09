@@ -164,6 +164,7 @@ class Variant:
     self._is_phased_heterozygote = self.determine_if_phased_heterozygote()
     self._is_snp = record.is_snp
     self._molecules = self.extract_molecules_from_VCF_record(record, sample_id)
+    self._position = record.POS
     self._psid = self.extract_variant_phase_set_from_VCF_record(record, sample_id)
     self._ref = record.REF 
     self._sampleid = sample_id
@@ -237,6 +238,9 @@ class Variant:
   def return_PhaseSetID(self):
     return(self._psid)
 
+  def return_Position(self):
+    return(self._position)
+
   def return_ReferenceAllele(self):
     return(self._ref)
 
@@ -247,7 +251,7 @@ class Variant:
     return(self._start)
 
   def return_VariantKey(self):
-    key_list = [ self._chr, self._start, self._end, self._ref, ",".join([ str(x) for x in self._alt ]) ]
+    key_list = [ self._chr, self._position, self._ref, ",".join([ str(x) for x in self._alt ]) ]
     variant_key = ':'.join( [ str(x) for x in key_list ] )
     return(variant_key)
 
@@ -274,7 +278,7 @@ def parse_input_arguments():
   parser.add_argument('--range', action = 'store', help = "Genomic range chr:start-stop, chr, chr:start, chr:-stop")
   parser.add_argument('--ps1', action = 'store', help = "Path to first phase set file")
   parser.add_argument('--ps2', action = 'store', help = "Path to second phase set file")
-  parser.add_argument('--variant', action = 'store', help = "Variant ID, format chr:start:stop:REF:ALT (ALT is comma separated list of each ALT variant)")
+  parser.add_argument('--variant', action = 'store', help = "Variant ID, format CHROM:POS:REF:ALT (ALT is comma separated list of each ALT variant)")
   parser.add_argument('--version', action = 'version', version = '%(prog)s 0.1')
 
   # Return arguments object
