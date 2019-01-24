@@ -50,7 +50,9 @@ def assign_variants_to_each_phaseset(summary_file_path, vcf_variants_dictionary,
           for k,variants in vcf_variants_dictionary.items():
             for v in variants:
               if v.return_Chromosome() == chr and v.return_Position() >= first_variant_pos and v.return_Position() <= last_variant_pos:
-                ps_id_variants_dict[ps_id].append(v.return_VariantKey)
+                keep_variant = all([v.return_IsHeterozygote(), v.return_IsSNP()])
+                if keep_variant:
+                  ps_id_variants_dict[ps_id].append(v.return_VariantKey)
   summary_file.close()
   return(ps_id_variants_dict)
 
