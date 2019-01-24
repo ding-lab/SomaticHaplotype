@@ -1,13 +1,6 @@
 import argparse
 import sys
 
-# Import modules from this repo
-import phaseset
-import summarize
-#import visualize
-#import extend
-import somatic
-
 class PhaseSet:
   def __init__(self, ps_id, chromosome, start_bp, end_bp):
     self._chr = chromosome
@@ -267,7 +260,7 @@ def parse_input_arguments():
   parser = argparse.ArgumentParser()
 
   # Required positional arguments
-  parser.add_argument("module", help = "Module the program should run. Could be phaseset, summarize, visualize, extend, somatic.")
+  parser.add_argument("module", help = "Module the program should run. Could be phaseset, summarize, visualize, extend, somatic, somaticsummary.")
   parser.add_argument("output_directory", help = "Absolute or relative path to output directory")
   parser.add_argument("output_prefix", help = "Prefix for file names in output directory")
 
@@ -278,6 +271,7 @@ def parse_input_arguments():
   parser.add_argument('--range', action = 'store', help = "Genomic range chr:start-stop, chr, chr:start, chr:-stop")
   parser.add_argument('--ps1', action = 'store', help = "Path to first phase set file")
   parser.add_argument('--ps2', action = 'store', help = "Path to second phase set file")
+  parser.add_argument('--sum', action = 'store', help = "Path to existing summary file")
   parser.add_argument('--variant', action = 'store', help = "Variant ID, format CHROM:POS:REF:ALT (ALT is comma separated list of each ALT variant)")
   parser.add_argument('--version', action = 'version', version = '%(prog)s 0.1')
 
@@ -288,7 +282,7 @@ def parse_input_arguments():
 def main():
   args = parse_input_arguments()
   
-  acceptable_modules = ["phaseset", "summarize", "visualize", "extend", "somatic"]
+  acceptable_modules = ["phaseset", "summarize", "visualize", "extend", "somatic", "somaticsummary"]
   if args.module in acceptable_modules:
     no_error = True
     error_message = []
@@ -307,6 +301,7 @@ def main():
         no_error = False
         error_message.append("The phaseset module requires a --range.")
       if no_error:
+        import phaseset
         x = phaseset.main(args)
       else:
         sys.exit("\n".join(error_message))
@@ -315,6 +310,7 @@ def main():
         no_error = False
         error_message.append("The summarize module requires a --ps1 (phase set file).")
       if no_error:
+        import summarize
         x = summarize.main(args)
       else:
         sys.exit("\n".join(error_message))
@@ -324,9 +320,28 @@ def main():
         error_message.append("The somatic module requires a --ps1 (phase set file).")
       if args.variant is None:
         no_error = False
-        error_message.append("The somatic module requires a --variant (variant ID)")
+        error_message.append("The somatic module requires a --variant (variant ID).")
       if no_error:
+        import somatic
         x = somatic.main(args)
+      else:
+        sys.exit("\n".join(error_message))
+    elif args.module == "somaticsummary":
+      if args.sum is None:
+        no_error = False
+        error_message.append("The somatic_summary module requires a --sum (summary file).")
+      if args.vcf is None:
+        no_error = False
+        error_message.append("The somatic_summary module requires a --vcf.")
+      if args.vcf_id is None:
+        no_error = False
+        error_message.append("The somatic_summary module requires a --vcf_id.")
+      if args.range is None:
+        no_error = False
+        error_message.append("The somatic_summary requires a --range.")
+      if no_error:
+        import somaticsummary
+        x = somaticsummary.main(args)
       else:
         sys.exit("\n".join(error_message))
     else:
