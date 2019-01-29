@@ -320,6 +320,9 @@ def main():
       if args.ps1 is None:
         no_error = False
         error_message.append("The somatic module requires a --ps1 (phase set file).")
+      if args.range is None:
+        no_error = False
+        error_message.append("The somatic module requires a --range (genomic range).")
       if args.maf is None and args.variant is None:
         no_error = False
         error_message.append("The somatic module requires a --maf (MAF) or --variant (variant IDs).")
