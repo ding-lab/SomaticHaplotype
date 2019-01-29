@@ -138,7 +138,7 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
   pct_ALT_on_H1 = float(n_ALT_H1)/float(n_ALT_H1 + n_ALT_H2)
   pct_ALT_on_H2 = 1 - pct_ALT_on_H1
   chrom, pos, ref, alt = variant_key.split(":")
-  ps_length = phase_set_dictionary[phase_set_of_variant]
+  ps_length = phase_set_dictionary[phase_set_of_variant][0]
   variant_phasing = [variant_key, chrom, pos, ref, alt, phase_set_of_variant, ps_length, variant_phased_by_longranger, variant_GT, 
   pct_REF_on_H1, pct_REF_on_H2, pct_ALT_on_H1, pct_ALT_on_H2, n_REF_H1, n_REF_H2, n_ALT_H1, n_ALT_H2, n_not_phased_heterozygote]
   
@@ -250,16 +250,21 @@ def write_variant_pairs_dictionary(variant_comparison, output_file_path):
 
   output_file.close()
 
-def create_somatic_variants_dictionary(maf_filepath, variant_filepath):
+def create_somatic_variants_dictionary(maf_filepath, variant_filepath, chrom, start_bp, end_bp): #chrom = None, start_bp = float("-inf"), end_bp = float("inf")):
   if maf_filepath is not None and variant_filepath is None:
-    somatic_variants_dictionary = extract_maf_variants(maf_filepath)
+    somatic_variants_dictionary = extract_maf_variants(maf_filepath, chrom, start_bp, end_bp)
   elif variant_filepath is not None and maf_filepath is None:
-    somatic_variants_dictionary = extract_variant_variants(variant_filepath)
+    somatic_variants_dictionary = extract_variant_variants(variant_filepath, chrom, start_bp, end_bp)
   else:
     sys.error("Whoa, either maf_filepath and variant_filepath are both given or neither maf_filepath nor variant_filepath is given.")
-  return(somatic_variants_dictionary)
 
-def extract_maf_variants(maf_filepath):
+  # CHECK THERE IS AT LEAST ONE VARIANT
+  if len(somatic_variants_dictionary) > 0:
+    return(somatic_variants_dictionary)
+  else:
+    sys.exit("No somatic variants found. No output generated.")
+
+def extract_maf_variants(maf_filepath, chrom, start_bp, end_bp):
   maf_file = open(maf_filepath, 'r')
   somatic_variants_dictionary = {}
   for line in maf_file:
@@ -278,17 +283,23 @@ def extract_maf_variants(maf_filepath):
         this_variant_type = this_variant_dict["Variant_Type"]
         if this_variant_type != "SNP":
           continue
-        else:
+        elif this_variant_CHROM == chrom and (start_bp is None or int(this_variant_POS) >= int(start_bp)) and (end_bp is None or int(this_variant_POS) <= int(end_bp)):
           this_variant_key = ":".join([this_variant_CHROM, this_variant_POS, this_variant_REF, this_variant_ALT])
           somatic_variants_dictionary[this_variant_key] = None
+        else:
+          continue
   maf_file.close()
   return(somatic_variants_dictionary)
 
-def extract_variant_variants(variant_filepath):
+def extract_variant_variants(variant_filepath, chrom, start_bp, end_bp):
   variant_file = open(variant_filepath, 'r')
   somatic_variants_dictionary = {}
   for line in variant_file:
-    somatic_variants_dictionary[line.strip()] = None
+    this_variant_CHROM, this_variant_POS, this_variant_REF, this_variant_ALT = line.strip().split(":")
+    if this_variant_CHROM == chrom and (start_bp is None or int(this_variant_POS) >= int(start_bp)) and (end_bp is None or int(this_variant_POS) <= int(end_bp)):
+      somatic_variants_dictionary[line.strip()] = None
+    else:
+      continue
   return(somatic_variants_dictionary)
 
 def create_phase_set_dictionary(phase_set_filepath):
@@ -297,9 +308,28 @@ def create_phase_set_dictionary(phase_set_filepath):
   ps_dict = {}
   for line in ps_file:
     ps_id, chrom, start, end, length_reads, first_variant_pos, last_variant_pos, length_variants, n_variants_H1, n_variants_H2, n_variants_total = line.strip().split()
-    ps_dict[ps_id] = length_variants
+    ps_dict[ps_id] = [length_variants]
   ps_file.close()
   return(ps_dict)
+
+def somatic_variants_per_phase_set(phase_set_dictionary, phasing_dictionary):
+  ps_id_list = list(phase_set_dictionary.keys())
+  for ps_id in ps_id_list:
+    phase_set_dictionary[ps_id].append(0)
+
+  for var in phasing_dictionary.keys():
+    this_var_ps_id = phasing_dictionary[var][5]
+    phase_set_dictionary[this_var_ps_id][1] += 1
+
+  return(phase_set_dictionary)
+
+def write_somatic_variants_per_phase_set(phase_set_dictionary, output_file_path):
+  output_file = open(output_file_path, 'w')
+  output_file.write('\t'.join(["ps_id", "length_variants", "n_somatic_variants"]) + '\n')
+  for ps_id in sorted(phase_set_dictionary.keys()):
+    output_file.write(ps_id + '\t' + '\t'.join([str(x) for x in phase_set_dictionary[ps_id]]) + '\n')
+  output_file.close()
+
 
 ################################################################################
 # main
@@ -333,7 +363,7 @@ def main(args):
   phase_set_dictionary = create_phase_set_dictionary(phase_set_filepath = args.sum)
 
   # use these somatic variants as basis of analysis
-  somatic_variants_dictionary = create_somatic_variants_dictionary(maf_filepath = args.maf, variant_filepath = args.variant)
+  somatic_variants_dictionary = create_somatic_variants_dictionary(maf_filepath = args.maf, variant_filepath = args.variant, chrom = chrom, start_bp = start, end_bp = end)
 
   # create coverage dictionary for each somatic variant
   phasing_dictionary = {}
@@ -346,14 +376,19 @@ def main(args):
   # determine relationship of each pair of variants in same phase set
   variant_comparison = compare_coverage_dictionaries(somatic_variants_dictionary, phasing_dictionary)
 
+  # somatic variants per phase set
+  phase_set_dictionary_with_n_somatic = somatic_variants_per_phase_set(phase_set_dictionary, phasing_dictionary)
+
   # write output and close files
   os.makedirs(args.output_directory, exist_ok = True)
   output_file_path_somatic_variants_dictionary = os.path.join(args.output_directory, args.output_prefix + ".barcodes_variants.tsv")
   output_file_path_phasing_dictionary = os.path.join(args.output_directory, args.output_prefix + ".phasing_variants.tsv")
   output_file_path_variant_pairs = os.path.join(args.output_directory, args.output_prefix + ".variant_pairs.tsv")
+  output_file_path_somatic_per_phase_set = os.path.join(args.output_directory, args.output_prefix + ".somatic_per_phase_set.tsv")
   write_somatic_variants_dictionary(somatic_variants_dictionary, output_file_path_somatic_variants_dictionary)
   write_phasing_dictionary(phasing_dictionary, output_file_path_phasing_dictionary)
   write_variant_pairs_dictionary(variant_comparison, output_file_path_variant_pairs)
+  write_somatic_variants_per_phase_set(phase_set_dictionary_with_n_somatic, output_file_path_somatic_per_phase_set)
   
   # write results to output file here
   
