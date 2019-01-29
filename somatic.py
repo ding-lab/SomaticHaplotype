@@ -188,11 +188,6 @@ def compare_coverage_dictionaries(somatic_variants_dictionary, phasing_dictionar
           else:
             sys.exit("Whoa, variant2 bx key ", bx_key2, " supports non-01 allele.")
 
-      #print(var1_bx_allele0)
-      #print(var1_bx_allele1)
-      #print(var2_bx_allele0)
-      #print(var2_bx_allele1)
-
       bx_overlap_00 = list(set(var1_bx_allele0) & set(var2_bx_allele0))
       bx_overlap_01 = list(set(var1_bx_allele0) & set(var2_bx_allele1))
       bx_overlap_10 = list(set(var1_bx_allele1) & set(var2_bx_allele0))
@@ -242,6 +237,16 @@ def write_phasing_dictionary(phasing_dictionary, output_file_path):
 
   for var in sorted(phasing_dictionary.keys()):
     output_file.write('\t'.join([str(x) for x in phasing_dictionary[var]]) + '\n')
+
+  output_file.close()
+
+def write_variant_pairs_dictionary(variant_comparison, output_file_path):
+
+  output_file = open(output_file_path, "w")
+  output_file.write('\t'.join(["Variant1", "Variant2", "Phase_Set", "bx_overlap_00", "bx_overlap_01", "bx_overlap_10", "bx_overlap_11", "n_bx_overlap_00", "n_bx_overlap_01", "n_bx_overlap_10", "n_bx_overlap_11"]) + '\n')
+  
+  for pair in variant_comparison:
+    output_file.write('\t'.join([str(x) for x in variant_comparison[pair]]) + '\n')
 
   output_file.close()
 
@@ -336,20 +341,19 @@ def main(args):
     if variant_key in vcf_variants_dictionary:
       somatic_variants_dictionary[variant_key], phasing_dictionary[variant_key] = create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_dictionary)
     else:
-      sys.exit("Variant " + variant_key + "not called by longranger.")
+      print("Variant " + variant_key + " not called by longranger.")
 
   # determine relationship of each pair of variants in same phase set
   variant_comparison = compare_coverage_dictionaries(somatic_variants_dictionary, phasing_dictionary)
-  print(variant_comparison)
-
-  sys.exit()
 
   # write output and close files
   os.makedirs(args.output_directory, exist_ok = True)
   output_file_path_somatic_variants_dictionary = os.path.join(args.output_directory, args.output_prefix + ".barcodes_variants.tsv")
   output_file_path_phasing_dictionary = os.path.join(args.output_directory, args.output_prefix + ".phasing_variants.tsv")
+  output_file_path_variant_pairs = os.path.join(args.output_directory, args.output_prefix + ".variant_pairs.tsv")
   write_somatic_variants_dictionary(somatic_variants_dictionary, output_file_path_somatic_variants_dictionary)
   write_phasing_dictionary(phasing_dictionary, output_file_path_phasing_dictionary)
+  write_variant_pairs_dictionary(variant_comparison, output_file_path_variant_pairs)
   
   # write results to output file here
   
