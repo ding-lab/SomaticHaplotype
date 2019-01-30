@@ -364,14 +364,24 @@ def main(args):
 
   # use these somatic variants as basis of analysis
   somatic_variants_dictionary = create_somatic_variants_dictionary(maf_filepath = args.maf, variant_filepath = args.variant, chrom = chrom, start_bp = start, end_bp = end)
+  
+  print(vcf_variants_dictionary.keys())
+  print(somatic_variants_dictionary.keys())
+  sys.exit()
 
   # create coverage dictionary for each somatic variant
   phasing_dictionary = {}
+  variants_overlap = 0
   for variant_key in somatic_variants_dictionary.keys():
-    if variant_key in vcf_variants_dictionary:
+    if variant_key in vcf_variants_dictionary.keys():
+      variants_overlap += 1
       somatic_variants_dictionary[variant_key], phasing_dictionary[variant_key] = create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_dictionary)
     else:
-      print("Variant " + variant_key + " not called by longranger.")
+      continue
+      #print("Variant " + variant_key + " not called by longranger." + str(variants_missed))
+
+  if variants_overlap == 0:
+    sys.exit("There is no overlap between somatic variants and longranger variants. " + args.range)
 
   # determine relationship of each pair of variants in same phase set
   variant_comparison = compare_coverage_dictionaries(somatic_variants_dictionary, phasing_dictionary)
