@@ -273,6 +273,7 @@ def parse_input_arguments():
   parser.add_argument('--ps2', action = 'store', help = "Path to second phase set file")
   parser.add_argument('--sum', action = 'store', help = "Path to existing summary file")
   parser.add_argument('--maf', action = 'store', help = "Path to sample-specific somatic MAF (assumes all variants are associated with single sample)")
+  parser.add_argument('--sombx', action = 'store', help = "Path to file containing barcodes supporting somatic MAF variants extracted from BAM")
   parser.add_argument('--variant', action = 'store', help = "Path to file containing newline-separated variant IDs, format CHROM:POS:REF:ALT (ALT is comma separated list of each ALT variant)")
   parser.add_argument('--plot', action = 'store', help = "If True, outputs necessary files for plotting.")
   parser.add_argument('--version', action = 'version', version = '%(prog)s 0.1')
