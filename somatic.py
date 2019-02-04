@@ -426,7 +426,7 @@ def main(args):
 
   # somatic barcodes dictionary
   if args.sombx is not None:
-    somatic_barcodes_dictionary, somatic_barcodes_dictionary_by_haplotype = create_somatic_barcodes_dictionary(somatic_barcodes_filepath = ars.sombx)
+    somatic_barcodes_dictionary, somatic_barcodes_dictionary_by_haplotype = create_somatic_barcodes_dictionary(somatic_barcodes_filepath = args.sombx)
   else:
     somatic_barcodes_dictionary = {}
     somatic_barcodes_dictionary_by_haplotype = {}
