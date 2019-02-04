@@ -271,14 +271,14 @@ def return_allele_supported_by_barcode(barcode, variant_key, vcf_variants_dictio
       ref_barcodes + somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_H1']
     if somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_H2'] is not None:
       ref_barcodes + somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_H2']
-    if somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_None'] is not None:
-      ref_barcodes + somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_None']
+    #if somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_None'] is not None:
+    #  ref_barcodes + somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_None']
     if somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_H1'] is not None:
       alt_barcodes + somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_H1']
     if somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_H2'] is not None:
       alt_barcodes + somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_H2']
-    if somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_None'] is not None:
-      alt_barcodes + somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_None']
+    #if somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_None'] is not None:
+    #  alt_barcodes + somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_None']
 
     if barcode in ref_barcodes:
       barcode_supports_this_allele = str(0)
@@ -321,8 +321,21 @@ def return_haplotype_supported_by_barcode(barcode, variant_key, vcf_variants_dic
     else:
       barcode_supports_this_haplotype = "Not Phased Heterozygote"
   else:
-    h1_barcodes = somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_H1'] + somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_H2'] #+ somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_None']
-    h2_barcodes = somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_H1'] + somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_H2'] #+ somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_None']
+    h1_barcodes = []
+    h2_barcodes = []
+    if somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_H1'] is not None:
+      h1_barcodes + somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_H1']
+    if somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_H2'] is not None:
+      h1_barcodes + somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_H2']
+    #if somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_None'] is not None:
+    #  h1_barcodes + somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_None']
+    if somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_H1'] is not None:
+      h2_barcodes + somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_H1']
+    if somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_H2'] is not None:
+      h2_barcodes + somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_H2']
+    #if somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_None'] is not None:
+    #  h1_barcodes + somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_None']
+
     if barcode in h1_barcodes:
       barcode_supports_this_haplotype = "H1"
     elif barcode in h2_barcodes:
