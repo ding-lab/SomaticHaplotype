@@ -178,7 +178,7 @@ def create_somatic_barcodes_dictionary(somatic_barcodes_filepath):
     variant_key, chromosome, position, ref, alt, ref_barcodes_H1, ref_barcodes_H2, ref_barcodes_None, alt_barcodes_H1, alt_barcodes_H2, alt_barcodes_None = line.strip().split()
     sombx_dict[variant_key] = ref_barcodes_H1.split(";") + ref_barcodes_H2.split(";") + ref_barcodes_None.split(";") + alt_barcodes_H1.split(";") + alt_barcodes_H2.split(";") + alt_barcodes_None.split(";")
     sombx_dict_by_haplotype[variant_key] = {'ref_H1':ref_barcodes_H1.split(";"), 'ref_H2':ref_barcodes_H2.split(";"), 'ref_None':ref_barcodes_None.split(";"), 'alt_H1':alt_barcodes_H1.split(";"), 'alt_H2':alt_barcodes_H2.split(";"), 'alt_None':alt_barcodes_None.split(";")}
-  return(sombx_dict)
+  return(sombx_dict, sombx_dict_by_haplotype)
 
 def create_somatic_variants_dictionary(maf_filepath, variant_filepath, chrom, start_bp, end_bp):
   if maf_filepath is not None and variant_filepath is None:
