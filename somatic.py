@@ -134,6 +134,8 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
     if bx + "--" + variant_key not in coverage_dictionary:
       allele_supported_by_barcode = return_allele_supported_by_barcode(bx, variant_key, vcf_variants_dictionary, somatic_barcodes_dictionary_by_haplotype)
       haplotype_supported_by_barcode = return_haplotype_supported_by_barcode(bx, variant_key, vcf_variants_dictionary, somatic_barcodes_dictionary_by_haplotype)
+      print(somatic_barcodes_dictionary_by_haplotype)
+      print(allele_supported_by_barcode, haplotype_supported_by_barcode, bx)
       if bx in somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_H1']:
         n_REF_H1 += 1
       elif bx in somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_H2']:
