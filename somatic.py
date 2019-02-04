@@ -272,7 +272,7 @@ def return_barcodes_supporting_variant_bam(variant_key, somatic_barcodes_diction
   return(barcodes_list)
 
 def return_haplotype_supported_by_barcode(barcode, variant_key, vcf_variants_dictionary, somatic_barcodes_dictionary_by_haplotype):
-  if variant_key not in vcf_variants_dictionary and len(vcf_variants_dictionary[variant_key]) > 1:
+  if variant_key in vcf_variants_dictionary and len(vcf_variants_dictionary[variant_key]) > 1:
     sys.exit("Variant " + variant_key + " has more than one VCF record.")
   elif variant_key in vcf_variants_dictionary:
     this_variant = vcf_variants_dictionary[variant_key][0]
