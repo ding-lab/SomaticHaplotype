@@ -177,7 +177,7 @@ def create_somatic_barcodes_dictionary(somatic_barcodes_filepath):
   for line in sombx_file:
     variant_key, chromosome, position, ref, alt, ref_barcodes_H1, ref_barcodes_H2, ref_barcodes_None, alt_barcodes_H1, alt_barcodes_H2, alt_barcodes_None = line.strip().split()
     sombx_dict[variant_key] = []
-    sombx_dict_by_haplotype[variant_key] = {'ref_H1':None, 'ref_H2':None, 'ref_None':None, 'alt_H1':None, 'alt_H2':None, 'alt_None':None}
+    sombx_dict_by_haplotype[variant_key] = {'ref_H1':[], 'ref_H2':[], 'ref_None':[], 'alt_H1':[], 'alt_H2':[], 'alt_None':[]}
     if ref_barcodes_H1 != 'NA':
       sombx_dict[variant_key] + ref_barcodes_H1.split(";")
       sombx_dict_by_haplotype[variant_key]['ref_H1'] = ref_barcodes_H1.split(";")
@@ -196,8 +196,6 @@ def create_somatic_barcodes_dictionary(somatic_barcodes_filepath):
     if alt_barcodes_None != 'NA':
       sombx_dict[variant_key] + alt_barcodes_None.split(";")
       sombx_dict_by_haplotype[variant_key]['alt_None'] = alt_barcodes_None.split(";")
-    if sombx_dict[variant_key] == []:
-      sombx_dict[variant_key] = None
 
   return(sombx_dict, sombx_dict_by_haplotype)
 
