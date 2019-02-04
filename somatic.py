@@ -304,6 +304,7 @@ def return_variant_phase_set(base_variant_key, vcf_variants_dictionary, phase_se
     chrom, pos, ref, alt = base_variant_key.split(":")
     this_variant_phase_set = None
     for ps_id in phase_set_dictionary.keys():
+      print(phase_set_dictionary[ps_id])
       if int(pos) >= int(phase_set_dictionary[ps_id][4]) and int(pos) <= int(phase_set_dictionary[ps_id][5]):
         this_variant_phase_set = ps_id
   return(this_variant_phase_set)
@@ -419,7 +420,9 @@ def main(args):
       end = None
 
   # phase set summary dictionary
+  print("gets_here")
   phase_set_dictionary = create_phase_set_dictionary(phase_set_filepath = args.sum)
+  print("gets_here")
 
   # somatic barcodes dictionary
   if args.sombx is not None:
