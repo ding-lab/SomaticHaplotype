@@ -99,7 +99,6 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
 
   coverage_dictionary = {}
   for bx in bx_supporting_variants:
-    print(bx)
     this_bx_supports_somatic_01 = return_allele_supported_by_barcode(bx, variant_key, vcf_variants_dictionary, somatic_barcodes_dictionary_by_haplotype)
     for var in variants_covered:
       this_variant_key = var.return_VariantKey()
@@ -299,14 +298,12 @@ def return_barcodes_supporting_variant_vcf(variant_key, vcf_variants_dictionary)
   if this_variant.return_Genotype() not in ["1/0", "1|0", "0/1", "0|1", "1/1", "1|1", "0/0", "0|0"]:
     sys.exit("Variant " + variant_key + " is not 0/1, 1/0, 0|1, 1|0, 0/0, 0|1, 1/1, or 1|1.")
   else:
-    print(this_variant.return_Molecules())
     molecules_supporting_this_position = list(this_variant.return_Molecules()[0].keys()) # 0 refers to return_Molecules() dictionary {0:{ref bx}, 1:{alt bx}}
     molecules_supporting_this_position.extend(list(this_variant.return_Molecules()[1].keys())) # 1 refers to return_Molecules() dictionary {0:{ref bx}, 1:{alt bx}}
   return(molecules_supporting_this_position) # List of barcodes supporting either REF or ALT allele
 
 def return_barcodes_supporting_variant_bam(variant_key, somatic_barcodes_dictionary):
   barcodes_list = somatic_barcodes_dictionary[variant_key]
-  print(barcodes_list)
   return(barcodes_list)
 
 def return_haplotype_supported_by_barcode(barcode, variant_key, vcf_variants_dictionary, somatic_barcodes_dictionary_by_haplotype):
