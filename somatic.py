@@ -491,6 +491,8 @@ def main(args):
   # determine relationship of each pair of variants in same phase set
   variant_comparison = compare_coverage_dictionaries(somatic_variants_dictionary, phasing_dictionary)
 
+
+  print(phase_set_dictionary)
   # somatic variants per phase set
   phase_set_dictionary_with_n_somatic = somatic_variants_per_phase_set(phase_set_dictionary, phasing_dictionary)
 
