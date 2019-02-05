@@ -181,7 +181,7 @@ def create_somatic_barcodes_dictionary(somatic_barcodes_filepath):
     if ref_barcodes_H1 != 'NA':
       print("hey")
       print(sombx_dict[variant_key])
-      sombx_dict[variant_key] + ref_barcodes_H1.split(";")
+      sombx_dict[variant_key].append(ref_barcodes_H1.split(";"))
       print(sombx_dict[variant_key])
       sombx_dict_by_haplotype[variant_key]['ref_H1'] = ref_barcodes_H1.split(";")
     if ref_barcodes_H2 != 'NA':
