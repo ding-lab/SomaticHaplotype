@@ -461,7 +461,7 @@ def main(args):
     somatic_barcodes_dictionary_by_haplotype = {}
 
   print(somatic_barcodes_dictionary)
-  print(somatic_barcodes_dictionary_by_haplotype)
+  #print(somatic_barcodes_dictionary_by_haplotype)
 
   # use these somatic variants as basis of analysis
   somatic_variants_dictionary = create_somatic_variants_dictionary(maf_filepath = args.maf, variant_filepath = args.variant, chrom = chrom, start_bp = start, end_bp = end)
