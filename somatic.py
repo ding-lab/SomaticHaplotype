@@ -406,6 +406,7 @@ def write_somatic_variants_dictionary(somatic_variants_dictionary, output_file_p
     "Phased_Heterozygote", "Chromosome", "Position", "Genotype", "Filter", "Somatic_Variant"]) + '\n')
   print_these_combinations = {}
   for var in somatic_variants_dictionary:
+    print(somatic_variants_dictionary[var])
     for bx_pos in somatic_variants_dictionary[var]:
       if len(somatic_variants_dictionary[var][bx_pos]) == 2:
         continue
