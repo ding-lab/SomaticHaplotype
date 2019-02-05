@@ -384,7 +384,7 @@ def somatic_variants_per_phase_set(phase_set_dictionary, phasing_dictionary):
   for var in phasing_dictionary.keys():
     if phasing_dictionary[var] is not None:
       this_var_ps_id = phasing_dictionary[var][5]
-      phase_set_dictionary[this_var_ps_id][1] += 1
+      phase_set_dictionary[this_var_ps_id][-1] += 1
 
   return(phase_set_dictionary)
 
@@ -486,13 +486,9 @@ def main(args):
     else:
       somatic_variants_dictionary[variant_key], phasing_dictionary[variant_key] = create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_dictionary, somatic_barcodes_dictionary_by_haplotype, this_ps_id)
 
-  print(phasing_dictionary)
-
   # determine relationship of each pair of variants in same phase set
   variant_comparison = compare_coverage_dictionaries(somatic_variants_dictionary, phasing_dictionary)
 
-
-  print(phase_set_dictionary)
   # somatic variants per phase set
   phase_set_dictionary_with_n_somatic = somatic_variants_per_phase_set(phase_set_dictionary, phasing_dictionary)
 
