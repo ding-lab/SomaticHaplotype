@@ -484,6 +484,8 @@ def main(args):
     else:
       somatic_variants_dictionary[variant_key], phasing_dictionary[variant_key] = create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_dictionary, somatic_barcodes_dictionary_by_haplotype, this_ps_id)
 
+  print(phasing_dictionary)
+
   # determine relationship of each pair of variants in same phase set
   variant_comparison = compare_coverage_dictionaries(somatic_variants_dictionary, phasing_dictionary)
 
