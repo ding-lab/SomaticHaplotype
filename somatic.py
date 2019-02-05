@@ -254,6 +254,7 @@ def extract_maf_variants(maf_filepath, chrom, start_bp, end_bp):
           somatic_variants_dictionary[this_variant_key] = None
         else:
           continue
+
   maf_file.close()
   return(somatic_variants_dictionary)
 
@@ -266,6 +267,7 @@ def extract_variant_variants(variant_filepath, chrom, start_bp, end_bp):
       somatic_variants_dictionary[line.strip()] = None
     else:
       continue
+  
   return(somatic_variants_dictionary)
 
 def return_allele_supported_by_barcode(barcode, variant_key, vcf_variants_dictionary, somatic_barcodes_dictionary_by_haplotype):
@@ -401,20 +403,19 @@ def write_phasing_dictionary(phasing_dictionary, output_file_path):
 
 def write_somatic_variants_dictionary(somatic_variants_dictionary, output_file_path):
 
-  print(somatic_variants_dictionary)
-
   output_file = open(output_file_path, "w")
   output_file.write('\t'.join(["Barcode", "Variant", "Phase_Set", "Allele", "Haplotype", 
     "Phased_Heterozygote", "Chromosome", "Position", "Genotype", "Filter", "Somatic_Variant"]) + '\n')
   print_these_combinations = {}
   for var in somatic_variants_dictionary:
-    for bx_pos in somatic_variants_dictionary[var]:
-      if len(somatic_variants_dictionary[var][bx_pos]) == 2:
-        continue
-      elif bx_pos not in print_these_combinations:
-        print_these_combinations[bx_pos] = '\t'.join([str(x) for x in somatic_variants_dictionary[var][bx_pos]]) + '\t' + var + '\n'
-      else:
-        continue
+    if somatic_variants_dictionary[var] is not None:
+      for bx_pos in somatic_variants_dictionary[var]:
+        if len(somatic_variants_dictionary[var][bx_pos]) == 2:
+          continue
+        elif bx_pos not in print_these_combinations:
+          print_these_combinations[bx_pos] = '\t'.join([str(x) for x in somatic_variants_dictionary[var][bx_pos]]) + '\t' + var + '\n'
+        else:
+          continue
   for bx_pos in sorted(print_these_combinations.keys()):
     output_file.write(print_these_combinations[bx_pos])
 
