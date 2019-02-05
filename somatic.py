@@ -16,6 +16,7 @@ def compare_coverage_dictionaries(somatic_variants_dictionary, phasing_dictionar
 
   for i in range(n_variants - 1):
     var1 = variant_list[i]
+    print(var1)
     print(phasing_dictionary[var1])
     var1_ps = phasing_dictionary[var1][5]
     var1_bx_allele0 = []
@@ -172,7 +173,7 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
   variant_phasing = [variant_key, chrom, pos, ref, alt, phase_set_of_variant, ps_length, variant_phased_by_longranger, variant_GT, 
   pct_REF_on_H1, pct_REF_on_H2, pct_ALT_on_H1, pct_ALT_on_H2, n_REF_H1, n_REF_H2, n_ALT_H1, n_ALT_H2, n_not_phased_heterozygote]
   
-  return(coverage_dictionary, variant_phasing)
+  return([coverage_dictionary, variant_phasing])
 
 def create_phase_set_dictionary(phase_set_filepath):
   ps_file = open(phase_set_filepath, 'r')
