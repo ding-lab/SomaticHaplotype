@@ -294,6 +294,7 @@ def return_barcodes_supporting_variant_vcf(variant_key, vcf_variants_dictionary)
 
 def return_barcodes_supporting_variant_bam(variant_key, somatic_barcodes_dictionary):
   barcodes_list = somatic_barcodes_dictionary[variant_key]
+  print(barcodes_list)
   return(barcodes_list)
 
 def return_haplotype_supported_by_barcode(barcode, variant_key, vcf_variants_dictionary, somatic_barcodes_dictionary_by_haplotype):
