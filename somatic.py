@@ -153,10 +153,20 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
       if allele_supported_by_barcode != "No Coverage":
         coverage_dictionary[bx + "--" + variant_key] = [bx, variant_key, phase_set_of_variant, allele_supported_by_barcode, haplotype_supported_by_barcode, variant_phased_by_longranger, variant_key.split(":")[0], variant_key.split(":")[1], variant_GT, "PASS"]
 
-  pct_REF_on_H1 = float(n_REF_H1)/float(n_REF_H1 + n_REF_H2)
-  pct_REF_on_H2 = 1 - pct_REF_on_H1
-  pct_ALT_on_H1 = float(n_ALT_H1)/float(n_ALT_H1 + n_ALT_H2)
-  pct_ALT_on_H2 = 1 - pct_ALT_on_H1
+  if n_REF_H1 > 0 or n_REF_H2 > 0:
+    pct_REF_on_H1 = float(n_REF_H1)/float(n_REF_H1 + n_REF_H2)
+    pct_REF_on_H2 = 1 - pct_REF_on_H1
+  else:
+    pct_REF_on_H1 = 'NA'
+    pct_REF_on_H2 = 'NA'
+
+  if n_ALT_H1 > 0 or n_ALT_H2 > 0 :
+    pct_ALT_on_H1 = float(n_ALT_H1)/float(n_ALT_H1 + n_ALT_H2)
+    pct_ALT_on_H2 = 1 - pct_ALT_on_H1
+  else:
+    pct_ALT_on_H1 = 'NA'
+    pct_ALT_on_H2 = 'NA'
+
   chrom, pos, ref, alt = variant_key.split(":")
   ps_length = phase_set_dictionary[phase_set_of_variant][6]
   variant_phasing = [variant_key, chrom, pos, ref, alt, phase_set_of_variant, ps_length, variant_phased_by_longranger, variant_GT, 
