@@ -396,6 +396,8 @@ def write_phasing_dictionary(phasing_dictionary, output_file_path):
   output_file.write('\t'.join(["Variant", "Chromosome", "Position", "Reference", "Alternate", "Phase_Set", "Phase_Set_Length", "Variant_Phased_by_longranger", "Genotype", 
   "pct_REF_on_H1", "pct_REF_on_H2", "pct_ALT_on_H1", "pct_ALT_on_H2", "n_REF_H1", "n_REF_H2", "n_ALT_H1", "n_ALT_H", "n_not_phased_heterozygote"]) + '\n')
 
+  print(phasing_dictionary)
+
   for var in sorted(phasing_dictionary.keys()):
     output_file.write('\t'.join([str(x) for x in phasing_dictionary[var]]) + '\n')
 
