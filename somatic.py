@@ -18,7 +18,7 @@ def compare_coverage_dictionaries(somatic_variants_dictionary, phasing_dictionar
     var1 = variant_list[i]
     if phasing_dictionary[var1] is None:
       continue
-    
+
     var1_ps = phasing_dictionary[var1][5]
     var1_bx_allele0 = []
     var1_bx_allele1 = []
@@ -382,8 +382,9 @@ def somatic_variants_per_phase_set(phase_set_dictionary, phasing_dictionary):
     phase_set_dictionary[ps_id].append(0)
 
   for var in phasing_dictionary.keys():
-    this_var_ps_id = phasing_dictionary[var][5]
-    phase_set_dictionary[this_var_ps_id][1] += 1
+    if phasing_dictionary[var] is not None:
+      this_var_ps_id = phasing_dictionary[var][5]
+      phase_set_dictionary[this_var_ps_id][1] += 1
 
   return(phase_set_dictionary)
 
