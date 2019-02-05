@@ -83,6 +83,8 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
   else:
     bx_supporting_variants = return_barcodes_supporting_variant_bam(variant_key, somatic_barcodes_dictionary_by_haplotype)
   
+  print(bx_supporting_variants)
+
   variants_covered = return_variants_covered_by_barcodes(bx_supporting_variants, variant_key, vcf_variants_dictionary)
 
   n_REF_H1, n_REF_H2, n_ALT_H1, n_ALT_H2, n_not_phased_heterozygote = 0, 0, 0, 0, 0
@@ -95,6 +97,7 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
 
   coverage_dictionary = {}
   for bx in bx_supporting_variants:
+    print(bx)
     this_bx_supports_somatic_01 = return_allele_supported_by_barcode(bx, variant_key, vcf_variants_dictionary, somatic_barcodes_dictionary_by_haplotype)
     for var in variants_covered:
       this_variant_key = var.return_VariantKey()
