@@ -81,9 +81,11 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
   if variant_key in vcf_variants_dictionary:
     bx_supporting_variants = return_barcodes_supporting_variant_vcf(variant_key, vcf_variants_dictionary)
   else:
-    bx_supporting_variants = return_barcodes_supporting_variant_bam(variant_key, somatic_barcodes_dictionary_by_haplotype)
-  
-  print(bx_supporting_variants)
+    bx_supporting_variants_by_haplotype = return_barcodes_supporting_variant_bam(variant_key, somatic_barcodes_dictionary_by_haplotype)
+    bx_supporting_variants = []
+    for k,v in bx_supporting_variants_by_haplotype.items():
+      if k in ['ref_H1', 'alt_H1', 'ref_H2', 'alt_H2']:
+        bx_supporting_variants.extend(v)
 
   variants_covered = return_variants_covered_by_barcodes(bx_supporting_variants, variant_key, vcf_variants_dictionary)
 
@@ -459,9 +461,6 @@ def main(args):
   else:
     somatic_barcodes_dictionary = {}
     somatic_barcodes_dictionary_by_haplotype = {}
-
-  print(somatic_barcodes_dictionary)
-  #print(somatic_barcodes_dictionary_by_haplotype)
 
   # use these somatic variants as basis of analysis
   somatic_variants_dictionary = create_somatic_variants_dictionary(maf_filepath = args.maf, variant_filepath = args.variant, chrom = chrom, start_bp = start, end_bp = end)
