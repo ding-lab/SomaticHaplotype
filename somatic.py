@@ -200,7 +200,7 @@ def create_somatic_barcodes_dictionary(somatic_barcodes_filepath):
       sombx_dict[variant_key].extend(alt_barcodes_None.split(";"))
       sombx_dict_by_haplotype[variant_key]['alt_None'] = alt_barcodes_None.split(";")
 
-  return(sombx_dict, sombx_dict_by_haplotype)
+  return([sombx_dict, sombx_dict_by_haplotype])
 
 def create_somatic_variants_dictionary(maf_filepath, variant_filepath, chrom, start_bp, end_bp):
   if maf_filepath is not None and variant_filepath is None:
