@@ -287,9 +287,9 @@ def return_barcodes_supporting_variant_vcf(variant_key, vcf_variants_dictionary)
   if this_variant.return_Genotype() not in ["1/0", "1|0", "0/1", "0|1", "1/1", "1|1", "0/0", "0|0"]:
     sys.exit("Variant " + variant_key + " is not 0/1, 1/0, 0|1, 1|0, 0/0, 0|1, 1/1, or 1|1.")
   else:
+    print(this_variant.return_Molecules())
     molecules_supporting_this_position = list(this_variant.return_Molecules()[0].keys()) # 0 refers to return_Molecules() dictionary {0:{ref bx}, 1:{alt bx}}
     molecules_supporting_this_position.extend(list(this_variant.return_Molecules()[1].keys())) # 1 refers to return_Molecules() dictionary {0:{ref bx}, 1:{alt bx}}
-  print(molecules_supporting_this_position)
   return(molecules_supporting_this_position) # List of barcodes supporting either REF or ALT allele
 
 def return_barcodes_supporting_variant_bam(variant_key, somatic_barcodes_dictionary):
