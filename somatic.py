@@ -401,12 +401,13 @@ def write_phasing_dictionary(phasing_dictionary, output_file_path):
 
 def write_somatic_variants_dictionary(somatic_variants_dictionary, output_file_path):
 
+  print(somatic_variants_dictionary)
+
   output_file = open(output_file_path, "w")
   output_file.write('\t'.join(["Barcode", "Variant", "Phase_Set", "Allele", "Haplotype", 
     "Phased_Heterozygote", "Chromosome", "Position", "Genotype", "Filter", "Somatic_Variant"]) + '\n')
   print_these_combinations = {}
   for var in somatic_variants_dictionary:
-    print(somatic_variants_dictionary[var])
     for bx_pos in somatic_variants_dictionary[var]:
       if len(somatic_variants_dictionary[var][bx_pos]) == 2:
         continue
