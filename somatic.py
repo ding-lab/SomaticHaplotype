@@ -289,6 +289,7 @@ def return_barcodes_supporting_variant_vcf(variant_key, vcf_variants_dictionary)
   else:
     molecules_supporting_this_position = list(this_variant.return_Molecules()[0].keys()) # 0 refers to return_Molecules() dictionary {0:{ref bx}, 1:{alt bx}}
     molecules_supporting_this_position.extend(list(this_variant.return_Molecules()[1].keys())) # 1 refers to return_Molecules() dictionary {0:{ref bx}, 1:{alt bx}}
+  print(molecules_supporting_this_position)
   return(molecules_supporting_this_position) # List of barcodes supporting either REF or ALT allele
 
 def return_barcodes_supporting_variant_bam(variant_key, somatic_barcodes_dictionary):
@@ -457,8 +458,6 @@ def main(args):
   else:
     somatic_barcodes_dictionary = {}
     somatic_barcodes_dictionary_by_haplotype = {}
-
-  print(somatic_barcodes_dictionary)
 
   # use these somatic variants as basis of analysis
   somatic_variants_dictionary = create_somatic_variants_dictionary(maf_filepath = args.maf, variant_filepath = args.variant, chrom = chrom, start_bp = start, end_bp = end)
