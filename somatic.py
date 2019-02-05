@@ -16,6 +16,7 @@ def compare_coverage_dictionaries(somatic_variants_dictionary, phasing_dictionar
 
   for i in range(n_variants - 1):
     var1 = variant_list[i]
+    print(phasing_dictionary[var1])
     var1_ps = phasing_dictionary[var1][5]
     var1_bx_allele0 = []
     var1_bx_allele1 = []
