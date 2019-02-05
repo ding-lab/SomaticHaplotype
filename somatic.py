@@ -175,6 +175,7 @@ def create_somatic_barcodes_dictionary(somatic_barcodes_filepath):
   sombx_dict = {}
   sombx_dict_by_haplotype = {}
   for line in sombx_file:
+    print(line)
     variant_key, chromosome, position, ref, alt, ref_barcodes_H1, ref_barcodes_H2, ref_barcodes_None, alt_barcodes_H1, alt_barcodes_H2, alt_barcodes_None = line.strip().split()
     sombx_dict[variant_key] = []
     sombx_dict_by_haplotype[variant_key] = {'ref_H1':[], 'ref_H2':[], 'ref_None':[], 'alt_H1':[], 'alt_H2':[], 'alt_None':[]}
@@ -318,7 +319,7 @@ def return_haplotype_supported_by_barcode(barcode, variant_key, vcf_variants_dic
       barcode_supports_this_haplotype = "H2"
     else:
       barcode_supports_this_haplotype = "No Phased Coverage"
-      
+
   return(barcode_supports_this_haplotype)
 
 def return_variant_phase_set(base_variant_key, vcf_variants_dictionary, phase_set_dictionary):
