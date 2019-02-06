@@ -59,24 +59,30 @@ def compare_coverage_dictionaries(somatic_variants_dictionary, phasing_dictionar
       bx_overlap_10 = list(set(var1_bx_allele1) & set(var2_bx_allele0))
       bx_overlap_11 = list(set(var1_bx_allele1) & set(var2_bx_allele1))
 
-      if bx_overlap_00 == []:
-        bx_overlap_00 = 'No_shared_barcodes'
-      if bx_overlap_01 == []:
-        bx_overlap_01 = 'No_shared_barcodes'
-      if bx_overlap_10 == []:
-        bx_overlap_10 = 'No_shared_barcodes'
-      if bx_overlap_11 == []:
-        bx_overlap_11 = 'No_shared_barcodes'
-      
-      bx_overlap_00_csv = ",".join(bx_overlap_00)
-      bx_overlap_01_csv = ",".join(bx_overlap_01)
-      bx_overlap_10_csv = ",".join(bx_overlap_10)
-      bx_overlap_11_csv = ",".join(bx_overlap_11)
-
       n_bx_overlap_00 = len(bx_overlap_00)
       n_bx_overlap_01 = len(bx_overlap_01)
       n_bx_overlap_10 = len(bx_overlap_10)
       n_bx_overlap_11 = len(bx_overlap_11)
+
+      if bx_overlap_00 == []:
+        bx_overlap_00_csv = 'No_shared_barcodes'
+      else:
+        bx_overlap_00_csv = ",".join(bx_overlap_00)
+
+      if bx_overlap_01 == []:
+        bx_overlap_01_csv = 'No_shared_barcodes'
+      else:
+        bx_overlap_01_csv = ",".join(bx_overlap_01)
+
+      if bx_overlap_10 == []:
+        bx_overlap_10_csv = 'No_shared_barcodes'
+      else:
+        bx_overlap_10_csv = ",".join(bx_overlap_10)
+
+      if bx_overlap_11 == []:
+        bx_overlap_11_csv = 'No_shared_barcodes'
+      else:
+        bx_overlap_11_csv = ",".join(bx_overlap_11)
 
       pair_list = [var1, var2, var1_ps, 
       bx_overlap_00_csv, bx_overlap_01_csv, bx_overlap_10_csv, bx_overlap_11_csv,
