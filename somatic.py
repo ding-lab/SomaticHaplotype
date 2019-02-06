@@ -130,7 +130,7 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
       else:
         filter_string = ", ".join(var.return_Filter())
 
-      if filter_string in ["PASS", "10X_PHASING_INCONSISTENT"] and var.return_Genotype() != "1|1":
+      if filter_string in ["PASS", "10X_PHASING_INCONSISTENT"]: # and var.return_Genotype() != "1|1":
         if this_bx_supports_somatic_01 == "0" and haplotype_supported_by_barcode == "H1":
           n_REF_H1 += 1
         elif this_bx_supports_somatic_01 == "0" and haplotype_supported_by_barcode == "H2":
