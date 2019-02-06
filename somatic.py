@@ -82,6 +82,7 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
     sys.exit("Variant " + variant_key + " has more than one VCF record.")
 
   if variant_key in vcf_variants_dictionary:
+    print("variant key in vcf_variants_dictionary")
     bx_supporting_variants = return_barcodes_supporting_variant_vcf(variant_key, vcf_variants_dictionary)
   else:
     bx_supporting_variants_by_haplotype = return_barcodes_supporting_variant_bam(variant_key, somatic_barcodes_dictionary_by_haplotype)
@@ -90,7 +91,7 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
       if k in ['ref_H1', 'alt_H1', 'ref_H2', 'alt_H2']:
         bx_supporting_variants.extend(v)
 
-  variants_covered = return_variants_covered_by_barcodes(bx_supporting_variants, variant_key, vcf_variants_dictionary)
+  variants_covered_in_vcf = return_variants_covered_by_barcodes(bx_supporting_variants, variant_key, vcf_variants_dictionary)
 
   n_REF_H1, n_REF_H2, n_ALT_H1, n_ALT_H2, n_not_phased_heterozygote = 0, 0, 0, 0, 0
   if variant_key in vcf_variants_dictionary:
@@ -98,12 +99,12 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
     variant_GT = vcf_variants_dictionary[variant_key][0].return_Genotype()
   else:
     variant_phased_by_longranger = "Not called by longranger"
-    variant_GT = "0/1"
+    variant_GT = "NA"
 
   coverage_dictionary = {}
   for bx in bx_supporting_variants:
     this_bx_supports_somatic_01 = return_allele_supported_by_barcode(bx, variant_key, vcf_variants_dictionary, somatic_barcodes_dictionary_by_haplotype)
-    for var in variants_covered:
+    for var in variants_covered_in_vcf:
       this_variant_key = var.return_VariantKey()
       this_coverage_key = bx + "--" + this_variant_key
       coverage_dictionary[this_coverage_key] = [bx, this_variant_key]
@@ -138,7 +139,11 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
           var.return_Genotype(), 
           filter_string])
 
+    print(coverage_dictionary)
+    print(bx + "--" + variant_key)
+
     if bx + "--" + variant_key not in coverage_dictionary:
+      coverage_dictionary[bx + "--" + variant_key] = [bx, variant_key]
       allele_supported_by_barcode = return_allele_supported_by_barcode(bx, variant_key, vcf_variants_dictionary, somatic_barcodes_dictionary_by_haplotype)
       haplotype_supported_by_barcode = return_haplotype_supported_by_barcode(bx, variant_key, vcf_variants_dictionary, somatic_barcodes_dictionary_by_haplotype)
       if bx in somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_H1']:
@@ -153,7 +158,15 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
         sys.exit("Okay something's wrong with somatic barcodes...")
 
       if allele_supported_by_barcode != "No Coverage":
-        coverage_dictionary[bx + "--" + variant_key] = [bx, variant_key, phase_set_of_variant, allele_supported_by_barcode, haplotype_supported_by_barcode, variant_phased_by_longranger, variant_key.split(":")[0], variant_key.split(":")[1], variant_GT, "PASS"]
+        coverage_dictionary[bx + "--" + variant_key].extend([
+          phase_set_of_variant, 
+          allele_supported_by_barcode, 
+          haplotype_supported_by_barcode, 
+          variant_phased_by_longranger, 
+          variant_key.split(":")[0], v
+          ariant_key.split(":")[1], 
+          variant_GT, 
+          "PASS"])
 
   if n_REF_H1 > 0 or n_REF_H2 > 0:
     pct_REF_on_H1 = float(n_REF_H1)/float(n_REF_H1 + n_REF_H2)
@@ -424,8 +437,8 @@ def write_somatic_variants_dictionary(somatic_variants_dictionary, output_file_p
 
 def write_somatic_variants_per_phase_set(phase_set_dictionary, output_file_path):
   output_file = open(output_file_path, 'w')
-  output_file.write('\t'.join(["ps_id", "length_variants", "n_somatic_variants"]) + '\n')
-  for ps_id in sorted(phase_set_dictionary.keys()):
+  output_file.write('\t'.join(["ps_id", "chrom", "start", "end", "length_reads", "first_variant_pos", "last_variant_pos", "length_variants", "n_variants_H1", "n_variants_H2", "n_variants_total", "n_somatic_variants"]) + '\n')
+  for ps_id in phase_set_dictionary.keys():
     output_file.write(ps_id + '\t' + '\t'.join([str(x) for x in phase_set_dictionary[ps_id]]) + '\n')
   output_file.close()
 
