@@ -82,7 +82,6 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
     sys.exit("Variant " + variant_key + " has more than one VCF record.")
 
   if variant_key in vcf_variants_dictionary:
-    print("variant key in vcf_variants_dictionary")
     bx_supporting_variants = return_barcodes_supporting_variant_vcf(variant_key, vcf_variants_dictionary)
   else:
     bx_supporting_variants_by_haplotype = return_barcodes_supporting_variant_bam(variant_key, somatic_barcodes_dictionary_by_haplotype)
@@ -91,7 +90,7 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
       if k in ['ref_H1', 'alt_H1', 'ref_H2', 'alt_H2']:
         bx_supporting_variants.extend(v)
 
-  variants_covered_in_vcf = return_variants_covered_by_barcodes(bx_supporting_variants, variant_key, vcf_variants_dictionary)
+  variants_covered_in_vcf = return_variants_covered_by_barcodes(bx_supporting_variants, phase_set_of_variant, vcf_variants_dictionary)
 
   n_REF_H1, n_REF_H2, n_ALT_H1, n_ALT_H2, n_not_phased_heterozygote = 0, 0, 0, 0, 0
   if variant_key in vcf_variants_dictionary:
@@ -138,9 +137,6 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
           var.return_Position(), 
           var.return_Genotype(), 
           filter_string])
-
-    print(coverage_dictionary)
-    print(bx + "--" + variant_key)
 
     if bx + "--" + variant_key not in coverage_dictionary:
       coverage_dictionary[bx + "--" + variant_key] = [bx, variant_key]
