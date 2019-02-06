@@ -326,7 +326,7 @@ def return_haplotype_supported_by_barcode(barcode, variant_key, vcf_variants_dic
   elif variant_key in vcf_variants_dictionary:
     this_variant = vcf_variants_dictionary[variant_key][0]
     if this_variant.return_IsPhasedHeterozygote():
-      barcode_supports_this_allele = return_allele_supported_by_barcode(barcode, variant_key, vcf_variants_dictionary)
+      barcode_supports_this_allele = return_allele_supported_by_barcode(barcode, variant_key, vcf_variants_dictionary, somatic_barcodes_dictionary_by_haplotype)
       if this_variant.return_Genotype()[0] == barcode_supports_this_allele:
         barcode_supports_this_haplotype = "H1"
       elif this_variant.return_Genotype()[2] == barcode_supports_this_allele:
