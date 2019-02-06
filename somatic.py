@@ -163,8 +163,8 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
           allele_supported_by_barcode, 
           haplotype_supported_by_barcode, 
           variant_phased_by_longranger, 
-          variant_key.split(":")[0], v
-          ariant_key.split(":")[1], 
+          variant_key.split(":")[0],
+          variant_key.split(":")[1], 
           variant_GT, 
           "PASS"])
 
