@@ -59,6 +59,15 @@ def compare_coverage_dictionaries(somatic_variants_dictionary, phasing_dictionar
       bx_overlap_10 = list(set(var1_bx_allele1) & set(var2_bx_allele0))
       bx_overlap_11 = list(set(var1_bx_allele1) & set(var2_bx_allele1))
 
+      if bx_overlap_00 == []:
+        bx_overlap_00 = 'No_shared_barcodes'
+      if bx_overlap_01 == []:
+        bx_overlap_01 = 'No_shared_barcodes'
+      if bx_overlap_10 == []:
+        bx_overlap_10 = 'No_shared_barcodes'
+      if bx_overlap_11 == []:
+        bx_overlap_11 = 'No_shared_barcodes'
+      
       bx_overlap_00_csv = ",".join(bx_overlap_00)
       bx_overlap_01_csv = ",".join(bx_overlap_01)
       bx_overlap_10_csv = ",".join(bx_overlap_10)
@@ -403,7 +412,7 @@ def write_phasing_dictionary(phasing_dictionary, output_file_path):
   
   output_file = open(output_file_path, "w")
   output_file.write('\t'.join(["Variant", "Chromosome", "Position", "Reference", "Alternate", "Phase_Set", "Phase_Set_Length", "Variant_Phased_by_longranger", "Genotype", 
-  "pct_REF_on_H1", "pct_REF_on_H2", "pct_ALT_on_H1", "pct_ALT_on_H2", "n_REF_H1", "n_REF_H2", "n_ALT_H1", "n_ALT_H", "n_not_phased_heterozygote"]) + '\n')
+  "pct_REF_on_H1", "pct_REF_on_H2", "pct_ALT_on_H1", "pct_ALT_on_H2", "n_REF_H1", "n_REF_H2", "n_ALT_H1", "n_ALT_H2", "n_not_phased_heterozygote"]) + '\n')
 
   for var in sorted(phasing_dictionary.keys()):
     if phasing_dictionary[var] is not None:
