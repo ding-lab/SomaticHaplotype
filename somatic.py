@@ -371,11 +371,10 @@ def return_variant_phase_set(base_variant_key, vcf_variants_dictionary, phase_se
     chrom, pos, ref, alt = base_variant_key.split(":")
     this_variant_phase_set = None
     for ps_id in phase_set_dictionary.keys():
-      if phase_set_dictionary[ps_id][4] != 'NA' and phase_set_dictionary[ps_id][5] != 'NA':
+      if chrom == phase_set_dictionary[ps_id][0] and phase_set_dictionary[ps_id][4] != 'NA' and phase_set_dictionary[ps_id][5] != 'NA':
         if int(pos) >= int(phase_set_dictionary[ps_id][4]) and int(pos) <= int(phase_set_dictionary[ps_id][5]):
           this_variant_phase_set = ps_id
-      else:
-        this_variant_phase_set = None
+          break
   return(this_variant_phase_set)
 
 def return_variants_covered_by_barcodes(barcode_list, variant_phase_set, vcf_variants_dictionary):
@@ -503,7 +502,7 @@ def main(args):
 
   # use these somatic variants as basis of analysis
   somatic_variants_dictionary = create_somatic_variants_dictionary(maf_filepath = args.maf, variant_filepath = args.variant, chrom = chrom, start_bp = start, end_bp = end)
-  
+
   # create coverage dictionary for each somatic variant
   phasing_dictionary = {}
   variants_overlap = 0
