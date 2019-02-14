@@ -35,6 +35,9 @@ def compare_coverage_dictionaries(somatic_variants_dictionary, phasing_dictionar
           sys.exit("Whoa, variant1 bx key " + bx_key1 + " supports non-01 allele.")
     for j in range(i + 1, n_variants):
       var2 = variant_list[j]
+      if phasing_dictionary[var2] is None:
+        continue
+
       this_pair = var1 + "-" + var2
       var2_ps = phasing_dictionary[var2][5]
       if var1_ps != var2_ps:
@@ -299,9 +302,14 @@ def return_allele_supported_by_barcode(barcode, variant_key, vcf_variants_dictio
     barcode_supports_this_allele = "No Coverage"
     this_variant = vcf_variants_dictionary[variant_key][0]
     n_alleles = len(this_variant.return_Molecules())
-    for i in range(n_alleles):
-      if barcode in this_variant.return_Molecules()[i]:
-        barcode_supports_this_allele = str(i)
+    if barcode in this_variant.return_Molecules()[0]:
+      barcode_supports_this_allele = "0"
+    else:
+      barcode_supports_this_allele = "No Coverage"
+      for i in range(1, n_alleles):
+        if barcode in this_variant.return_Molecules()[i]:
+          barcode_supports_this_allele = "1" # treats 1 and 2 alleles as same
+    
   elif variant_key in somatic_barcodes_dictionary_by_haplotype:
     
     ref_barcodes = somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_H1'] + somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_H2'] + somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_None']
@@ -345,6 +353,11 @@ def return_haplotype_supported_by_barcode(barcode, variant_key, vcf_variants_dic
         barcode_supports_this_haplotype = "H2"
       elif "No Coverage" == barcode_supports_this_allele:
         barcode_supports_this_haplotype = "No Phased Coverage"
+      else:
+        print(vcf_variants_dictionary[variant_key])
+        print(this_variant.return_Genotype())
+        print(variant_key)
+        print(barcode_supports_this_allele)
     else:
       barcode_supports_this_haplotype = "Not Phased Heterozygote"
   
@@ -368,6 +381,8 @@ def return_haplotype_supported_by_barcode(barcode, variant_key, vcf_variants_dic
 def return_variant_phase_set(base_variant_key, vcf_variants_dictionary, phase_set_dictionary):
   if base_variant_key in vcf_variants_dictionary:
     this_variant_phase_set = vcf_variants_dictionary[base_variant_key][0].return_PhaseSetID()
+    if this_variant_phase_set not in phase_set_dictionary:
+      this_variant_phase_set = None
   else:
     chrom, pos, ref, alt = base_variant_key.split(":")
     this_variant_phase_set = None
