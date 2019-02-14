@@ -399,7 +399,7 @@ def return_variants_covered_by_barcodes(barcode_list, variant_phase_set, vcf_var
 
   for this_variant_key in vcf_variants_dictionary:
     if len(vcf_variants_dictionary[this_variant_key]) > 1:
-      print("Variant " + this_variant_key + " has more than one VCF record.")
+      continue
     else:
       this_variant = vcf_variants_dictionary[this_variant_key][0]
       if this_variant.return_IsSNP() and this_variant.return_PhaseSetID() == variant_phase_set:
