@@ -102,12 +102,10 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
     bx_supporting_variants_by_haplotype = return_barcodes_supporting_variant_bam(variant_key, somatic_barcodes_dictionary_by_haplotype)
     bx_supporting_variants = []
     for k,v in bx_supporting_variants_by_haplotype.items():
-      if k in ['ref_H1', 'alt_H1', 'ref_H2', 'alt_H2']:
-        bx_supporting_variants.extend(v)
+      bx_supporting_variants.extend(v)
 
   variants_covered_in_vcf = return_variants_covered_by_barcodes(bx_supporting_variants, phase_set_of_variant, vcf_variants_dictionary)
 
-  n_REF_H1, n_REF_H2, n_ALT_H1, n_ALT_H2, n_not_phased_heterozygote = 0, 0, 0, 0, 0
   if variant_key in vcf_variants_dictionary:
     variant_phased_by_longranger = vcf_variants_dictionary[variant_key][0].return_IsPhasedHeterozygote()
     variant_GT = vcf_variants_dictionary[variant_key][0].return_Genotype()
@@ -116,6 +114,7 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
     variant_GT = "NA"
 
   coverage_dictionary = {}
+  n_REF_H1, n_REF_H2, n_ALT_H1, n_ALT_H2, n_not_phased = 0, 0, 0, 0, 0
   for bx in bx_supporting_variants:
     this_bx_supports_somatic_01 = return_allele_supported_by_barcode(bx, variant_key, vcf_variants_dictionary, somatic_barcodes_dictionary_by_haplotype)
     for var in variants_covered_in_vcf:
@@ -139,8 +138,8 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
           n_ALT_H1 += 1
         elif this_bx_supports_somatic_01 == "1" and haplotype_supported_by_barcode == "H2":
           n_ALT_H2 += 1
-        elif haplotype_supported_by_barcode == "Not Phased Heterozygote":
-          n_not_phased_heterozygote += 1
+        elif haplotype_supported_by_barcode == "Not phased":
+          n_not_phased += 1
 
       if allele_supported_by_barcode != "No Coverage":
         coverage_dictionary[this_coverage_key].extend([
@@ -165,8 +164,6 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
         n_ALT_H1 += 1
       elif bx in somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_H2']:
         n_ALT_H2 += 1
-      else:
-        sys.exit("Okay something's wrong with somatic barcodes...")
 
       if allele_supported_by_barcode != "No Coverage":
         coverage_dictionary[bx + "--" + variant_key].extend([
@@ -196,7 +193,7 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
   chrom, pos, ref, alt = variant_key.split(":")
   ps_length = phase_set_dictionary[phase_set_of_variant][6]
   variant_phasing = [variant_key, chrom, pos, ref, alt, phase_set_of_variant, ps_length, variant_phased_by_longranger, variant_GT, 
-  pct_REF_on_H1, pct_REF_on_H2, pct_ALT_on_H1, pct_ALT_on_H2, n_REF_H1, n_REF_H2, n_ALT_H1, n_ALT_H2, n_not_phased_heterozygote]
+  pct_REF_on_H1, pct_REF_on_H2, pct_ALT_on_H1, pct_ALT_on_H2, n_REF_H1, n_REF_H2, n_ALT_H1, n_ALT_H2, n_not_phased]
   
   return([coverage_dictionary, variant_phasing])
 
@@ -307,8 +304,8 @@ def return_allele_supported_by_barcode(barcode, variant_key, vcf_variants_dictio
         barcode_supports_this_allele = str(i)
   elif variant_key in somatic_barcodes_dictionary_by_haplotype:
     
-    ref_barcodes = somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_H1'] + somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_H2'] #+ somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_None']
-    alt_barcodes = somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_H1'] + somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_H2'] #+ somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_None']
+    ref_barcodes = somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_H1'] + somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_H2'] + somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_None']
+    alt_barcodes = somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_H1'] + somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_H2'] + somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_None']
 
     if barcode in ref_barcodes:
       barcode_supports_this_allele = str(0)
@@ -350,10 +347,11 @@ def return_haplotype_supported_by_barcode(barcode, variant_key, vcf_variants_dic
         barcode_supports_this_haplotype = "No Phased Coverage"
     else:
       barcode_supports_this_haplotype = "Not Phased Heterozygote"
+  
   else:
     
-    h1_barcodes = somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_H1'] + somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_H2'] #+ somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_None']
-    h2_barcodes = somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_H1'] + somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_H2'] #+ somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_None']
+    h1_barcodes = somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_H1'] + somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_H1']
+    h2_barcodes = somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_H2'] + somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_H2']
 
     if barcode in h1_barcodes:
       barcode_supports_this_haplotype = "H1"
@@ -361,6 +359,9 @@ def return_haplotype_supported_by_barcode(barcode, variant_key, vcf_variants_dic
       barcode_supports_this_haplotype = "H2"
     else:
       barcode_supports_this_haplotype = "No Phased Coverage"
+
+  if barcode_supports_this_haplotype not in ["H1", "H2"]:
+    barcode_supports_this_haplotype = "Not phased"
 
   return(barcode_supports_this_haplotype)
 
@@ -417,7 +418,7 @@ def write_phasing_dictionary(phasing_dictionary, output_file_path):
   
   output_file = open(output_file_path, "w")
   output_file.write('\t'.join(["Variant", "Chromosome", "Position", "Reference", "Alternate", "Phase_Set", "Phase_Set_Length", "Variant_Phased_by_longranger", "Genotype", 
-  "pct_REF_on_H1", "pct_REF_on_H2", "pct_ALT_on_H1", "pct_ALT_on_H2", "n_REF_H1", "n_REF_H2", "n_ALT_H1", "n_ALT_H2", "n_not_phased_heterozygote"]) + '\n')
+  "pct_REF_on_H1", "pct_REF_on_H2", "pct_ALT_on_H1", "pct_ALT_on_H2", "n_REF_H1", "n_REF_H2", "n_ALT_H1", "n_ALT_H2", "n_not_phased"]) + '\n')
 
   for var in sorted(phasing_dictionary.keys()):
     if phasing_dictionary[var] is not None:
