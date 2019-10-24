@@ -112,10 +112,10 @@ class PhaseSet:
       return("NA")
 
   def return_MoleculesH1(self):
-    return(self._moleculesH1)
+    return(self._molecules_H1)
 
   def return_MoleculesH2(self):
-    return(self._moleculesH2)
+    return(self._molecules_H2)
 
   def return_nSingleEndReads(self):
     return(self._n_single_end_reads)
@@ -306,6 +306,21 @@ def main():
       if no_error:
         import phaseset
         x = phaseset.main(args)
+      else:
+        sys.exit("\n".join(error_message))
+    elif args.module == "extend":
+      if args.ps1 is None:
+        no_error = False
+        error_message.append("The extend module requires a --ps1.")
+      if args.ps2 is None:
+        no_error = False
+        error_message.append("The extend module requires a --ps2.")
+      if args.range is None:
+        no_error = False
+        error_message.append("The extend module requires a --range.")
+      if no_error:
+        import extend
+        x = extend.main(args)
       else:
         sys.exit("\n".join(error_message))
     elif args.module == "summarize":
