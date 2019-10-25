@@ -97,13 +97,13 @@ def extend_phase_sets(ps_dict1, ps_dict2, chrom, start, end):
           next
 
         # define null as conservative error rate 
-        p_value_switch = numpy.mean(numpy.random.binomial(n_variants_overlap, .01, 1000) >= n_variants_flip_to_match)
-        p_value_no_switch = numpy.mean(numpy.random.binomial(n_variants_overlap, .99, 1000) <= n_variants_flip_to_match)
+        #p_value_switch = numpy.mean(numpy.random.binomial(n_variants_overlap, .01, 1000) >= n_variants_flip_to_match)
+        #p_value_no_switch = numpy.mean(numpy.random.binomial(n_variants_overlap, .99, 1000) <= n_variants_flip_to_match)
 
-        # define null as truly random coin flip
+        # define null as random fair coin flip
         # much more conservative, especially for low n_variants_overlap
-        #p_value_switch = numpy.mean(numpy.random.binomial(n_variants_overlap, .5, 1000) >= n_variants_flip_to_match)
-        #p_value_no_switch = numpy.mean(numpy.random.binomial(n_variants_overlap, .5, 1000) <= n_variants_flip_to_match)
+        p_value_switch = numpy.mean(numpy.random.binomial(n_variants_overlap, .5, 1000) >= n_variants_flip_to_match)
+        p_value_no_switch = numpy.mean(numpy.random.binomial(n_variants_overlap, .5, 1000) <= n_variants_flip_to_match)
 
         min_p_value = min(p_value_switch, p_value_no_switch)
 
@@ -150,8 +150,14 @@ def pairwise_phase_set_relationships(ps_dict1, extended_ps_dict, phase_set_graph
     for j in range(i + 1, n_sample_1_phase_sets):
       ps2 = sample_1_phase_sets[j]
       phase_set_relationship = sum_graph_edges(phase_set_graph, vertex_dict_ps_key[ps1 + "_s1"], vertex_dict_ps_key[ps2 + "_s1"]) # 0 if no switch, 1 if switch
+      #vertex_pair_subgraph_edgelist = phase_set_graph.subgraph([vertex_dict_ps_key[ps1 + "_s1"], vertex_dict_ps_key[ps2 + "_s1"]]).get_edgelist()
+      #print(ps1, ps2)
+      #print(phase_set_graph.neighborhood())
+      #print(vertex_pair_subgraph_edgelist)
       if phase_set_relationship in [0,1]:
         pairwise_dict[ps1][ps2] = phase_set_relationship
+
+  print(phase_set_graph.neighborhood())
 
   return(pairwise_dict)
 
@@ -234,6 +240,8 @@ def main(args):
   extended_phase_set_graph = create_graph(extended_phase_set_dictionary)
 
   extended_pairwise_relationships = pairwise_phase_set_relationships(bam_phase_set_dictionary_ps1, extended_phase_set_dictionary, extended_phase_set_graph)
+
+  print(extended_pairwise_relationships)
 
   for ps1 in extended_pairwise_relationships.keys():
     phase_set_1 = bam_phase_set_dictionary_ps1['phase_sets'][ps1]
