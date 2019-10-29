@@ -309,6 +309,9 @@ def main():
       else:
         sys.exit("\n".join(error_message))
     elif args.module == "extend":
+      if args.sum is None:
+        no_error = False
+        error_message.append("The extend module requires a --sum.")
       if args.ps1 is None:
         no_error = False
         error_message.append("The extend module requires a --ps1.")
