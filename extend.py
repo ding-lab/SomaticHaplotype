@@ -124,7 +124,7 @@ def extend_phase_sets(ps_dict1, ps_dict2, chrom, start, end):
   
   return(extended_ps_dict1)
 
-def pairwise_phase_set_relationships(ps_dict1, extended_ps_dict, phase_set_graph):
+def pairwise_phase_set_relationships(extended_ps_dict, phase_set_graph):
 
   vertex_dict_ps_key = {}
   vertex_count = -1 # graph vertices start from 0
@@ -150,16 +150,53 @@ def pairwise_phase_set_relationships(ps_dict1, extended_ps_dict, phase_set_graph
     for j in range(i + 1, n_sample_1_phase_sets):
       ps2 = sample_1_phase_sets[j]
       phase_set_relationship = sum_graph_edges(phase_set_graph, vertex_dict_ps_key[ps1 + "_s1"], vertex_dict_ps_key[ps2 + "_s1"]) # 0 if no switch, 1 if switch
-      #vertex_pair_subgraph_edgelist = phase_set_graph.subgraph([vertex_dict_ps_key[ps1 + "_s1"], vertex_dict_ps_key[ps2 + "_s1"]]).get_edgelist()
-      #print(ps1, ps2)
-      #print(phase_set_graph.neighborhood())
-      #print(vertex_pair_subgraph_edgelist)
       if phase_set_relationship in [0,1]:
         pairwise_dict[ps1][ps2] = phase_set_relationship
 
-  print(phase_set_graph.neighborhood())
-
   return(pairwise_dict)
+
+
+def super_phase_set_relationships(extended_ps_dict, phase_set_graph):
+
+  graph_clusters = phase_set_graph.clusters()
+
+  super_set_dict_index_key = {}
+  super_set_dict_cluster_key = {}
+
+  for cluster_id in range(len(graph_clusters)):
+    if cluster_id not in super_set_dict_cluster_key:
+      super_set_dict_cluster_key[cluster_id] = []
+    for x in graph_clusters[cluster_id]:
+      if x not in super_set_dict_index_key:
+        super_set_dict_index_key[x] = cluster_id
+      if x not in super_set_dict_cluster_key[cluster_id]:
+        super_set_dict_cluster_key[cluster_id].append(x)
+
+  vertex_dict_ps_key = {}
+  vertex_count = -1 # graph vertices start from 0
+
+  for ps1 in sorted(extended_ps_dict.keys()):
+    if ps1 + "_s1" not in vertex_dict_ps_key:
+      vertex_count += 1
+      vertex_dict_ps_key[ps1 + "_s1"] = vertex_count
+    for ps2 in sorted(extended_ps_dict[ps1].keys()):
+      if ps2 + "_s2" not in vertex_dict_ps_key:
+        vertex_count += 1
+        vertex_dict_ps_key[ps2 + "_s2"] = vertex_count
+
+  vertex_dict_number_key = {v:k for k,v in vertex_dict_ps_key.items()}
+
+  phase_set_relationship_dict = {}
+
+  for cluster,index_list in super_set_dict_cluster_key.items():
+    base_phase_set_index = None
+    for index in index_list:
+      if base_phase_set_index is None:
+          base_phase_set_index = index
+      if vertex_dict_number_key[index].endswith("_s1"):
+        phase_set_relationship_dict[vertex_dict_number_key[index][:-3]] = [str(x) for x in [cluster, vertex_dict_number_key[base_phase_set_index][:-3], sum_graph_edges(phase_set_graph, index, base_phase_set_index)] ]
+
+  return(phase_set_relationship_dict)
 
 def ranges_overlap(chr1, start1, end1, chr2, start2, end2):
   if start2 is None: # if no start2, assume it is start1
@@ -207,6 +244,9 @@ def sum_graph_edges(phase_set_graph, vertex_number_1, vertex_number_2):
 
 def main(args):
 
+  # open up summary file
+  summary_file = open(args.sum, 'r')
+
   # path to input pickle file of first sample
   pickle_path_ps1 = args.ps1
   with open(pickle_path_ps1, 'rb') as pickle_file_ps1:
@@ -230,7 +270,7 @@ def main(args):
   except:
     end = None
 
-  # Steven write functions here
+  # run functions
 
   extended_phase_set_dictionary = extend_phase_sets(
     bam_phase_set_dictionary_ps1,
@@ -239,28 +279,38 @@ def main(args):
 
   extended_phase_set_graph = create_graph(extended_phase_set_dictionary)
 
-  extended_pairwise_relationships = pairwise_phase_set_relationships(bam_phase_set_dictionary_ps1, extended_phase_set_dictionary, extended_phase_set_graph)
+  extended_pairwise_relationships = pairwise_phase_set_relationships(extended_phase_set_dictionary, extended_phase_set_graph)
 
-  print(extended_pairwise_relationships)
+  super_sets = super_phase_set_relationships(extended_phase_set_dictionary, extended_phase_set_graph)
 
-  for ps1 in extended_pairwise_relationships.keys():
-    phase_set_1 = bam_phase_set_dictionary_ps1['phase_sets'][ps1]
-    for ps2 in extended_pairwise_relationships[ps1].keys():
-      phase_set_2 = bam_phase_set_dictionary_ps1['phase_sets'][ps2]
-      print(phase_set_1.return_PhaseSetID(), phase_set_2.return_PhaseSetID(), extended_pairwise_relationships[ps1][ps2])
+  # write output for extended_phase_set_dictionary
+  header_line = ["ps1", "ps1_Chromosome", "ps1_FirstVariantPosition", "ps1_LastVariantPosition", "ps2", "ps2_Chromosome", "ps2_FirstVariantPosition", "ps2_LastVariantPosition", "min_overlap_position", "max_overlap_position", "length_overlap", "n_variants_overlap", "n_variants_flip_to_match", "p_value_switch", "p_value_no_switch", "min_p_value", "recommendation", "graph_weight"]
+  os.makedirs(args.output_directory, exist_ok = True)
+  output_file_path = os.path.join(args.output_directory, args.output_prefix + ".extend_stats.tsv")
+  output_file = open(output_file_path, 'w')
+  output_file.write('\t'.join(header_line) + '\n')
+  for k1,v1 in extended_phase_set_dictionary.items():
+    for k2,v2 in extended_phase_set_dictionary[k1].items():
+      if len(header_line) != len(v2):
+        sys.exit("Length of header line and number of column not equal.")
+      output_file.write('\t'.join([str(x) for x in v2]) + '\n')
+  output_file.close()
 
   # write output and close files
   os.makedirs(args.output_directory, exist_ok = True)
   output_file_path = os.path.join(args.output_directory, args.output_prefix + ".extended_phase_sets.tsv")
-  #output_file = open(output_file_path, 'w')
-  # write results to output file here
-  for ps1 in extended_phase_set_dictionary.keys():
-    for ps2 in extended_phase_set_dictionary[ps1].keys():
-      print(extended_phase_set_dictionary[ps1][ps2])
+  output_file = open(output_file_path, 'w')
 
-  print(extended_phase_set_dictionary)
-
-  print(extended_phase_set_graph)
+  header_row_list = summary_file.readline().strip().split()
+  header_row_list.extend(["cluster", "cluster_base_phase_set", "switch_status"])
+  output_file.write('\t'.join(header_row_list) + '\n')
+  for line in summary_file:
+    ps_id = line.strip().split()[0]
+    if ps_id in super_sets.keys():
+      output_file.write('\t'.join(line.strip().split() + super_sets[ps_id]) + '\n')
+    else:
+      output_file.write('\t'.join(line.strip().split() + ["NA"]*3) + '\n')
+  output_file.close()
 
   #output_file.close()
 
