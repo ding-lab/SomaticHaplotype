@@ -1,3 +1,5 @@
 .DS_store
 __pycache__
-methods_paper
+external_downloads/plink.GRCh37.map/*
+external_downloads/plink.GRCh38.map/*
+external_downloads/refined-ibd.16May19.ad5.jar
