@@ -9,6 +9,19 @@ from SomaticHaplotype import *
 # functions
 ################################################################################
 
+def ancestry_overlap(ibd_dictionary, demographic_dictionary):
+  # Gather ancestry information associated with each IBD segment
+  print_dictionary = {}
+
+  for index in ibd_dictionary.keys():
+    print_list = [index, ibd_dictionary[index]["chr"], ibd_dictionary[index]["start"], ibd_dictionary[index]["end"], 
+    ibd_dictionary[index]["this_hap"], ibd_dictionary[index]["hbd"], 
+    ibd_dictionary[index]["other_id"], demographic_dictionary["other_id"]["super_pop"], demographic_dictionary["other_id"]["pop"]]
+    print_string = "\t".join(print_list) + "\n"
+    print_dictionary[i] = print_string
+
+  return(print_dictionary)
+
 def detect_run(flip_list):
   if len(flip_list) == 1:
     return("NA")
@@ -43,6 +56,24 @@ def extract_variants_from_VCF(vcf_filename, sample_id, chr = None, start_bp = No
       variant_dict[this_variant.return_VariantKey()] = [this_variant]
 
   return(variant_dict)
+
+def overlap_phase_sets_with_IBD(ps_dict1, ibd_dict, dem_dict, vcf_dict2, chrom, start, end):
+
+  # for each phase set in ps1 check if ps overlaps range
+  ps1_phase_sets_in_range = []
+  for ps in [ x for x in list(ps_dict1['phase_sets'].keys()) if x.startswith(chrom + ":") ]:
+    phase_set_1 = ps_dict1['phase_sets'][ps]
+
+    if phase_set_1.return_FirstVariantPosition() == "NA" or phase_set_1.return_LastVariantPosition() == "NA":
+      next
+    elif ranges_overlap(phase_set_1.return_Chromosome(), phase_set_1.return_FirstVariantPosition(), phase_set_1.return_LastVariantPosition(), chrom, start, end): # ps range overlaps given range
+      ps1_phase_sets_in_range.append(ps)
+
+  for k,v in ibd_dict.items():
+    for ps in ps1_phase_sets_in_range:
+      phase_set_1 = ps_dict1['phase_sets'][ps]
+      if ranges_overlap(v["chr"], v["start"], v["end"], chrom, start, end) and ranges_overlap(v["chr"], v["start"], v["end"], phase_set_1.return_Chromosome(), phase_set_1.return_FirstVariantPosition(), phase_set_1.return_LastVariantPosition()):
+        vcf_dict2
 
 def overlap_phase_sets_with_phased_variants(ps_dict1, vcf_dict2, chrom, start, end):
 
@@ -147,6 +178,51 @@ def main(args):
   except:
     end = None
 
+  # hbd_dictionary
+  hbd_file = open(args.hbd, 'r')
+  hbd_dict = {}
+  hbd_segment = 0
+  for line in hbd_file:
+    line_strip_split = line.strip().split()
+    hbd_segment += 1
+    hbd_dict[hbd_segment] = {k:v for k,v in zip(["chr", "start", "end"], [line_strip_split[4], int(line_strip_split[5]), int(line_strip_split[6])])}
+  hbd_file.close()
+
+  # ibd_dictionary
+  ibd_file = open(args.ibd, 'r')
+  ibd_dict = {}
+  ibd_segment = 0
+  for line in ibd_file:
+    line_strip_split = line.strip().split()
+    ibd_chr = line_strip_split[4]
+    ibd_start = int(line_strip_split[5])
+    ibd_end = int(line_strip_split[6])
+
+    hbd_status = False
+    for k in hbd_dict.keys():
+      if ranges_overlap(ibd_chr, ibd_start, ibd_stop, hbd_dict[k]["chr"], hbd_dict[k]["start"], hbd_dict[k]["end"]):
+        hbd_status = True
+        continue
+
+    if args.vcf_id == line_strip_split[0]:
+      ibd_segment += 1
+      ibd_dict[ibd_segment] = {k:v for k,v in zip(["this_id", "this_hap", "other_id", "other_hap", "chr", "start", "end", "LOD", "cM"], line_strip_split)}
+      ibd_dict[ibd_segment]["hbd"] = hbd_status
+    elif args.vcf_id == line_strip_split[2]:
+      ibd_segment += 1
+      ibd_dict[ibd_segment] = {k:v for k,v in zip(["other_id", "other_hap", "this_id", "this_hap", "chr", "start", "end", "LOD", "cM"], line_strip_split)}
+      ibd_dict[ibd_segment]["hbd"] = hbd_status
+
+  ibd_file.close()
+
+  # demographic dictionary
+  dem_file = open(args.dem, 'r')
+  dem_file.readline()
+  dem_dict = {}
+  for line in dem_file:
+    line_strip_split = line.strip().split()
+    dem_dict[line_strip_split[0]] = {k:v for k,v in zip(["sample", "pop", "super_pop", "gender"], line_strip_split)}
+
   # run functions
   vcf_variants_dictionary = extract_variants_from_VCF(
     args.vcf,
@@ -160,11 +236,18 @@ def main(args):
   for k,v in overlapping_variants_dict.items():
     print(k, v)
 
+  # DONE BUT NEED TO TEST 
+  #overlapping_ibd_dict = overlap_phase_sets_with_IBD(bam_phase_set_dictionary_ps1, ibd_dict, dem_dict, vcf_variants_dictionary, chrom, start, end)
+
   # write outputs
-  #s.makedirs(args.output_directory, exist_ok = True)
-  #output_file_path = os.path.join(args.output_directory, args.output_prefix + "")
-  #output_file = open(output_file_path, 'w')
-  #output_file.close()
+  #os.makedirs(args.output_directory, exist_ok = True)
+
+  #ancestry_output_file_path = os.path.join(args.output_directory, args.output_prefix + ".IBD_segment_ancestry.tsv")
+  #ancestry_output_file = open(ancestry_output_file_path, 'w')
+  #ancestry_overlap_dict = ancestry_overlap(ibd_dict, dem_dict)
+  #for k,v in ancestry_overlap_dict.items():
+  #  ancestry_output_file.write(v)
+  #ancestry_output_file.close()
 
 if __name__ == '__main__':
   main(args)
