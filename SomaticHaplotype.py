@@ -173,6 +173,11 @@ class Variant:
 
   def extract_molecules_from_VCF_record(self, record, sample_id):
     # add molecules supporting each allele
+    try: # check if BX exists, otherwise return None value
+      record.genotype(sample_id).data.BX
+    except:
+      return(None)
+    
     molecule_dictionary = {}
     molecules_split_by_allele = record.genotype(sample_id).data.BX
     n_alleles = len(molecules_split_by_allele)
@@ -192,6 +197,10 @@ class Variant:
   def extract_variant_phase_set_from_VCF_record(self, record, sample_id):
     # extract the phase set from a pyVCF record
     chrom = record.CHROM
+    try: # check if PS exists. otherwise say PS = 0
+      record.genotype(sample_id).data.PS 
+    except:
+      return(str(chrom) + ":" + "0")
     ps = record.genotype(sample_id).data.PS
     psid = str(chrom) + ":" + str(ps)
     return(psid)
@@ -260,9 +269,9 @@ def parse_input_arguments():
   parser = argparse.ArgumentParser()
 
   # Required positional arguments
-  parser.add_argument("module", help = "Module the program should run. Could be phaseset, summarize, visualize, extend, somatic.")
+  parser.add_argument("module", help = "Module the program should run. Could be one of phaseset, summarize, extend, somatic, or ancestry.")
   parser.add_argument("output_directory", help = "Absolute or relative path to output directory")
-  parser.add_argument("output_prefix", help = "Prefix for file names in output directory")
+  parser.add_argument("output_prefix", help = "Prefix for file names in output directory. Warning: existing files in output_directory with same prefix will be overwritten.")
 
   # Optional named arguments
   parser.add_argument('--bam', action = 'store', help = "Path to bam file")
@@ -275,7 +284,10 @@ def parse_input_arguments():
   parser.add_argument('--maf', action = 'store', help = "Path to sample-specific somatic MAF (assumes all variants are associated with single sample)")
   parser.add_argument('--sombx', action = 'store', help = "Path to file containing barcodes supporting somatic MAF variants extracted from BAM")
   parser.add_argument('--variant', action = 'store', help = "Path to file containing newline-separated variant IDs, format CHROM:POS:REF:ALT (ALT is comma separated list of each ALT variant)")
-  parser.add_argument('--plot', action = 'store', help = "If True, outputs necessary files for plotting.")
+  parser.add_argument('--ibd', action = 'store', help = "Path to file reporting IBD (identical-by-descent) segments, reported in Refined-IBD format")
+  parser.add_argument('--hbd', action = 'store', help = "Path to file reporting HBD (homozygous-by-descent) segments, reported in Refined-IBD format")
+  parser.add_argument('--dem', action = 'store', help = "Demographic information about reference population used in IBD analysis. Tab-separated columns: sample/pop/super_pop/sex")
+#  parser.add_argument('--plot', action = 'store', help = "If True, outputs necessary files for plotting.")
   parser.add_argument('--version', action = 'version', version = '%(prog)s 0.1')
 
   # Return arguments object
@@ -285,7 +297,7 @@ def parse_input_arguments():
 def main():
   args = parse_input_arguments()
   
-  acceptable_modules = ["phaseset", "summarize", "visualize", "extend", "somatic"]
+  acceptable_modules = ["phaseset", "summarize", "visualize", "extend", "somatic", "ancestry"]
   if args.module in acceptable_modules:
     no_error = True
     error_message = []
@@ -354,6 +366,33 @@ def main():
       if no_error:
         import somatic
         x = somatic.main(args)
+      else:
+        sys.exit("\n".join(error_message))
+    elif args.module == "ancestry":
+      if args.ps1 is None:
+        no_error = False
+        error_message.append("The ancestry module requires a --ps1.")
+      if args.vcf is None:
+        no_error = False
+        error_message.append("The ancestry module requires a --vcf.")
+      if args.vcf_id is None:
+        no_error = False
+        error_message.append("The ancestry module requires a --vcf_id.")
+      if args.range is None:
+        no_error = False
+        error_message.append("The ancestry module requires a --range.")
+      if args.ibd is None:
+        no_error = False
+        error_message.append("The ancestry module requires a --ibd.")
+      if args.hbd is None:
+        no_error = False
+        error_message.append("The ancestry module requires a --hbd.")
+      if args.dem is None:
+        no_error = False
+        error_message.append("The ancestry module requires a --dem.")
+      if no_error:
+        import ancestry
+        x = ancestry.main(args)
       else:
         sys.exit("\n".join(error_message))
     else:
