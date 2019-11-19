@@ -1,7 +1,5 @@
 import os
 import pickle
-#import pysam
-#import vcf
 import pandas as pd
 
 from SomaticHaplotype import *
@@ -35,16 +33,7 @@ def summarize_phase_set_lengths(target_phase_sets):
   for psid in target_phase_sets.keys():
     phase_set_lengths.append(target_phase_sets[psid].return_LengthReads())
   summary_stats = pd.Series(phase_set_lengths).describe()
-  print("--Distribution of phase set lengths--")
-  print(summary_stats)
   return phase_set_lengths, summary_stats
-
-# Find the distribution of phase set gaps, summary stats
-def summarize_phase_set_gaps(target_phase_sets):
-  phase_set_gaps = []
-  for psid in sorted(target_phase_sets.keys()):
-    # print(target_phase_sets[psid]._key, target_phase_sets[psid]._chr, target_phase_sets[psid].getFirstVariantPosition(), target_phase_sets[psid].getLastVariantPosition())
-    pass
 
 # Find N50 of phase set lengths 
 # (ref: http://seqanswers.com/forums/showthread.php?t=2332)
@@ -52,27 +41,26 @@ def compute_N50(phase_set_lengths):
   # the Broad way
   l = sorted(phase_set_lengths)
   l_prime = [[length]*length for length in l]
-  flat_l_prime = [item for sublist in l_prime for item in sublist] #ref: https://stackoverflow.com/questions/952914/making-a-flat-list-out-of-list-of-lists-in-python
-  N50 = pd.Series(flat_l_prime).median()
-  print("Broad-style:", N50)
+  # ref: https://stackoverflow.com/questions/952914/making-a-flat-list-out-of-list-of-lists-in-python
+  flat_l_prime = [item for sublist in l_prime for item in sublist]
+  N50_broad = pd.Series(flat_l_prime).median()
   # Miller definition (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2874646/)
   half_total_length = sum(phase_set_lengths)/2
   l = sorted(phase_set_lengths, reverse = True)
   running_total = 0
   for length in l:
     if (running_total + length) >= half_total_length: 
-      N50 = length
+      N50_miller = length
       break
     running_total += length
-  print("Miller-style:", N50)
-  return N50
+  return N50_broad, N50_miller
 
 # Write output file with summary stats
-def write_output_summary(output_summary_file, phase_set_lengths_summary_stats, N50):
+def write_output_summary(output_summary_file, phase_set_lengths_summary_stats, N50_broad, N50_miller):
   output_summary_file.write("\t".join(["", "count", "mean", "std", "min", "25%", "50%", "75%", "max"])+"\n")
   output_summary_file.write("phase_set_lengths\t"+"\t".join([str(x) for x in list(phase_set_lengths_summary_stats)])+"\n")
-  # output_summary_file.write("phase_set_gaps\t"+"\t".join(list(phase_set_gaps_summary_stats))+"\n")
-  output_summary_file.write("N50\t" + "NA\t" * 5 + str(N50) + "\tNA\tNA\n")
+  output_summary_file.write("N50_Broad\t" + "NA\t" * 5 + str(N50_broad) + "\tNA\tNA\n")
+  output_summary_file.write("N50_Miller\t" + "NA\t" * 5 + str(N50_miller) + "\tNA\tNA\n")
 
 # Write output file with info of each phase set
 def write_output_ps(output_ps_file, target_phase_sets):
@@ -92,8 +80,6 @@ def main(args):
 
   # path to input pickle file
   pickle_path = args.ps1
-  # bam_phase_set_dictionary = pickle.load(pickle_path)
-  # vcf_variants_dictionary = pickle.load(pickle_path)
   with open(pickle_path, 'rb') as pickle_file:
     bam_phase_set_dictionary = pickle.load(pickle_file)
     vcf_variants_dictionary = pickle.load(pickle_file)
@@ -114,19 +100,16 @@ def main(args):
     except:
       end = None
 
-  # Lan uses functions here
   target_phase_sets = extract_phase_sets(bam_phase_set_dictionary, chrom, start, end)
   phase_set_lengths, phase_set_lengths_summary_stats = summarize_phase_set_lengths(target_phase_sets)
-  summarize_phase_set_gaps(target_phase_sets)
-  N50 = compute_N50(phase_set_lengths)
+  N50_broad, N50_miller = compute_N50(phase_set_lengths)
 
   # write output and close files
   os.makedirs(args.output_directory, exist_ok = True)
-  output_summary_file_path = os.path.join(args.output_directory, args.output_prefix + ".summary.tsv")
-  output_ps_file_path = os.path.join(args.output_directory, args.output_prefix + ".ps.tsv")
+  output_summary_file_path = os.path.join(args.output_directory, args.output_prefix + ".phase_set_summary.tsv")
+  output_ps_file_path = os.path.join(args.output_directory, args.output_prefix + ".phase_sets.tsv")
   output_summary_file = open(output_summary_file_path, 'w')
   output_ps_file = open(output_ps_file_path, 'w')
-  # write results to output file here
   write_output_summary(output_summary_file, phase_set_lengths_summary_stats, N50)
   write_output_ps(output_ps_file, target_phase_sets)
   output_summary_file.close()
