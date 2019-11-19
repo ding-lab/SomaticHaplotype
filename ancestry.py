@@ -35,17 +35,24 @@ def overlap_IBD_segments_with_phase_sets(ibd_dictionary, ps_dict, ibd_variants_d
   for ibd_segment_index, ibd_segment_dict in ibd_dictionary.items():
 
     if ibd_segment_dict["hbd"]:
+      
       print_dict[ibd_segment_index] = [ibd_segment_index, "HBD"]
       print_dict[ibd_segment_index].extend(["NA"]*(len(print_dict["column_names"]) - 2))
+    
     else:
+    
       for phase_set_key in ps_dict["phase_sets"].keys():
+
         if phase_set_key.startswith(ibd_segment_dict["chr"]):
         
           phase_set = ps_dict["phase_sets"][phase_set_key]
 
           if phase_set.return_FirstVariantPosition() == "NA" or phase_set.return_LastVariantPosition() == "NA":
+        
             pass
+        
           elif ranges_overlap(ibd_segment_dict["chr"], ibd_segment_dict["start"], ibd_segment_dict["end"], phase_set.return_Chromosome(), phase_set.return_FirstVariantPosition(), phase_set.return_LastVariantPosition()):
+        
             print_list = [ibd_segment_index, "IBD", ibd_segment_dict["this_id"], ibd_segment_dict["this_hap"], ibd_segment_dict["other_id"], ibd_segment_dict["other_hap"], ibd_segment_dict["chr"], ibd_segment_dict["start"], ibd_segment_dict["end"], ibd_segment_dict["LOD"], ibd_segment_dict["cM"]]
             print_list.extend([phase_set_key, phase_set.return_FirstVariantPosition(), phase_set.return_LastVariantPosition()]) # modified print_list        
 
@@ -57,6 +64,7 @@ def overlap_IBD_segments_with_phase_sets(ibd_dictionary, ps_dict, ibd_variants_d
             ibd_hap = int(ibd_segment_dict["this_hap"])
             if ibd_hap == 1:
               ibd_index = 0
+    
             elif ibd_hap == 2:
               ibd_index = 2
 
@@ -69,9 +77,11 @@ def overlap_IBD_segments_with_phase_sets(ibd_dictionary, ps_dict, ibd_variants_d
             overlaps_H2 = 0
 
             for variant_key in ps_variant_keys:
+    
               if variant_key in ibd_variants_dictionary.keys():
                 ps_variant = ps_variants_dictionary[variant_key][0]
                 ibd_variant = ibd_variants_dictionary[variant_key][0]
+    
                 if ibd_variant.return_IsPhasedHeterozygote() and ps_variant.return_IsPhasedHeterozygote():
                   overlapping_variant_keys.append(variant_key)
                   variant_positions.append(ps_variant.return_Position())
@@ -84,12 +94,16 @@ def overlap_IBD_segments_with_phase_sets(ibd_dictionary, ps_dict, ibd_variants_d
                       
                   if ibd_allele == ps_variant.return_Genotype()[0]:
                     overlaps_H1 += 1
+    
                   elif ibd_allele == ps_variant.return_Genotype()[2]:
                     overlaps_H2 += 1
+    
                   else:
                     continue
+    
                 else:
                   continue
+    
               else:
                 continue
 
@@ -206,11 +220,14 @@ def main(args):
   ibd_file = gzip.open(args.ibd, 'r')
   ibd_dict = {}
   ibd_segment = 0
+  vcf_id_b = args.vcf_id.encode('ascii')
   for line in ibd_file:
-    line_strip_split = [x.decode("utf-8")  for x in line.strip().split()]
+    line_strip_split_bytes = line.strip().split()
 
-    if args.vcf_id == line_strip_split[0] or args.vcf_id == line_strip_split[2]:
-      # IBD segment involves sample of interest  
+    if vcf_id_b == line_strip_split_bytes[0] or vcf_id_b == line_strip_split_bytes[2]:
+      # IBD segment involves sample of interest
+      line_strip_split = [x.decode("utf-8")  for x in line.strip().split()]
+
       ibd_chr = line_strip_split[4]
       ibd_start = int(line_strip_split[5])
       ibd_end = int(line_strip_split[6])
@@ -259,7 +276,6 @@ def main(args):
     end_bp = end)
 
   overlap_dict = overlap_IBD_segments_with_phase_sets(ibd_dict, bam_phase_set_dictionary_ps1, ibd_variants_dictionary)
-  print(overlap_dict)
 
   # write outputs
   os.makedirs(args.output_directory, exist_ok = True)
@@ -268,15 +284,14 @@ def main(args):
   ibd_overlap_output_file = open(ibd_overlap_output_file_path, 'w')
   ibd_overlap_output_file.write('\t'.join([str(x) for x in overlap_dict["column_names"]]) + '\n')
   for k,v in overlap_dict.items():
-    print(k)
     if k != "column_names":
-      print(k)
       ibd_overlap_output_file.write('\t'.join([str(x) for x in v]) + '\n')
   ibd_overlap_output_file.close()
 
   ancestry_output_file_path = os.path.join(args.output_directory, args.output_prefix + ".IBD_segment_ancestry.tsv")
   ancestry_output_file = open(ancestry_output_file_path, 'w')
   ancestry_overlap_dict = ancestry_overlap(ibd_dict, dem_dict)
+  ancestry_output_file.write('\t'.join(["IBD_segment_index", "Chromosome", "IBD_start_position", "IBD_end_position", "Sample1_haplotype", "HBD_status", "Sample2_ID", "Sample2_super_population", "Sample2_population"]) + "\n")
   for k,v in ancestry_overlap_dict.items():
     ancestry_output_file.write(v)
   ancestry_output_file.close()
