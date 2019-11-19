@@ -269,9 +269,9 @@ def parse_input_arguments():
   parser = argparse.ArgumentParser()
 
   # Required positional arguments
-  parser.add_argument("module", help = "Module the program should run. Could be phaseset, summarize, visualize, extend, somatic.")
+  parser.add_argument("module", help = "Module the program should run. Could be one of phaseset, summarize, extend, somatic, or ancestry.")
   parser.add_argument("output_directory", help = "Absolute or relative path to output directory")
-  parser.add_argument("output_prefix", help = "Prefix for file names in output directory")
+  parser.add_argument("output_prefix", help = "Prefix for file names in output directory. Warning: existing files in output_directory with same prefix will be overwritten.")
 
   # Optional named arguments
   parser.add_argument('--bam', action = 'store', help = "Path to bam file")
@@ -286,8 +286,8 @@ def parse_input_arguments():
   parser.add_argument('--variant', action = 'store', help = "Path to file containing newline-separated variant IDs, format CHROM:POS:REF:ALT (ALT is comma separated list of each ALT variant)")
   parser.add_argument('--ibd', action = 'store', help = "Path to file reporting IBD (identical-by-descent) segments, reported in Refined-IBD format")
   parser.add_argument('--hbd', action = 'store', help = "Path to file reporting HBD (homozygous-by-descent) segments, reported in Refined-IBD format")
-  parser.add_argument('--dem', action = 'store', help = "Demographic information about reference population used in IBD analysis. Tab-separated columns: sample/pop/super_pop/gender")
-  parser.add_argument('--plot', action = 'store', help = "If True, outputs necessary files for plotting.")
+  parser.add_argument('--dem', action = 'store', help = "Demographic information about reference population used in IBD analysis. Tab-separated columns: sample/pop/super_pop/sex")
+#  parser.add_argument('--plot', action = 'store', help = "If True, outputs necessary files for plotting.")
   parser.add_argument('--version', action = 'version', version = '%(prog)s 0.1')
 
   # Return arguments object
@@ -387,9 +387,6 @@ def main():
       if args.hbd is None:
         no_error = False
         error_message.append("The ancestry module requires a --hbd.")
-      if args.hbd is None:
-        no_error = False
-        error_message.append("The ancestry module requires a --hbd.")  
       if args.dem is None:
         no_error = False
         error_message.append("The ancestry module requires a --dem.")
