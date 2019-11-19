@@ -15,12 +15,12 @@ conda install -n SomaticHaplotype -c bioconda pyvcf
 # install igraph https://igraph.org/python/
 conda install -n SomaticHaplotype -c conda-forge python-igraph
 
-# if you will use Beagle/IBD tools, then install a compatible Java version 8 distribution
-conda install -n SomaticHaplotype -c anaconda openjdk
-
 # install samtools and bcftools for ancestry data variant calling  
 # https://samtools.github.io/bcftools/
 conda install -n SomaticHaplotype -c bioconda bcftools
+
+# if you will use Beagle/IBD tools, then install a compatible Java version 8 distribution
+conda install -n SomaticHaplotype -c anaconda openjdk
 
 # at start of each session, activate SomaticHaplotype environment
 conda activate SomaticHaplotype
@@ -32,12 +32,8 @@ conda activate SomaticHaplotype
 #conda remove -n SomaticHaplotype --all
 
 ################################################################################
-
 # create a test bam based on a short genomic region and index it
 # -h includes header and reads; -b compresses output to bam format
 #samtools view -h -b your.bam your_region > your_destination/your.new.bam
 #samtools index your_destination/your.new.bam
-
 ################################################################################
-
-# get ancestry related tools and test data
