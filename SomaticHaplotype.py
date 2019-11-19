@@ -285,6 +285,7 @@ def parse_input_arguments():
   parser.add_argument('--sombx', action = 'store', help = "Path to file containing barcodes supporting somatic MAF variants extracted from BAM")
   parser.add_argument('--variant', action = 'store', help = "Path to file containing newline-separated variant IDs, format CHROM:POS:REF:ALT (ALT is comma separated list of each ALT variant)")
   parser.add_argument('--ibd', action = 'store', help = "Path to file reporting IBD (identical-by-descent) segments, reported in Refined-IBD format")
+  parser.add_argument('--hbd', action = 'store', help = "Path to file reporting HBD (homozygous-by-descent) segments, reported in Refined-IBD format")
   parser.add_argument('--dem', action = 'store', help = "Demographic information about reference population used in IBD analysis. Tab-separated columns: sample/pop/super_pop/gender")
   parser.add_argument('--plot', action = 'store', help = "If True, outputs necessary files for plotting.")
   parser.add_argument('--version', action = 'version', version = '%(prog)s 0.1')
@@ -383,6 +384,9 @@ def main():
       if args.ibd is None:
         no_error = False
         error_message.append("The ancestry module requires a --ibd.")
+      if args.hbd is None:
+        no_error = False
+        error_message.append("The ancestry module requires a --hbd.")
       if args.hbd is None:
         no_error = False
         error_message.append("The ancestry module requires a --hbd.")  
