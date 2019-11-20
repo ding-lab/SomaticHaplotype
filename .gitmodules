@@ -1,0 +1,3 @@
+[submodule "10Xmapping"]
+	path = 10Xmapping
+	url = https://github.com/ding-lab/10Xmapping
