@@ -110,7 +110,7 @@ def main(args):
   output_ps_file_path = os.path.join(args.output_directory, args.output_prefix + ".phase_sets.tsv")
   output_summary_file = open(output_summary_file_path, 'w')
   output_ps_file = open(output_ps_file_path, 'w')
-  write_output_summary(output_summary_file, phase_set_lengths_summary_stats, N50)
+  write_output_summary(output_summary_file, phase_set_lengths_summary_stats, N50_broad, N50_miller)
   write_output_ps(output_ps_file, target_phase_sets)
   output_summary_file.close()
   output_ps_file.close()
