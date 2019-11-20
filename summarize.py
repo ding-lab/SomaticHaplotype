@@ -50,17 +50,15 @@ def compute_N50(phase_set_lengths):
   running_total = 0
   for length in l:
     if (running_total + length) >= half_total_length: 
-      N50_miller = length
+      N50_miller = float(length)
       break
     running_total += length
   return N50_broad, N50_miller
 
 # Write output file with summary stats
 def write_output_summary(output_summary_file, phase_set_lengths_summary_stats, N50_broad, N50_miller):
-  output_summary_file.write("\t".join(["", "count", "mean", "std", "min", "25%", "50%", "75%", "max"])+"\n")
-  output_summary_file.write("phase_set_lengths\t"+"\t".join([str(x) for x in list(phase_set_lengths_summary_stats)])+"\n")
-  output_summary_file.write("N50_Broad\t" + "NA\t" * 5 + str(N50_broad) + "\tNA\tNA\n")
-  output_summary_file.write("N50_Miller\t" + "NA\t" * 5 + str(N50_miller) + "\tNA\tNA\n")
+  output_summary_file.write("\t".join(["count", "mean", "std", "min", "25%", "50%", "75%", "max", "N50_broad", "N50_miller"])+"\n")
+  output_summary_file.write("\t".join([str(x) for x in list(phase_set_lengths_summary_stats)])+str(N50_broad)+"\t"+str(N50_miller)+"\n")
 
 # Write output file with info of each phase set
 def write_output_ps(output_ps_file, target_phase_sets):
