@@ -58,7 +58,7 @@ def compute_N50(phase_set_lengths):
 # Write output file with summary stats
 def write_output_summary(output_summary_file, phase_set_lengths_summary_stats, N50_broad, N50_miller):
   output_summary_file.write("\t".join(["count", "mean", "std", "min", "25%", "50%", "75%", "max", "N50_broad", "N50_miller"])+"\n")
-  output_summary_file.write("\t".join([str(x) for x in list(phase_set_lengths_summary_stats)])+str(N50_broad)+"\t"+str(N50_miller)+"\n")
+  output_summary_file.write("\t".join([str(x) for x in list(phase_set_lengths_summary_stats)])+"\t"+str(N50_broad)+"\t"+str(N50_miller)+"\n")
 
 # Write output file with info of each phase set
 def write_output_ps(output_ps_file, target_phase_sets):
