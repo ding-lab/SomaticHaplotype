@@ -415,8 +415,8 @@ def return_haplotype_supported_by_barcode(barcode, variant_key, vcf_variants_dic
     else:
       barcode_supports_this_haplotype = "No Phased Coverage"
 
-  if barcode_supports_this_haplotype not in ["H1", "H2"]:
-    barcode_supports_this_haplotype = "Not_Phased/Not_Heterozygote"
+    if barcode_supports_this_haplotype not in ["H1", "H2"]:
+      barcode_supports_this_haplotype = "Not_Phased/Not_Heterozygote"
 
   return(barcode_supports_this_haplotype)
 
