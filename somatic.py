@@ -385,6 +385,7 @@ def return_barcodes_supporting_variant_bam(variant_key, somatic_barcodes_diction
 def return_haplotype_supported_by_barcode(barcode, variant_key, vcf_variants_dictionary, somatic_barcodes_dictionary_by_haplotype):
   if variant_key in vcf_variants_dictionary and len(vcf_variants_dictionary[variant_key]) > 1:
     sys.exit("Variant " + variant_key + " has more than one VCF record.")
+  
   elif variant_key in vcf_variants_dictionary:
     this_variant = vcf_variants_dictionary[variant_key][0]
     if this_variant.return_IsPhasedHeterozygote():
@@ -396,10 +397,7 @@ def return_haplotype_supported_by_barcode(barcode, variant_key, vcf_variants_dic
       elif "No Coverage" == barcode_supports_this_allele:
         barcode_supports_this_haplotype = "No Phased Coverage"
       else:
-        print(vcf_variants_dictionary[variant_key])
-        print(this_variant.return_Genotype())
-        print(variant_key)
-        print(barcode_supports_this_allele)
+        barcode_supports_this_haplotype = "Barcode variant not in genotype"
     else:
       barcode_supports_this_haplotype = "Not Phased Heterozygote"
   
@@ -415,8 +413,8 @@ def return_haplotype_supported_by_barcode(barcode, variant_key, vcf_variants_dic
     else:
       barcode_supports_this_haplotype = "No Phased Coverage"
 
-    if barcode_supports_this_haplotype not in ["H1", "H2"]:
-      barcode_supports_this_haplotype = "Not_Phased/Not_Heterozygote"
+  if barcode_supports_this_haplotype not in ["H1", "H2"]:
+    barcode_supports_this_haplotype = "Not_Phased/Not_Heterozygote"
 
   return(barcode_supports_this_haplotype)
 
