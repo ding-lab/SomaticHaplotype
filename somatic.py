@@ -454,11 +454,11 @@ def return_variants_covered_by_barcodes(barcode_list, variant_phase_set, vcf_var
           barcodes_allele0 = list(this_variant.return_Molecules()[0].keys())
           barcodes_allele1 = list(this_variant.return_Molecules()[1].keys())
 
-        bx_overlap_allele0 = [ bx in barcodes_allele0 for bx in barcode_list ]
-        bx_overlap_allele1 = [ bx in barcodes_allele1 for bx in barcode_list ]
+          bx_overlap_allele0 = [ bx in barcodes_allele0 for bx in barcode_list ]
+          bx_overlap_allele1 = [ bx in barcodes_allele1 for bx in barcode_list ]
 
-        if any(bx_overlap_allele0) or any(bx_overlap_allele1):
-          variant_list.append(this_variant)
+          if any(bx_overlap_allele0) or any(bx_overlap_allele1):
+            variant_list.append(this_variant)
 
   return(variant_list)
 
