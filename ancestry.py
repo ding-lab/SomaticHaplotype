@@ -154,6 +154,11 @@ def extract_variants_from_VCF(vcf_filename, sample_id, chr = None, start_bp = No
 
 def ranges_overlap(chr1, start1, end1, chr2, start2, end2):
 
+  if start1 is None: # if no start1, assume it is start2
+    start1 = int(start2)
+  if end1 is None: # if no end1, assume it is end2
+    end1 = int(end2)
+
   if start2 is None: # if no start2, assume it is start1
     start2 = int(start1)
   if end2 is None: # if no end2, assume it is end1
@@ -190,11 +195,11 @@ def main(args):
   try:
     start = int(args.range.split(":")[1].split("-")[0])
   except:
-    start = 0
+    start = None
   try:
     end = int(args.range.split(":")[1].split("-")[1])
   except:
-    end = float("inf")
+    end = None
 
   # hbd_dictionary
   hbd_file = gzip.open(args.hbd, 'rb')
