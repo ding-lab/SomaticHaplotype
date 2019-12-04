@@ -190,11 +190,11 @@ def main(args):
   try:
     start = int(args.range.split(":")[1].split("-")[0])
   except:
-    start = None
+    start = 0
   try:
     end = int(args.range.split(":")[1].split("-")[1])
   except:
-    end = None
+    end = float("inf")
 
   # hbd_dictionary
   hbd_file = gzip.open(args.hbd, 'rb')
@@ -232,6 +232,8 @@ def main(args):
       ibd_chr = line_strip_split[4]
       ibd_start = int(line_strip_split[5])
       ibd_end = int(line_strip_split[6])
+
+      print(chrom, start, end, ibd_chr, ibd_start, ibd_end)
 
       if ranges_overlap(chrom, start, end, ibd_chr, ibd_start, ibd_end):
         #IBD segment overlap range of interest
