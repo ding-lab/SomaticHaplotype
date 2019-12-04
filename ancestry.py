@@ -238,8 +238,6 @@ def main(args):
       ibd_start = int(line_strip_split[5])
       ibd_end = int(line_strip_split[6])
 
-      print(chrom, start, end, ibd_chr, ibd_start, ibd_end)
-
       if ranges_overlap(chrom, start, end, ibd_chr, ibd_start, ibd_end):
         #IBD segment overlap range of interest
   
