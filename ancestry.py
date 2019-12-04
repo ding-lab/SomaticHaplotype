@@ -209,8 +209,9 @@ def main(args):
       hbd_start = int(line_strip_split[5])
       hbd_end = int(line_strip_split[6])
 
-      if ranges_overlap(chrom, start, end, hbd_chr, hbd_start, hbd_end):
+      #if ranges_overlap(chrom, start, end, hbd_chr, hbd_start, hbd_end):
         #HBD segment overlap range of interest
+      if chrom == hbd_chr:
         hbd_segment += 1
         hbd_dict[hbd_segment] = {k:v for k,v in zip(["chr", "start", "end"], [hbd_chr, hbd_start, hbd_end])}
   
