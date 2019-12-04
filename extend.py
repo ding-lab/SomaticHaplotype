@@ -199,6 +199,12 @@ def super_phase_set_relationships(extended_ps_dict, phase_set_graph):
   return(phase_set_relationship_dict)
 
 def ranges_overlap(chr1, start1, end1, chr2, start2, end2):
+
+  if start1 is None: # if no start1, assume it is start2
+    start1 = int(start2)
+  if end1 is None: # if no end1, assume it is end2
+    end1 = int(end2)
+    
   if start2 is None: # if no start2, assume it is start1
     start2 = start1
   if end2 is None: # if no end2, assume it is end1
