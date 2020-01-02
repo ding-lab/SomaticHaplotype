@@ -83,7 +83,7 @@ def overlap_IBD_segments_with_phase_sets(ibd_dictionary, ps_dict, ibd_variants_d
                 ps_variant = ps_variants_dictionary[variant_key][0]
                 ibd_variant = ibd_variants_dictionary[variant_key][0]
     
-                if ibd_variant.return_IsPhasedHeterozygote() and ps_variant.return_IsPhasedHeterozygote():
+                if ibd_variant.return_IsPhasedHeterozygote() and ps_variant.return_IsPhasedHeterozygote() and ranges_overlap(ibd_segment_dict["chr"], ibd_segment_dict["start"], ibd_segment_dict["end"], ps_variant.return_Chromosome(), ps_variant.return_Position(), ps_variant.return_Position()):
                   overlapping_variant_keys.append(variant_key)
                   variant_positions.append(ps_variant.return_Position())
                   H1_alleles.append(ps_variant.return_Genotype()[0])
