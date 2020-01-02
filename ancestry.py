@@ -29,7 +29,7 @@ def overlap_IBD_segments_with_phase_sets(ibd_dictionary, ps_dict, ibd_variants_d
   print_dict = {}
   print_dict["column_names"] = ["IBD_segment_index", "IBD_or_HBD", "Sample1_ID", "Sample1_haplotype", "Sample2_ID", "Sample2_haplotype", "Chromosome", "IBD_start_position", "IBD_end_positions", "IBD_LOD_score", "IBD_cM_length"]
   print_dict["column_names"].extend(["Phase_set_key", "Phase_set_start_position", "Phase_set_end_position"])
-  print_dict["column_names"].extend(["Number_of_overlapping_phased_heterozygous_variants", "Proportion_of_IBD_variants_overlapping_H1", "Proportion_of_IBD_variants_overlapping_H2", "Overlapping_variant_positions", "Overlapping_variant_keys", "Phase_set_H1_alleles", "Phase_set_H2_alleles", "IBD_alleles"])
+  print_dict["column_names"].extend(["Number_of_overlapping_phased_heterozygous_variants", "Proportion_of_exact_genotype_agreement", "Proportion_of_IBD_variants_overlapping_H1", "Proportion_of_IBD_variants_overlapping_H2", "Overlapping_variant_positions", "Overlapping_variant_keys", "Phase_set_H1_alleles", "Phase_set_H2_alleles", "IBD_alleles"])
  
 
   for ibd_segment_index, ibd_segment_dict in ibd_dictionary.items():
@@ -75,6 +75,7 @@ def overlap_IBD_segments_with_phase_sets(ibd_dictionary, ps_dict, ibd_variants_d
             overlapping_variant_keys = []
             overlaps_H1 = 0
             overlaps_H2 = 0
+            exact_agreement = 0
 
             for variant_key in ps_variant_keys:
     
@@ -91,7 +92,10 @@ def overlap_IBD_segments_with_phase_sets(ibd_dictionary, ps_dict, ibd_variants_d
                   overlapping_phased_het_variants += 1
                   ibd_allele = ibd_variant.return_Genotype()[ibd_index] #0|0 0|1 1|0 1|1 #ibd_index (0 or 2) corresponds to ibd_hap (1 or 2)
                   ibd_alleles.append(ibd_allele)
-                      
+                    
+                  if ps_variant.return_Genotype() == ibd_variant.return_Genotype():
+                    exact_agreement += 1
+
                   if ibd_allele == ps_variant.return_Genotype()[0]:
                     overlaps_H1 += 1
     
@@ -108,12 +112,14 @@ def overlap_IBD_segments_with_phase_sets(ibd_dictionary, ps_dict, ibd_variants_d
                 continue
 
             if overlapping_phased_het_variants == 0:
+              exact_agreement_proportion = "NA"
               proportion_ibd_overlaps_H1 = "NA"
               proportion_ibd_overlaps_H2 = "NA"
             else:
+              exact_agreement_proportion = exact_agreement/overlapping_phased_het_variants
               proportion_ibd_overlaps_H1 = overlaps_H1/overlapping_phased_het_variants
               proportion_ibd_overlaps_H2 = overlaps_H2/overlapping_phased_het_variants
-            print_list.extend([overlapping_phased_het_variants, proportion_ibd_overlaps_H1, proportion_ibd_overlaps_H2, ",".join([str(x) for x in variant_positions]), ",".join([str(x) for x in overlapping_variant_keys]), ",".join([str(x) for x in H1_alleles]), ",".join([str(x) for x in H2_alleles]), ",".join([str(x) for x in ibd_alleles])])
+            print_list.extend([overlapping_phased_het_variants, exact_agreement_proportion, proportion_ibd_overlaps_H1, proportion_ibd_overlaps_H2, ",".join([str(x) for x in variant_positions]), ",".join([str(x) for x in overlapping_variant_keys]), ",".join([str(x) for x in H1_alleles]), ",".join([str(x) for x in H2_alleles]), ",".join([str(x) for x in ibd_alleles])])
             print_dict[ibd_segment_index] = print_list
 
           else:
