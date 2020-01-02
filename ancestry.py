@@ -171,7 +171,7 @@ def ranges_overlap(chr1, start1, end1, chr2, start2, end2):
   elif(end2 < start1 or start2 > end1):
     return(False)
   elif len(set(range(start1, end1)).intersection(range(start2, end2))) > 0:
-      return(True)
+    return(True)
   else:
     return(False)
 

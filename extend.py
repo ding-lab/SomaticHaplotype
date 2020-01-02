@@ -206,9 +206,9 @@ def ranges_overlap(chr1, start1, end1, chr2, start2, end2):
     end1 = int(end2)
     
   if start2 is None: # if no start2, assume it is start1
-    start2 = start1
+    start2 = int(start1)
   if end2 is None: # if no end2, assume it is end1
-    end2 = end1
+    end2 = int(end1)
 
   if chr2 is None: # no range given
     return(True)
