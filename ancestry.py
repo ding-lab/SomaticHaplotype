@@ -107,8 +107,12 @@ def overlap_IBD_segments_with_phase_sets(ibd_dictionary, ps_dict, ibd_variants_d
               else:
                 continue
 
-            proportion_ibd_overlaps_H1 = overlaps_H1/overlapping_phased_het_variants
-            proportion_ibd_overlaps_H2 = overlaps_H2/overlapping_phased_het_variants
+            if overlapping_phased_het_variants == 0:
+              proportion_ibd_overlaps_H1 = "NA"
+              proportion_ibd_overlaps_H2 = "NA"
+            else:
+              proportion_ibd_overlaps_H1 = overlaps_H1/overlapping_phased_het_variants
+              proportion_ibd_overlaps_H2 = overlaps_H2/overlapping_phased_het_variants
             print_list.extend([overlapping_phased_het_variants, proportion_ibd_overlaps_H1, proportion_ibd_overlaps_H2, ",".join([str(x) for x in variant_positions]), ",".join([str(x) for x in overlapping_variant_keys]), ",".join([str(x) for x in H1_alleles]), ",".join([str(x) for x in H2_alleles]), ",".join([str(x) for x in ibd_alleles])])
             print_dict[ibd_segment_index] = print_list
 
