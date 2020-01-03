@@ -176,13 +176,11 @@ def ranges_overlap(chr1, start1, end1, chr2, start2, end2):
   if end2 is None: # if no end2, assume it is end1
     end2 = int(end1)
 
-  if chr2 is None: # no range given
-    return(True)
-  elif chr1 != chr2: # ranges on different chromosomes
+  if chr1 != chr2: # ranges on different chromosomes
     return(False)
   elif(end2 < start1 or start2 > end1):
     return(False)
-  elif len(set(range(start1, end1)).intersection(range(start2, end2))) > 0:
+  elif len(set(range(start1, end1 + 1)).intersection(range(start2, end2 + 1))) > 0:
     return(True)
   else:
     return(False)
