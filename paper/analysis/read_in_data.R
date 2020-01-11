@@ -598,4 +598,5 @@ if (TRUE) {
 
 }
 
+sessionInfo()
 # Steven Foltz (envest) January 2020
