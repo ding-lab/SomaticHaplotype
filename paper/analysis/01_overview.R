@@ -12,29 +12,13 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
 
 # Data available
 {
-  plot_df <- patient_sample_names_tbl %>%
-    mutate(timepoint = factor(timepoint,
-                              levels = c("SMM",
-                                         "Primary",
-                                         "Pre-transplant",
-                                         "Post-transplant",
-                                         "Remission",
-                                         "Relapse-1",
-                                         "Normal"),
-                              labels = c("SMM",
-                                         "Primary",
-                                         "Pre-transplant",
-                                         "Post-transplant",
-                                         "Remission",
-                                         "Relapse",
-                                         "Normal"),
-                              ordered = TRUE))
+  plot_df <- patient_sample_names_tbl
 
   ggplot(plot_df, aes(x = timepoint, y = patient)) +
-    geom_point(aes(color = cnv_maf_status), shape = 16, size = 3, show.legend = FALSE) +
+    geom_point(aes(color = my_color_100), shape = 16, size = 3, show.legend = FALSE) +
     geom_point(data = plot_df %>% filter(sorted), shape = 16, color = "#ffffff") +
+    scale_color_identity() +
     labs(x = NULL, y = NULL) +
-    scale_color_brewer(palette = "Set2") +
     theme_bw() +
     theme(axis.text.x = element_text(size = 8, angle = 30, hjust = 1),
           axis.text.y = element_text(size = 8),
@@ -81,13 +65,17 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
                                      TRUE ~ "Tumor")) %>%
     left_join(multiplier_tbl, by = "category")
 
-  ggplot(plot_df, aes(x = normal_sample, y = result*data_multiplier)) + #, color = normal_sample)) +
+  ggplot(plot_df, aes(x = normal_sample, y = result*data_multiplier)) +
     geom_violin(show.legend = FALSE, draw_quantiles = .5) +
-    geom_jitter(height = 0, width = 0.25, shape = 16, show.legend = FALSE) +
-    geom_label(data = plot_df %>% select(category, data_multiplier_label, normal_sample) %>% filter(normal_sample == "Tumor") %>% unique(),
+    geom_jitter(aes(color = my_color_100),
+                height = 0, width = 0.25, shape = 16, show.legend = FALSE) +
+    geom_label(data = plot_df %>%
+                 select(category, data_multiplier_label, normal_sample) %>%
+                 filter(normal_sample == "Tumor") %>% unique(),
                aes(label = data_multiplier_label),
                y = -Inf, color = "#000000") +
     facet_wrap(~category, ncol = 4, scales = "free_y") +
+    scale_color_identity() +
     labs(x = NULL, y = NULL) +
     theme_bw() +
     theme(axis.ticks.x = element_blank(),
@@ -130,10 +118,12 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
                               "n50_phase_block",
                               "molecule_length_mean"))
 
-  multiplier_tbl <- tibble(category = data_columns, data_multiplier, data_multiplier_label) %>% filter(category %in% highlight_columns)
+  multiplier_tbl <- tibble(category = data_columns,
+                           data_multiplier, data_multiplier_label) %>%
+    filter(category %in% highlight_columns)
 
   plot_df <- lr_summary_tbl %>%
-    select(patient, sample, timepoint, n50_linked_reads_per_molecule, n50_phase_block, molecule_length_mean) %>%
+    select(patient, sample, timepoint, n50_linked_reads_per_molecule, n50_phase_block, molecule_length_mean, my_color_100) %>%
     gather(highlight_columns, key = "category", value = "result") %>%
     mutate(normal_sample = case_when(timepoint == "Normal" ~ "Normal",
                                      TRUE ~ "Tumor")) %>%
@@ -142,13 +132,15 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
                              levels = highlight_columns,
                              labels = c("Molecule Length\n(mean, Kb)",
                                         "Linked-reads per\nmolecule (N50)",
-                                        "Phase Block Length\n(N50, Mb)")))
+                                        "Phase Set Length\n(N50, Mb)")))
 
-  ggplot(plot_df, aes(x = normal_sample, y = result*data_multiplier)) + #, color = normal_sample)) +
+  ggplot(plot_df, aes(x = normal_sample, y = result*data_multiplier)) +
     geom_violin(show.legend = FALSE, draw_quantiles = .5) +
-    geom_jitter(height = 0, width = 0.25, shape = 16, show.legend = FALSE, alpha = 0.25) +
+    geom_jitter(aes(color = my_color_100),
+                height = 0, width = 0.25, shape = 16, show.legend = FALSE) +
     expand_limits(y = 0) +
     facet_wrap(~category, nrow = 1, scales = "free_y") +
+    scale_color_identity() +
     labs(x = NULL, y = NULL) +
     theme_bw() +
     theme(axis.ticks.x = element_blank(),
@@ -166,3 +158,5 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
 
   rm(plot_df, data_columns, data_multiplier, data_multiplier_label, highlight_columns, multiplier_tbl)
 }
+
+rm(main, supp)
