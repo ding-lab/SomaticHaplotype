@@ -4,27 +4,96 @@
 
 # shh! (this is a library)
 library(tidyverse)
+library(viridis)
 
 # Load previous input data?
 # We do not save .Rdata at end of session. This is a resusable input
 # data object that is re-loaded at the beginning of each session.
 
-last_updated <- "2020-01-10"
+last_updated <- "2020-01-14"
 input_data_path_str <- str_c("data/collected_input_objects.", last_updated, ".RData")
 if (TRUE) {
   load(input_data_path_str)
   rm(last_updated, input_data_path_str)
   print("Input data tables loaded from last updated .RData file.")
+
 } else {
 
   # patient and sample names
 
   patient_sample_names_tbl <- read_tsv("data/patient_sample_names.tsv",
-                                       col_types = "ccccll")
+                                       col_types = "ccccll") %>%
+    mutate(timepoint = factor(timepoint,
+                              levels = c("SMM",
+                                         "Primary",
+                                         "Pre-transplant",
+                                         "Post-transplant",
+                                         "Remission",
+                                         "Relapse-1",
+                                         "Normal"),
+                              labels = c("SMM",
+                                         "Primary",
+                                         "Pre-transplant",
+                                         "Post-transplant",
+                                         "Remission",
+                                         "Relapse",
+                                         "Normal"),
+                              ordered = TRUE))
+
+  color_tbl <- patient_sample_names_tbl %>%
+    filter(timepoint != "Normal") %>%
+    select(sample) %>% arrange(sample) %>%
+    mutate(sample_n = row_number(),
+           my_color_100 = viridis(n(), alpha = 1)[row_number()],
+           my_color_75 = viridis(n(), alpha = .75)[row_number()],
+           my_color_50 = viridis(n(), alpha = .50)[row_number()],
+           my_color_25 = viridis(n(), alpha = .25)[row_number()]) %>%
+    bind_rows(patient_sample_names_tbl %>%
+                filter(timepoint == "Normal") %>%
+                select(sample) %>%
+                mutate(sample_n = 0,
+                       my_color_100 = "#000000", my_color_75 = "#636363",
+                       my_color_50 = "#bdbdbd", my_color_25 = "#f0f0f0"))
+
+  patient_sample_names_tbl <- patient_sample_names_tbl %>%
+    left_join(color_tbl, by = "sample")
 
   # chromosomes
 
-  chromosome_tbl <- tibble(chromosome = str_c("chr", seq(1,22)))
+  chromosome_tbl <- tibble(chromosome = factor(str_c("chr", seq(1:22)),
+                                               levels = str_c("chr", seq(1:22)),
+                                               ordered = TRUE))
+
+  # chromosome lengths
+
+  chromosome_length_tbl <- read_tsv("data/genome.fa.fai",
+                                    col_names = c("contig", "size", "location",
+                                                  "basesPerLine",
+                                                  "bytesPerLine"),
+                                    col_types = c("cidii")) %>%
+    filter(contig %in% chromosome_tbl$chromosome) %>%
+    mutate(contig = factor(contig,
+                           levels = str_c("chr", seq(1:22)),
+                           ordered = TRUE))
+  # cannot use integer for location because .Machine$integer.max = 2147483647
+
+  # centromeres
+
+  centromere_column_names <- c("Region-Name", "Chromosome", "Chromosome-Start",
+                               "Chromosome-Stop", "Scaffold-Role",
+                               "Scaffold-GenBank-Accn", "Scaffold-RefSeq-Accn",
+                               "Assembly-Unit")
+
+  cenetromere_tbl <- read_tsv("data/centromeres.tsv", comment = "#",
+                              col_names = centromere_column_names,
+                              col_types = c("cciicccc")) %>%
+    filter(`Scaffold-Role` == "CEN",
+           Chromosome  %in% chromosome_tbl$chromosome) %>%
+    mutate(Chromosome = factor(Chromosome,
+                               levels = str_c("chr", seq(1:22)),
+                               ordered = TRUE))
+
+  rm(centromere_column_names)
 
   # 10x_longranger_summaries
 
@@ -80,7 +149,10 @@ if (TRUE) {
   }
 
   phase_set_summary_tbl <- phase_set_summary_tbl %>%
-    left_join(patient_sample_names_tbl, by = "sample")
+    left_join(patient_sample_names_tbl, by = "sample") %>%
+    mutate(chromosome = factor(chromosome,
+                               levels = str_c("chr", seq(1:22)),
+                               ordered = TRUE))
 
   # phase sets
 
@@ -115,7 +187,10 @@ if (TRUE) {
   }
 
   phase_sets_tbl <- phase_sets_tbl %>%
-    left_join(patient_sample_names_tbl, by = "sample")
+    left_join(patient_sample_names_tbl, by = "sample") %>%
+    mutate(chromosome = factor(chromosome,
+                               levels = str_c("chr", seq(1:22)),
+                               ordered = TRUE))
 
   # extend stats
 
@@ -145,7 +220,13 @@ if (TRUE) {
   }
 
   extend_stats_tbl <- extend_stats_tbl %>%
-    left_join(patient_sample_names_tbl, by = "sample")
+    left_join(patient_sample_names_tbl, by = "sample") %>%
+    mutate(ps1_Chromosome = factor(ps1_Chromosome,
+                                   levels = str_c("chr", seq(1:22)),
+                                   ordered = TRUE)) %>%
+    mutate(ps2_Chromosome = factor(ps2_Chromosome,
+                                   levels = str_c("chr", seq(1:22)),
+                                   ordered = TRUE))
 
   rm(file_path1, file_path2, file_path3, file_path, extended_by)
 
@@ -177,7 +258,10 @@ if (TRUE) {
   }
 
   extend_phase_sets_tbl <- extend_phase_sets_tbl %>%
-    left_join(patient_sample_names_tbl, by = "sample")
+    left_join(patient_sample_names_tbl, by = "sample") %>%
+    mutate(chr = factor(chr,
+                        levels = str_c("chr", seq(1:22)),
+                        ordered = TRUE))
 
   rm(file_path1, file_path2, file_path3, file_path, extended_by)
 
@@ -195,7 +279,13 @@ if (TRUE) {
                                              chromosome,
                                              "coverage_n_variants.tsv",
                                              sep = ".")),
-                                 col_types = "ciidiii")  %>%
+                                 skip = 1,
+                                 col_names = c("chromosome", "start", "stop",
+                                               "coverage",
+                                               "n_phased_heterozygotes",
+                                               "n_heterozygotes",
+                                               "n_homozygotes"),
+                                 col_types = "ciidiii") %>%
           mutate(sample = sample_id, chromosome = chromosome)
       } else {
         new_row <- read_tsv(str_c("data/coverage_n_variants/",
@@ -205,6 +295,12 @@ if (TRUE) {
                                         chromosome,
                                         "coverage_n_variants.tsv",
                                         sep = ".")),
+                            skip = 1,
+                            col_names = c("chromosome", "start", "stop",
+                                          "coverage",
+                                          "n_phased_heterozygotes",
+                                          "n_heterozygotes",
+                                          "n_homozygotes"),
                             col_types = "ciidiii") %>%
           mutate(sample = sample_id, chromosome = chromosome)
         coverage_tbl <- bind_rows(coverage_tbl, new_row)
@@ -214,7 +310,10 @@ if (TRUE) {
   }
 
   coverage_tbl <- coverage_tbl %>%
-    left_join(patient_sample_names_tbl, by = "sample")
+    left_join(patient_sample_names_tbl, by = "sample") %>%
+    mutate(chromosome = factor(chromosome,
+                               levels = str_c("chr", seq(1:22)),
+                               ordered = TRUE))
 
   # somatic barcodes variants
 
@@ -260,9 +359,15 @@ if (TRUE) {
     }
 
     barcodes_variants_mapq0_tbl[[sample_id]] <- barcodes_variants_mapq0_tbl[[sample_id]] %>%
-      left_join(patient_sample_names_tbl, by = "sample")
+      left_join(patient_sample_names_tbl, by = "sample") %>%
+      mutate(Chromosome = factor(Chromosome,
+                                 levels = str_c("chr", seq(1:22)),
+                                 ordered = TRUE))
     barcodes_variants_mapq20_tbl[[sample_id]] <- barcodes_variants_mapq20_tbl[[sample_id]] %>%
-      left_join(patient_sample_names_tbl, by = "sample")
+      left_join(patient_sample_names_tbl, by = "sample") %>%
+      mutate(Chromosome = factor(Chromosome,
+                                 levels = str_c("chr", seq(1:22)),
+                                 ordered = TRUE))
 
   }
 
@@ -309,9 +414,15 @@ if (TRUE) {
   }
 
   phasing_variants_mapq0_tbl <- phasing_variants_mapq0_tbl %>%
-    left_join(patient_sample_names_tbl, by = "sample")
+    left_join(patient_sample_names_tbl, by = "sample") %>%
+    mutate(Chromosome = factor(Chromosome,
+                               levels = str_c("chr", seq(1:22)),
+                               ordered = TRUE))
   phasing_variants_mapq20_tbl <- phasing_variants_mapq20_tbl %>%
-    left_join(patient_sample_names_tbl, by = "sample")
+    left_join(patient_sample_names_tbl, by = "sample") %>%
+    mutate(Chromosome = factor(Chromosome,
+                               levels = str_c("chr", seq(1:22)),
+                               ordered = TRUE))
 
   # somatic somatic per phase set
 
@@ -356,9 +467,15 @@ if (TRUE) {
   }
 
   somatic_per_phase_set_mapq0_tbl <- somatic_per_phase_set_mapq0_tbl %>%
-    left_join(patient_sample_names_tbl, by = "sample")
+    left_join(patient_sample_names_tbl, by = "sample") %>%
+    mutate(chrom = factor(chrom,
+                          levels = str_c("chr", seq(1:22)),
+                          ordered = TRUE))
   somatic_per_phase_set_mapq20_tbl <- somatic_per_phase_set_mapq20_tbl %>%
-    left_join(patient_sample_names_tbl, by = "sample")
+    left_join(patient_sample_names_tbl, by = "sample") %>%
+    mutate(chrom = factor(chrom,
+                          levels = str_c("chr", seq(1:22)),
+                          ordered = TRUE))
 
   # somatic somatic per phase set
 
@@ -403,9 +520,33 @@ if (TRUE) {
   }
 
   variant_pairs_mapq0_tbl <- variant_pairs_mapq0_tbl %>%
-    left_join(patient_sample_names_tbl, by = "sample")
+    left_join(patient_sample_names_tbl, by = "sample") %>%
+    separate(Variant1, into = c("chromosome1", "position1",
+                                "reference1", "alternate1"),
+             sep = ":", remove = FALSE) %>%
+    separate(Variant2, into = c("chromosome2", "position2",
+                                "reference2", "alternate2"),
+             sep = ":", remove = FALSE) %>%
+    mutate(chromosome1 = factor(chromosome1,
+                                levels = str_c("chr", seq(1:22)),
+                                ordered = TRUE),
+           chromosome2 = factor(chromosome2,
+                                levels = str_c("chr", seq(1:22)),
+                                ordered = TRUE))
   variant_pairs_mapq20_tbl <- variant_pairs_mapq20_tbl %>%
-    left_join(patient_sample_names_tbl, by = "sample")
+    left_join(patient_sample_names_tbl, by = "sample") %>%
+    separate(Variant1, into = c("chromosome1", "position1",
+                                "reference1", "alternate1"),
+             sep = ":", remove = FALSE) %>%
+    separate(Variant2, into = c("chromosome2", "position2",
+                                "reference2", "alternate2"),
+             sep = ":", remove = FALSE) %>%
+    mutate(chromosome1 = factor(chromosome1,
+                                levels = str_c("chr", seq(1:22)),
+                                ordered = TRUE),
+           chromosome2 = factor(chromosome2,
+                                levels = str_c("chr", seq(1:22)),
+                                ordered = TRUE))
 
   # somatic somatic barcodes (sombx)
 
@@ -448,9 +589,15 @@ if (TRUE) {
   }
 
   sombx_mapq0_tbl <- sombx_mapq0_tbl %>%
-    left_join(patient_sample_names_tbl, by = "sample")
+    left_join(patient_sample_names_tbl, by = "sample") %>%
+    mutate(chromosome = factor(chromosome,
+                               levels = str_c("chr", seq(1:22)),
+                               ordered = TRUE))
   sombx_mapq20_tbl <- sombx_mapq20_tbl %>%
-    left_join(patient_sample_names_tbl, by = "sample")
+    left_join(patient_sample_names_tbl, by = "sample") %>%
+    mutate(chromosome = factor(chromosome,
+                               levels = str_c("chr", seq(1:22)),
+                               ordered = TRUE))
 
   # Sorted WGS CNV
 
@@ -479,7 +626,10 @@ if (TRUE) {
   }
 
   cnv_tbl <- cnv_tbl %>%
-    left_join(patient_sample_names_tbl, by = "sample")
+    left_join(patient_sample_names_tbl, by = "sample") %>%
+    mutate(chrom = factor(chrom,
+                          levels = str_c("chr", seq(1:22)),
+                          ordered = TRUE))
 
   # Sorted WGS MAF
 
@@ -513,7 +663,10 @@ if (TRUE) {
   rm(maf_col_types)
 
   maf_tbl <- maf_tbl %>%
-    left_join(patient_sample_names_tbl, by = "sample")
+    left_join(patient_sample_names_tbl, by = "sample") %>%
+    mutate(Chromosome = factor(Chromosome,
+                               levels = str_c("chr", seq(1:22)),
+                               ordered = TRUE))
 
   # IBD segment ancestry
 
@@ -548,7 +701,10 @@ if (TRUE) {
   }
 
   segment_ancestry_tbl <- segment_ancestry_tbl %>%
-    left_join(patient_sample_names_tbl, by = "sample")
+    left_join(patient_sample_names_tbl, by = "sample") %>%
+    mutate(Chromosome = factor(Chromosome,
+                               levels = str_c("chr", seq(1:22)),
+                               ordered = TRUE))
 
   # IBD segment overlap
 
@@ -564,7 +720,7 @@ if (TRUE) {
                                                     chromosome,
                                                     "IBD_segment_overlap.tsv",
                                                     sep = ".")),
-                                        col_types = "icciciciiddciiidddccccc")  %>%
+                                        col_types = "icciciciiddciiidddccccc") %>%
           mutate(sample = sample_id)
       } else {
         new_row <- read_tsv(str_c("data/ancestry/",
@@ -583,7 +739,10 @@ if (TRUE) {
   }
 
   segment_overlap_tbl <- segment_overlap_tbl %>%
-    left_join(patient_sample_names_tbl, by = "sample")
+    left_join(patient_sample_names_tbl, by = "sample") %>%
+    mutate(Chromosome = factor(Chromosome,
+                               levels = str_c("chr", seq(1:22)),
+                               ordered = TRUE))
 
   # clean up
 
