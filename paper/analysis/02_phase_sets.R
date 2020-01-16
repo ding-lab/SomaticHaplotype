@@ -148,7 +148,7 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
     filter(timepoint != "Normal", length_variants > 1e3) %>%
     mutate(event_number = row_number() %% 2) %>%
     mutate(phase_set_color = case_when(event_number == 0 ~ my_color_100,
-                                       TRUE ~ my_color_75))
+                                       TRUE ~ my_color_50))
 
   plot_df <- phase_sets_tbl_long %>% bind_rows(phase_sets_tbl_short) %>%
     mutate(chr_num = as.numeric(chromosome)) %>%
@@ -243,6 +243,108 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
           plot.margin = unit(c(0,0,0,0), "lines")) +
     ggsave(str_c(supp, "phase_set_length_vs_variants.27522_1.pdf"),
            width = 7.5, height = 7.5, useDingbats = FALSE)
+}
+
+# TODO draw phase sets for all samples
+{
+  # For each sample, draw phase blocks on chromosomes
+  library(tidyverse)
+
+  combined <- read.delim("data_for_plotting/combined.ps.tsv")
+  combined <- combined %>% mutate(chr = factor(chr, levels = str_c("chr", seq(1:22))))
+
+  chromosomes <- read.delim("data_for_plotting/genome.fa.fai", header = FALSE,
+                            col.names = c("chr", "length", "x", "y", "z"))
+  chromosomes <- chromosomes %>%
+    filter(chr %in% str_c("chr", seq(1:22))) %>%
+    select(chr, length) %>%
+    mutate(chr_num = str_remove(chr, "chr") %>% as.numeric())
+
+  mutations <- read.delim("data_for_plotting/somatic_combined.phasing_variants.tsv")
+
+  samples <- combined %>% pull(sample_id) %>% unique()
+  lengths <- c(0, 1e6)
+  for (sample in samples) {
+    for (min_length in lengths) {
+      combined %>%
+        filter(sample_id == sample) %>%
+        filter(length_variants > min_length & !is.na(length_variants)) %>%
+        mutate(alternating_01 = factor(row_number() %% 2)) %>%
+        mutate(chr_num = str_remove(chr, "chr") %>% as.numeric()) %>%
+        ggplot(aes(y = chr_num)) +
+        geom_segment(data = chromosomes, aes(y = chr_num, yend = chr_num,
+                                             x = 0, xend = length/1e6)) +
+        geom_rect(aes(xmin = first_variant_pos/1e6,
+                      xmax = last_variant_pos/1e6,
+                      ymin = chr_num - .3,
+                      ymax = chr_num + .3,
+                      fill = alternating_01),
+                  show.legend = FALSE) +
+        labs(x = "Position (Mb)",
+             y = "Chromosome",
+             title = str_c("Sample ", sample)) +
+        theme_bw(base_size = 20) +
+        theme(panel.grid.minor = element_blank()) +
+        scale_y_continuous(breaks = seq(1:22),
+                           labels = str_c("chr", seq(1:22))) +
+        scale_x_continuous(breaks = seq(0, 250, by = 50)) +
+        scale_fill_brewer(type = "qual", palette = "Paired") +
+        if (min_length == 1e6) {
+          ggsave(str_c("phase_sets/exclude_1Mb/", sample, ".pdf"), width = 15, height = 10, useDingbats = FALSE)
+        } else if (min_length == 0) {
+          ggsave(str_c("phase_sets/all_phase_sets/", sample, ".pdf"), width = 15, height = 10, useDingbats = FALSE)
+        }
+    }
+  }
+
+  # Flipped orientation
+  for (sample in samples) {
+    for (min_length in lengths) {
+      combined %>%
+        filter(sample_id == sample) %>%
+        filter(length_variants > min_length & !is.na(length_variants)) %>%
+        mutate(alternating_01 = factor(row_number() %% 2)) %>%
+        mutate(chr_num = str_remove(chr, "chr") %>% as.numeric()) %>%
+        ggplot(aes(y = chr_num)) +
+        geom_segment(data = chromosomes, aes(y = chr_num, yend = chr_num,
+                                             x = 0, xend = length/1e6)) +
+        geom_rect(aes(xmin = first_variant_pos/1e6,
+                      xmax = last_variant_pos/1e6,
+                      ymin = chr_num - .3,
+                      ymax = chr_num + .3,
+                      fill = alternating_01),
+                  show.legend = FALSE) +
+        labs(x = "Position (Mb)",
+             y = "Chromosome") +
+        theme_bw() + #base_size = 20) +
+        theme(axis.line = element_line(colour = "black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.border = element_blank(),
+              panel.background = element_blank(),
+              #axis.text.x = element_blank(),
+              #axis.ticks.x = element_blank(),
+              #axis.title.x = element_blank(),
+              #axis.line.x = element_blank(),
+              axis.title.y = element_blank(),
+              #axis.text.y = element_blank(),
+              axis.ticks.y = element_blank(),
+              axis.line.y = element_blank(),
+              plot.margin = margin(l = 20)) +
+        scale_y_reverse(position = "right", expand = c(0.025, 0),
+                        breaks = seq(1:22), labels = str_c("chr", seq(1:22))) +
+        scale_x_reverse(position = "top", expand = c(0, 0), limits = c(250, 0)) +
+        scale_fill_brewer(type = "qual", palette = "Paired") +
+        if (min_length == 1e6) {
+          ggsave(str_c("phase_sets/exclude_1Mb/", sample, ".flipped.pdf"), width = 15, height = 10, useDingbats = FALSE)
+          if (sample == "59114_4") {
+            ggsave(str_c("main_figures/", sample, ".flipped.pdf"), width = 15, height = 10, useDingbats = FALSE)
+          }
+        } else if (min_length == 0) {
+          ggsave(str_c("phase_sets/all_phase_sets/", sample, ".flipped.pdf"), width = 15, height = 10, useDingbats = FALSE)
+        }
+    }
+  }
 }
 
 rm(main, supp)
