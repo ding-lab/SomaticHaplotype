@@ -5,6 +5,7 @@
 # shh! (this is a library)
 library(tidyverse)
 library(viridis)
+library(ggrepel)
 
 # Load previous input data?
 # We do not save .Rdata at end of session. This is a resusable input
@@ -757,5 +758,5 @@ if (TRUE) {
 
 }
 
-sessionInfo()
+print(sessionInfo())
 # Steven Foltz (envest) January 2020
