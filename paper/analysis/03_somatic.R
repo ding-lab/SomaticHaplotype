@@ -14,7 +14,7 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
 
 # AUC threshold to maximize longranger concordance
 {
-  proportions <- seq(0, 0.1, by = 0.001)
+  proportions <- seq(0, 0.1, by = 0.01)
   tp <- rep(NA, length(proportions))
   tn <- rep(NA, length(proportions))
   fp <- rep(NA, length(proportions))
@@ -51,11 +51,6 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
 
   tpr = tp/(tp + fn)
   fpr = fp/(fp + tn)
-
-  #ggplot(tibble(proportions, tpr, fpr), aes(x = fpr, y = tpr)) +
-  #  geom_point() +
-  #  geom_label_repel(aes(label = proportions)) +
-  #  expand_limits(x = 0)
 
   ggplot(tibble(proportions, prec, rec), aes(x = prec, y = rec)) +
     geom_point() +
@@ -237,6 +232,7 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
 {
 
   phasing_variants_grouped <- phasing_variants_mapq20_tbl %>%
+    filter(n_ALT_H1 + n_ALT_H2 >= 10, Phase_Set_Length > 1e3) %>%
     group_by(sample, Phase_Set, Phase_Set_Length) %>%
     summarize(n_somatic_variants = n(),
               n_phased = sum(pct_ALT_on_H1 >= 0.91 | pct_ALT_on_H2 >= 0.91, na.rm = TRUE)) %>%
@@ -262,20 +258,20 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
 
 
   plot_data <- phasing_variants_grouped %>%
-    filter(Phase_Set_Length >= 1e3, n_phased > 1) %>%
-    mutate(n_pairs_color = case_when(n_pairs_phased < 10 ~ "<10",
-                                     n_pairs_phased < 100 ~ "<100",
-                                     n_pairs_phased < 1000 ~ "<1000",
-                                     TRUE ~ "1000+")) %>%
-    mutate(n_pairs_size = case_when(n_pairs_phased == 1 ~ 0,
-                                    n_pairs_phased <= 10 ~ 5,
-                                    n_pairs_phased <= 100 ~ 50,
-                                    n_pairs_phased <= 1000 ~ 500,
-                                    TRUE ~ 5000)) %>%
-    mutate(n_pairs_color = factor(n_pairs_color,
-                                  levels = c("0", "<10", "<100", "<1000", "1000+"),
-                                  ordered = TRUE)) %>%
-    arrange(n_pairs_color)
+    filter(Phase_Set_Length >= 1e3, n_phased > 1) #%>%
+    #mutate(n_pairs_color = case_when(n_pairs_phased < 10 ~ "<10",
+    #                                 n_pairs_phased < 100 ~ "<100",
+    #                                 n_pairs_phased < 1000 ~ "<1000",
+    #                                 TRUE ~ "1000+")) %>%
+    #mutate(n_pairs_size = case_when(n_pairs_phased == 1 ~ 0,
+    #                                n_pairs_phased <= 10 ~ 5,
+    #                                n_pairs_phased <= 100 ~ 50,
+    #                                n_pairs_phased <= 1000 ~ 500,
+    #                                TRUE ~ 5000)) %>%
+    #mutate(n_pairs_color = factor(n_pairs_color,
+    #                              levels = c("0", "<10", "<100", "<1000", "1000+"),
+    #                              ordered = TRUE)) %>%
+    #arrange(n_pairs_color)
 
   print("With WGS only:")
   plot_data %>% pull(n_pairs_color) %>% table() %>% print()
@@ -286,20 +282,28 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
   print(c("Percentage of phase blocks with all variants phased: ", 100*n_pb_1.0/n_pb))
   print(c("Percentage of phase blocks with half variants phased: ", 100*n_pb_0.5/n_pb))
 
+  min_log2 <- plot_data %>% pull(somatic_mutations_per_Mb) %>%
+    log2() %>% min() %>% round(digits = 0)
+  max_log2 <- plot_data %>% pull(somatic_mutations_per_Mb) %>%
+    log2() %>% max() %>% round(digits = 0)
+  my_breaks <- seq(from = min_log2, to = max_log2, by = 1)
+
   p <- ggplot(data = plot_data, aes(x = log2(somatic_mutations_per_Mb),
                                     y = proportion_variants_phased,
                                     color = n_pairs_color,
                                     size = n_pairs_size)) +
     geom_point(shape = 16, alpha = 0.75) +
-    scale_size_continuous(breaks = c(5, 50, 500, 5000),
+    scale_y_continuous(limits = c(0, 1)) +
+    #scale_x_continuous(breaks = my_breaks) +
+    scale_size_discrete(breaks = c(5, 50, 500, 5000),
                           labels = c("<10",
                                      "<100",
                                      "<1000",
                                      "1000+")) +
     labs(x = "Somatic Mutations per Mb (log2)",
-         y = "Proportion of Variants Phased",
-         color = "Pairs of Phased\nSomatic Variants",
-         size = "Pairs of Phased\nSomatic Variants") +
+         y = "Proportion of Mutations Phased",
+         color = "Pairs of Phased\nSomatic Mutations",
+         size = "Pairs of Phased\nSomatic Mutations") +
     scale_color_brewer(palette = "YlGnBu", drop = FALSE) +
     theme_bw() +
     theme(axis.ticks = element_blank(),
@@ -309,6 +313,7 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
           panel.background = element_blank(),
           panel.border = element_blank(),
           panel.grid = element_line(size = 0.5),
+          panel.grid.minor.x = element_blank(),
           strip.background = element_blank(),
           strip.text = element_text(size = 8),
           plot.margin = unit(c(0,0,0,0), "lines"))
@@ -325,7 +330,8 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
          width = 4.75, height = 1.5*2.25, useDingbats = FALSE)
 
   rm(phasing_variants_grouped, plot_data, stat_data, p, q, q_with_legend,
-     n_pb, n_pb_0.5, n_pb_1_sm, n_pb_1.0, pb_1_sm, sm_mb, tot_len, tot_sm)
+     n_pb, n_pb_0.5, n_pb_1_sm, n_pb_1.0, pb_1_sm, sm_mb, tot_len, tot_sm,
+     min_log2, max_log2, my_breaks)
 }
 
 rm(main, supp)
