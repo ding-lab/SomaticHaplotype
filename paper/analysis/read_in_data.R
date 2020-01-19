@@ -8,15 +8,16 @@ library(viridis)
 library(ggrepel)
 
 # Load previous input data?
-# We do not save .Rdata at end of session. This is a resusable input
-# data object that is re-loaded at the beginning of each session.
+# Processed input data tables are saved in a date-stamped .Rdata object. This is
+# a resusable input data object that is re-loaded at the beginning of each session.
+# (We do not save the environment to .Rdata at the end of the session.)
 
 last_updated <- "2020-01-17"
 input_data_path_str <- str_c("data/collected_input_objects.", last_updated, ".RData")
-if (TRUE) {
+if (file.exists(input_data_path_str)) {
   load(input_data_path_str)
+  print(str_c("Data tables loaded from .RData file created ", last_updated, "."))
   rm(last_updated, input_data_path_str)
-  print("Input data tables loaded from last updated .RData file.")
 
 } else {
 
@@ -1106,7 +1107,7 @@ if (TRUE) {
   # save current session info
   dir.create("session_info", recursive = TRUE, showWarnings = FALSE)
   sink(str_c("session_info/session_info.", last_updated, ".txt"))
-  devtools::session_info()
+  print(devtools::session_info())
   sink()
 
   # save current objects to load next time
