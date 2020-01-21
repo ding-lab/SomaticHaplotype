@@ -12,7 +12,7 @@ library(ggrepel)
 # a resusable input data object that is re-loaded at the beginning of each session.
 # (We do not save the environment to .Rdata at the end of the session.)
 
-last_updated <- "2020-01-19"
+last_updated <- "2020-01-20"
 input_data_path_str <- str_c("data/collected_input_objects.", last_updated, ".RData")
 if (file.exists(input_data_path_str)) {
   load(input_data_path_str)
@@ -118,9 +118,9 @@ if (file.exists(input_data_path_str)) {
                                "Scaffold-GenBank-Accn", "Scaffold-RefSeq-Accn",
                                "Assembly-Unit")
 
-  cenetromere_tbl <- read_tsv("data/centromeres.tsv", comment = "#",
-                              col_names = centromere_column_names,
-                              col_types = c("cciicccc")) %>%
+  centromere_tbl <- read_tsv("data/centromeres.tsv", comment = "#",
+                             col_names = centromere_column_names,
+                             col_types = c("cciicccc")) %>%
     filter(`Scaffold-Role` == "CEN",
            Chromosome  %in% chromosome_tbl$chromosome) %>%
     mutate(Chromosome = factor(Chromosome,
@@ -549,27 +549,6 @@ if (file.exists(input_data_path_str)) {
 
     # somatic somatic per phase set
 
-    # function to calculate CNV over a genomic range
-    get_range_cnv <- function(my_sample, my_chrom, my_start, my_end, cnv_table = cnv_tbl){
-      cnv_table %>% filter(sample == my_sample,
-                           chrom == my_chrom,
-                           ((start <= my_start & end >= my_start) |
-                              (start >= my_start & end <= my_end) |
-                              (start <= my_end & end >= my_end) |
-                              (start <= my_start & end >= my_end))) %>%
-        #rowwise() %>%
-        mutate(len_overlap = case_when((start <= my_start & end >= my_end) ~ as.double(my_end - my_start),
-                                       (start <= my_start & end >= my_start) ~ as.double(end - my_start),
-                                       (start >= my_start & end <= my_end) ~ as.double(end - start),
-                                       (start <= my_end & end >= my_end) ~ as.double(my_end - start))) %>%
-        mutate(type_overlap = case_when((start <= my_start & end >= my_end) ~ 1,
-                                        (start <= my_start & end >= my_start) ~ 2,
-                                        (start >= my_start & end <= my_end) ~ 3,
-                                        (start <= my_end & end >= my_end) ~ 4)) %>%
-        summarize(weighted_log2.copyRatio = sum(log2.copyRatio*len_overlap)/sum(len_overlap)) %>%
-        pull(weighted_log2.copyRatio) %>% return()
-    }
-
     variant_pairs_mapq20_tbl <- NULL
 
     for (sample_id in patient_sample_names_tbl %>%
@@ -579,15 +558,15 @@ if (file.exists(input_data_path_str)) {
           variant_pairs_mapq20_tbl <- read_tsv(str_c(
             str_c("data/somatic/", sample_id, "/"),
             str_c(sample_id, chromosome,
-                  "mapq20.variant_pairs.tsv", sep = ".")),
-            col_types = "ccccccciiii") %>%
+                  "mapq20.variant_pairs.with_cnv.tsv", sep = ".")),
+            col_types = "ccccccciiiiddd") %>%
             mutate(sample = sample_id)
         } else {
           q20 <- read_tsv(str_c(
             str_c("data/somatic/", sample_id, "/"),
             str_c(sample_id, chromosome,
-                  "mapq20.variant_pairs.tsv", sep = ".")),
-            col_types = "ccccccciiii") %>%
+                  "mapq20.variant_pairs.with_cnv.tsv", sep = ".")),
+            col_types = "ccccccciiiiddd") %>%
             mutate(sample = sample_id)
           variant_pairs_mapq20_tbl <- bind_rows(variant_pairs_mapq20_tbl, q20)
           rm(q20)
@@ -612,8 +591,7 @@ if (file.exists(input_data_path_str)) {
       mutate(position1 = as.numeric(position1),
              position2 = as.numeric(position2)) %>%
       rowwise() %>%
-      mutate(weighted_log2.copyRatio = get_range_cnv(sample, chromosome1, position1, position2),
-             distance_between_variants = position2 - position1,
+      mutate(distance_between_variants = position2 - position1,
              n_overlapping_barcodes = sum(n_bx_overlap_00, n_bx_overlap_01,
                                           n_bx_overlap_10, n_bx_overlap_11),
              n_barcodes_with_mutation = sum(n_bx_overlap_01, n_bx_overlap_10,
