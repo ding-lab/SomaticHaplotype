@@ -356,79 +356,233 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
 
 # simplified variant pairs
 {
-  #bcv <- read.delim("27522_1.NRAS.barcodes_variants.tsv")
-  bcv <- read.delim("~/Desktop/27522_1.no_NRAS_Q61.barcodes_variants.tsv")
-  variants_of_interest <- c("chr1:114716124:C:G", "chr1:114713909:G:T")
 
-  bcv_filtered <- bcv %>%
-    filter(Allele != "No Coverage" &
-             ((Filter %in% c("PASS", "10X_PHASING_INCONSISTENT") &
-                 Genotype != "1|1") |
-                Variant %in% variants_of_interest))
+  plot_barcode_variants <- function(barcodes_variants,
+                                    sample,
+                                    variants_of_interest,
+                                    var1,
+                                    var2,
+                                    gene1,
+                                    gene2,
+                                    protein1,
+                                    protein2,
+                                    position1,
+                                    position2,
+                                    output_dir,
+                                    mutation_pattern,
+                                    output_filename){
 
-  variants_more_than_1 <- bcv_filtered %>%
-    group_by(Variant) %>%
-    summarize(count = n()) %>%
-    filter(count > 1) %>%
-    mutate(Variant_rank = seq(1:n()))
+    bcv <- barcodes_variants[[sample]] %>%
+      filter(Somatic_Variant %in% variants_of_interest)
 
-  barcodes_more_than_1 <- bcv_filtered %>%
-    filter(Variant %in% variants_more_than_1$Variant) %>%
-    group_by(Barcode) %>%
-    summarize(count = n()) %>%
-    filter(count > 1) %>%
-    pull(Barcode)
+    bcv_filtered <- bcv %>%
+      filter(Allele != "No Coverage" &
+               ((Filter %in% c("PASS", "10X_PHASING_INCONSISTENT") &
+                   Genotype != "1|1") |
+                  Variant %in% variants_of_interest))
 
-  ordered_barcodes <- bcv_filtered %>%
-    filter(Barcode %in% barcodes_more_than_1) %>%
-    group_by(Barcode) %>%
-    summarize(proportion_H1 = mean(Haplotype == "H1"),
-              proportion_H2 = mean(Haplotype == "H2")) %>%
-    arrange(desc(proportion_H1), proportion_H2) %>%
-    select(Barcode) %>%
-    mutate(Barcode_rank = seq(1:n())) %>%
-    mutate(Barcode_ordered = factor(Barcode_rank, labels = Barcode))
+    variants_more_than_1 <- bcv_filtered %>%
+      group_by(Variant) %>%
+      summarize(count = n()) %>%
+      filter(count > 1) %>%
+      mutate(Variant_rank = seq(1:n()))
 
-  plot_data <- bcv_filtered %>%
-    filter(Variant %in% variants_more_than_1$Variant,
-           Barcode %in% barcodes_more_than_1) %>%
-    left_join(ordered_barcodes, by = "Barcode") %>%
-    left_join(variants_more_than_1, by = "Variant")
+    barcodes_more_than_1 <- bcv_filtered %>%
+      filter(Variant %in% variants_more_than_1$Variant) %>%
+      group_by(Barcode) %>%
+      summarize(count = n()) %>%
+      filter(count > 1) %>%
+      pull(Barcode)
 
-  horizontal_lines <- plot_data %>%
-    group_by(Barcode) %>%
-    summarize(y = unique(Barcode_rank),
-              yend = unique(Barcode_rank),
-              x = min(Variant_rank),
-              xend = max(Variant_rank)) %>%
-    ungroup()
+    ordered_barcodes <- bcv_filtered %>%
+      filter(Barcode %in% barcodes_more_than_1) %>%
+      group_by(Barcode) %>%
+      summarize(proportion_H1 = mean(Haplotype == "H1"),
+                proportion_H2 = mean(Haplotype == "H2")) %>%
+      arrange(desc(proportion_H2), proportion_H1) %>%
+      select(Barcode) %>%
+      mutate(Barcode_rank = seq(1:n())) %>%
+      mutate(Barcode_ordered = factor(Barcode_rank, labels = Barcode),
+             ordered = TRUE)
 
-  n_variants <- plot_data %>% pull(Variant) %>% unique() %>% length()
-  n_barcodes <- plot_data %>% pull(Barcode) %>% unique() %>% length()
+    plot_data <- bcv_filtered %>%
+      filter(Variant %in% variants_more_than_1$Variant,
+             Barcode %in% barcodes_more_than_1) %>%
+      left_join(ordered_barcodes, by = "Barcode") %>%
+      left_join(variants_more_than_1, by = "Variant")
 
-  plot_data %>% left_join(horizontal_lines, by = "Barcode") %>%
-    ggplot(aes(x = Variant_rank, y = Barcode_rank,
-               label = Allele, fill = Haplotype)) +
-    geom_segment(aes(y = y, yend = yend, x = x, xend = xend)) +
-    geom_vline(xintercept = seq(1:n_variants), linetype = 1, alpha = 0.25) +
-    geom_hline(yintercept = seq(1:n_barcodes), linetype = 1, alpha = 0.25) +
-    geom_tile() +
-    geom_text() +
-    coord_equal(ratio = 1) +
-    labs(x = "Variant", y = "Barcode", fill = "Haplotype") +
-    theme_bw(base_size = 20) +
-    scale_x_continuous(breaks = seq(1:n_variants),
-                       labels = plot_data %>% pull(Variant) %>% sort() %>% unique()) +
-    scale_y_continuous(breaks = seq(1:n_barcodes),
-                       labels = plot_data %>% arrange(Barcode_rank) %>% pull(Barcode) %>% unique()) +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-    theme(panel.grid.major.y = element_blank()) +
-    theme(panel.grid.minor.y = element_blank()) +
-    theme(panel.grid.major.x = element_blank()) +
-    theme(panel.grid.minor.x = element_blank())
+    horizontal_lines <- plot_data %>%
+      group_by(Barcode) %>%
+      summarize(y = unique(Barcode_rank),
+                yend = unique(Barcode_rank),
+                x = min(Variant_rank),
+                xend = max(Variant_rank)) %>%
+      ungroup()
 
-  ggsave("~/Desktop/27522_1.no_NRAS_Q61.barcode_variants.pdf", width = 30, height = 20, useDingbats = FALSE)
+    n_variants <- plot_data %>% pull(Variant) %>% unique() %>% length()
+    n_barcodes <- plot_data %>% pull(Barcode) %>% unique() %>% length()
 
+    plot_data %>%
+      left_join(horizontal_lines, by = "Barcode") %>%
+      mutate(Haplotype = factor(Haplotype,
+                                levels = c("H1", "H2", "Not_Phased/Not_Heterozygote/Allele_Not_Matching"),
+                                labels = c("Haplotype 1", "Haplotype 2", "Not Phased"),
+                                ordered = TRUE)) %>%
+      ggplot(aes(x = Variant_rank, y = Barcode_rank,
+                 label = Allele, fill = Haplotype)) +
+      geom_vline(xintercept = plot_data %>% filter(Variant == var1) %>%
+                   pull(Variant_rank) %>% unique(),
+                 color = "red") +
+      geom_vline(xintercept = plot_data %>% filter(Variant == var2) %>%
+                   pull(Variant_rank) %>% unique(),
+                 color = "red") +
+      geom_segment(aes(y = y, yend = yend, x = x, xend = xend)) +
+      geom_tile() +
+      geom_text(size = 2, color = "#ffffff") +
+      labs(x = "Variant", y = "Barcode", fill = NULL,
+           title = sample,
+           subtitle = str_c(gene1, " ", protein1, " ", "(", var1, ")", "\n",
+                            gene2, " ", protein2, " ", "(", var2, ")")) +
+      scale_fill_brewer(palette = "Dark2", drop = FALSE) +
+      scale_x_continuous(breaks = seq(1:n_variants),
+                         labels = plot_data %>% pull(Variant) %>% sort() %>% unique(),
+                         expand = c(0,0)) +
+      scale_y_continuous(breaks = seq(1:n_barcodes),
+                         labels = plot_data %>% arrange(Barcode_rank) %>% pull(Barcode) %>% unique(),
+                         expand = c(0,0)) +
+      coord_equal() +
+      theme_bw() +
+      theme(legend.position = "bottom",
+            axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 6),
+            axis.text.y = element_text(size = 6),
+            axis.title = element_text(size = 8),
+            panel.background = element_blank(),
+            panel.border = element_blank(),
+            panel.grid = element_line(size = 0.5),
+            panel.grid.minor = element_blank(),
+            strip.background = element_blank(),
+            strip.text = element_text(size = 8),
+            plot.margin = unit(c(0,0,0,0), "lines")
+      ) +
+      ggsave(str_c(supp, mutation_pattern, "/", output_filename), width = 7.5, height = 10, useDingbats = FALSE)
+  }
+
+  variant_pairs_with_mutation_coverage <- variant_pairs_all_mapq20_tbl %>%
+    mutate(mutation_pattern = case_when( (n_bx_overlap_01 > 0 & n_bx_overlap_10 > 0 & n_bx_overlap_11 == 0) ~ 'independent',
+                                         (n_bx_overlap_01 > 0 & n_bx_overlap_10 == 0 & n_bx_overlap_11 > 0) ~ 'var2>var1',
+                                         (n_bx_overlap_01 == 0 & n_bx_overlap_10 > 0 & n_bx_overlap_11 > 0) ~ 'var1>var2')) %>%
+    filter(!is.na(mutation_pattern))
+  for (i in 1:nrow(variant_pairs_with_mutation_coverage)) {
+
+    this_mutation_pattern <- variant_pairs_with_mutation_coverage$mutation_pattern[i]
+
+    dir.create(str_c(supp, this_mutation_pattern), recursive = TRUE, showWarnings = FALSE)
+
+    this_var1 <- variant_pairs_with_mutation_coverage$Variant1[i]
+    this_var2 <- variant_pairs_with_mutation_coverage$Variant2[i]
+
+    this_variants_of_interest <- c(this_var1, this_var2)
+
+    this_sample <- variant_pairs_with_mutation_coverage$sample[i]
+
+    this_gene1 <- important_mutations_tbl %>%
+      filter(chr == variant_pairs_with_mutation_coverage$chromosome1[i],
+             pos == variant_pairs_with_mutation_coverage$position1[i]) %>%
+      select(gene) %>% pull(gene)
+
+    this_protein1 <- important_mutations_tbl %>%
+      filter(chr == variant_pairs_with_mutation_coverage$chromosome1[i],
+             pos == variant_pairs_with_mutation_coverage$position1[i]) %>%
+      mutate(protein = str_remove(protein, "p.")) %>% pull(protein)
+
+    this_position1 <- variant_pairs_with_mutation_coverage$position1[i]
+
+    this_gene2 <- important_mutations_tbl %>%
+      filter(chr == variant_pairs_with_mutation_coverage$chromosome2[i],
+             pos == variant_pairs_with_mutation_coverage$position2[i]) %>%
+      select(gene) %>% pull(gene)
+
+    this_protein2 <- important_mutations_tbl %>%
+      filter(chr == variant_pairs_with_mutation_coverage$chromosome2[i],
+             pos == variant_pairs_with_mutation_coverage$position2[i]) %>%
+      mutate(protein = str_remove(protein, "p.")) %>% pull(protein)
+
+    this_position2 <- variant_pairs_with_mutation_coverage$position2[i]
+
+    this_output_filename <- str_c(this_sample, this_gene1, this_protein1, this_gene2, this_protein2, "barcode_variants.pdf", sep = ".")
+
+    plot_barcode_variants(barcodes_variants = barcodes_variants_all_mapq20_tbl,
+                          sample = this_sample,
+                          variants_of_interest = this_variants_of_interest,
+                          var1 = this_var1,
+                          var2 = this_var2,
+                          gene1 = this_gene1,
+                          gene2 = this_gene2,
+                          protein1 = this_protein1,
+                          protein2 = this_protein2,
+                          position1 = this_position1,
+                          position2 = this_position2,
+                          output_dir =  supp,
+                          mutation_pattern = this_mutation_pattern,
+                          output_filename = this_output_filename)
+
+  }
+
+  rm(variant_pairs_with_mutation_coverage, i, this_gene1, this_gene2,
+     this_mutation_pattern, this_output_filename, this_position1, this_position2,
+     this_protein1, this_protein2, this_sample, this_var1, this_var2, this_variants_of_interest)
+
+  sequential_variant_pairs <- variant_pairs_mapq20_tbl %>%
+    filter(n_bx_overlap_01 > 1, n_bx_overlap_10 == 0, n_bx_overlap_11 > 1) %>%
+    bind_rows(variant_pairs_mapq20_tbl %>%
+                filter(n_bx_overlap_01 == 0, n_bx_overlap_10 > 1, n_bx_overlap_11 > 1)) %>%
+    mutate(mutation_pattern = "sequential") %>%
+    filter(distance_between_variants > 3)
+  for (i in 1:nrow(sequential_variant_pairs)) {
+
+    this_mutation_pattern <- sequential_variant_pairs$mutation_pattern[i]
+
+    dir.create(str_c(supp, this_mutation_pattern), recursive = TRUE, showWarnings = FALSE)
+
+    this_var1 <- sequential_variant_pairs$Variant1[i]
+    this_var2 <- sequential_variant_pairs$Variant2[i]
+
+    this_variants_of_interest <- c(this_var1, this_var2)
+
+    this_sample <- sequential_variant_pairs$sample[i]
+
+    this_gene1 <- "Gene1"
+    this_protein1 <- "Protein1"
+
+    this_position1 <- sequential_variant_pairs$position1[i]
+
+    this_gene2 <- "Gene2"
+    this_protein2 <- "Protein2"
+
+    this_position2 <- sequential_variant_pairs$position2[i]
+
+    this_output_filename <- str_c(this_sample, i, "barcode_variants.pdf", sep = ".")
+
+    plot_barcode_variants(barcodes_variants = barcodes_variants_mapq20_tbl,
+                          sample = this_sample,
+                          variants_of_interest = this_variants_of_interest,
+                          var1 = this_var1,
+                          var2 = this_var2,
+                          gene1 = this_gene1,
+                          gene2 = this_gene2,
+                          protein1 = this_protein1,
+                          protein2 = this_protein2,
+                          position1 = this_position1,
+                          position2 = this_position2,
+                          output_dir =  supp,
+                          mutation_pattern = this_mutation_pattern,
+                          output_filename = this_output_filename)
+
+  }
+
+  rm(sequential_variant_pairs, i, this_gene1, this_gene2,
+     this_mutation_pattern, this_output_filename, this_position1, this_position2,
+     this_protein1, this_protein2, this_sample, this_var1, this_var2, this_variants_of_interest)
 }
 
 # 27522_1 NRAS G13 Q61 figure
@@ -626,3 +780,5 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
   # ggsave("main_figures/nras_positions.pdf", r, width = 7, height = 1, useDingbats = FALSE)
 
 }
+
+rm(plot_barcode_variants)
