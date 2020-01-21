@@ -171,13 +171,13 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
           plot.margin = unit(c(0,0,0,0), "lines")) +
     ggsave(str_c(supp, "overlapping_barcodes.lt_100.pdf"),
            width = 7.25, height = 2, useDingbats = FALSE)
+
+  rm(cnv_neutral_mutation_sites, cnv_neutral_good_coverage_sites, max_overlapping_bx, sample_id, this_sample)
 }
 
 # automated allele combination stats
 {
   # allele combinations (handmade with known figures)
-
-  median_molecule_length <- lr_summary_tbl %>% pull(molecule_length_mean) %>% median() %>% plyr::round_any(1000)
 
   n_total <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% nrow()
 
@@ -208,33 +208,34 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
                            labels = c(str_c("Within\n", median_molecule_length/1000, " Kb"), "Share\nBarcode", "Share\nVariant"),
                            ordered = TRUE))
 
+  bar_width = 0.5
   ggplot(data = plot_df, aes(x = level1, y = value, fill = level2)) +
-    geom_bar(stat = "identity", width = 0.5, show.legend = FALSE) +
+    geom_bar(stat = "identity", width = bar_width, show.legend = FALSE) +
     geom_text(data = plot_df %>% filter(level2 == "Yes"),
-              aes(label = str_c(round(value), "%")),
+              aes(label = str_c(round(value, 1), "%")),
               vjust = 1, nudge_y = -0.5,
               color = "white",
-              size = 2.5) +
+              size = 2) +
     geom_text(data = plot_df %>% filter(level2 == "No"),
-              aes(label = str_c(round(value), "%"), y = 100),
+              aes(label = str_c(round(value, 1), "%"), y = 100),
               vjust = 1, nudge_y = -0.5,
               color = "white",
-              size = 2.5) +
-    geom_segment(x = 1.25, y = p_within_length, xend = 1.75, yend = 100,
-                 lty = 2, color = "#bdbdbd", lwd = 0.3) +
-    geom_segment(x = 1.25, y = 0, xend = 1.75, yend = 0,
-                 lty = 2, color = "#bdbdbd", lwd = 0.3) +
-    geom_segment(x = 2.25, y = p_within_length_share_barcode, xend = 2.75,
-                 yend = 100, lty = 2, color = "#bdbdbd", lwd = 0.3) +
-    geom_segment(x = 2.25, y = 0, xend = 2.75, yend = 0,
-                 lty = 2, color = "#bdbdbd", lwd = 0.3) +
-    geom_segment(x = 3.25, y = p_within_length_share_barcode_share_variant, xend = 3.75, yend = 100,
-                 lty = 2, color = "#bdbdbd", lwd = 0.3) +
-    geom_segment(x = 3.25, y = 0, xend = 3.75, yend = 0, lty = 2,
-                 color = "#bdbdbd", lwd = 0.3) +
+              size = 2) +
+    geom_segment(x = 1 + bar_width/2, y = p_within_length, xend = 2 - bar_width/2, yend = 100,
+                 lty = 2, color = "#bdbdbd", lwd = 0.5) +
+    geom_segment(x = 1 + bar_width/2, y = 0, xend = 2 - bar_width/2, yend = 0,
+                 lty = 2, color = "#bdbdbd", lwd = 0.5) +
+    geom_segment(x = 2 + bar_width/2, y = p_within_length_share_barcode, xend = 3 - bar_width/2, yend = 100,
+                 lty = 2, color = "#bdbdbd", lwd = 0.5) +
+    geom_segment(x = 2 + bar_width/2, y = 0, xend = 3 - bar_width/2, yend = 0,
+                 lty = 2, color = "#bdbdbd", lwd = 0.5) +
+    geom_segment(x = 3 + bar_width/2, y = p_within_length_share_barcode_share_variant, xend = 4 - bar_width/2, yend = 100,
+                 lty = 2, color = "#bdbdbd", lwd = 0.5) +
+    geom_segment(x = 3 + bar_width/2, y = 0, xend = 4 - bar_width/2, yend = 0, lty = 2,
+                 color = "#bdbdbd", lwd = 0.5) +
     scale_fill_manual(values = c("#80cdc1", "#01665e")) +
     scale_x_discrete(expand = c(0,0)) +
-    expand_limits(x = 3.75) +
+    expand_limits(x = 4 - bar_width/2) +
     theme_bw() +
     theme(axis.ticks.x = element_blank(),
           axis.ticks.y = element_blank(),
@@ -252,9 +253,10 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
           plot.margin = unit(c(0,0,0,0), "lines")) +
     labs(x = NULL, y = "Somatic Mutation Pairs (%)", fill = NULL) +
     ggsave(str_c(main, "n_variant_pairs.pdf"),
-           width = 3, height = 2, useDingbats = FALSE)
+           width = 2, height = 2, useDingbats = FALSE)
 
   ### Other parts
+
   text_df <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>%
     filter(distance_between_variants <= median_molecule_length) %>%
     filter(n_overlapping_barcodes > 0) %>%
@@ -276,58 +278,61 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
                              ordered = TRUE))
 
   plot_df <- tribble(~alleles, ~category, ~filled,
-                     1, "1001", 1,
-                     2, "1001", 0,
-                     3, "1001", 0,
                      4, "1001", 1,
-                     1, "1010", 1,
-                     2, "1010", 0,
-                     3, "1010", 1,
-                     4, "1010", 0,
-                     1, "1100", 1,
-                     2, "1100", 1,
-                     3, "1100", 0,
-                     4, "1100", 0,
-                     1, "1110", 1,
-                     2, "1110", 1,
+                     3, "1001", 0,
+                     2, "1001", 0,
+                     1, "1001", 1,
+                     4, "1010", 1,
+                     3, "1010", 0,
+                     2, "1010", 1,
+                     1, "1010", 0,
+                     4, "1100", 1,
+                     3, "1100", 1,
+                     2, "1100", 0,
+                     1, "1100", 0,
+                     4, "1110", 1,
                      3, "1110", 1,
-                     4, "1110", 0,
-                     1, "1011", 1,
-                     2, "1011", 0,
-                     3, "1011", 1,
+                     2, "1110", 1,
+                     1, "1110", 0,
                      4, "1011", 1,
-                     1, "1101", 1,
-                     2, "1101", 1,
-                     3, "1101", 0,
+                     3, "1011", 0,
+                     2, "1011", 1,
+                     1, "1011", 1,
                      4, "1101", 1,
-                     1, "Other", 2,
-                     2, "Other", 2,
+                     3, "1101", 1,
+                     2, "1101", 0,
+                     1, "1101", 1,
+                     4, "Other", 2,
                      3, "Other", 2,
-                     4, "Other", 2)
+                     2, "Other", 2,
+                     1, "Other", 2) %>%
+    mutate(category = factor(category,
+                             levels = c("1001", "1010", "1100", "1110",
+                                        "1011", "1101", "Other"),
+                             ordered = TRUE))
 
   ggplot() +
     geom_tile(data = plot_df,
-              aes(x = alleles, y = fct_rev(category), fill = as.factor(filled)),
-              color = NA) +
-    geom_text(data = text_df, aes(y = category, x = 4.5, label = total),
-              size = 2, hjust = 0, nudge_x = 0.05) +
-    #geom_vline(xintercept = seq(1,3) + 0.5, lty = 1, lwd = 0.5, color = "#ffffff") +
-    #geom_hline(yintercept = seq(1,6) + 0.5, lty = 1, lwd = 2, color = "#ffffff") +
-    coord_equal() +
+              aes(x = category, y = alleles, fill = as.factor(filled)),
+              #color = NA,
+              width = 0.8,
+              height = 0.95) +
+    geom_text(data = text_df, aes(x = category, y = 5.5, label = total),
+              size = 2) +
+    geom_text(data = text_df, aes(x = category, y = 5, label = str_c(round(100*total/n_within_length_share_barcode_share_variant, 1), "%")),
+              size = 2) +
     scale_fill_manual(values = c("#80cdc1", "#01665e", "#bdbdbd")) +
-    scale_x_continuous(limits = c(0.5,5),
-                       breaks = seq(1,5),
-                       labels = c("REF/REF", "REF/ALT", "ALT/REF", "ALT/ALT", "Total"),
-                       position = "bottom",
-                       expand = c(0,0)) +
-    scale_y_discrete(expand = c(0,0), position = "right") +
-    labs(y = "Observed Combinations of\nLinked Somatic Mutations", x = NULL) +
+    scale_y_continuous(breaks = c(seq(1,5), 5.5),
+                       labels = c("ALT/ALT", "ALT/REF", "REF/ALT", "REF/REF", "", "Total"),
+                       position = "left") +
+    scale_x_discrete(expand = c(0,0), position = "bottom") +
+    labs(x = "Combinations of Linked Somatic Mutations", y = NULL) +
     guides(fill = FALSE) +
     theme_bw() +
     theme(axis.ticks.x = element_blank(),
           axis.ticks.y = element_blank(),
           axis.title = element_text(size = 8),
-          axis.text.y = element_blank(),
+          axis.text.y = element_text(size = 8),
           axis.text.x = element_text(size = 8),
           panel.background = element_blank(),
           panel.border = element_blank(),
@@ -338,8 +343,15 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
           strip.background = element_blank(),
           strip.text = element_text(size = 8),
           plot.margin = unit(c(0,0,0,0), "lines")) +
-    ggsave(str_c(main, "allele_combinations.pdf"), height = 2, width = 2, useDingbats = FALSE)
+    ggsave(str_c(main, "allele_combinations.pdf"), height = 2, width = 3, useDingbats = FALSE)
 
+  rm(n_total, n_within_length, p_within_length,
+     n_within_length_share_barcode, p_within_length_share_barcode,
+     n_within_length_share_barcode_share_variant, p_within_length_share_barcode_share_variant,
+     plot_df, text_df,
+     variant_pairs_mapq20_tbl_cnv_neutral_good_coverage,
+     median_molecule_length,
+     bar_width)
 }
 
 # simplified variant pairs
