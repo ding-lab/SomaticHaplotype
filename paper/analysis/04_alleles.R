@@ -781,4 +781,4 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
 
 }
 
-rm(plot_barcode_variants)
+rm(plot_barcode_variants, main, supp)
