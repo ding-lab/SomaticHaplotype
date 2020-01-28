@@ -12,7 +12,7 @@ supp = "figures/03_somatic_phasing/supplementary/"
 dir.create(main, recursive = TRUE, showWarnings = FALSE)
 dir.create(supp, recursive = TRUE, showWarnings = FALSE)
 
-# AUC threshold to maximize longranger concordance
+# Precision/recall balance threshold to maximize longranger concordance
 {
   proportions <- seq(0, 0.1, by = 0.01)
   tp <- rep(NA, length(proportions))
@@ -69,8 +69,8 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
           strip.background = element_blank(),
           strip.text = element_text(size = 8),
           plot.margin = unit(c(0,0,0,0), "lines")) +
-    ggsave(str_c(main, "precision_recall.pdf"),
-           width = 2.25, height = 2.25, useDingbats = FALSE)
+    ggsave(str_c(supp, "precision_recall.pdf"),
+           width = 3.5, height = 3.5, useDingbats = FALSE)
 
   rm(proportions, tp, tn, fp, fn, prec, rec, tpr, fpr, i)
 }
@@ -131,7 +131,7 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
     ggsave(str_c(main, "longranger_concordance.pdf"),
            width = 2.25, height = 2.25, useDingbats = FALSE)
 
-  rm(H1_proportion, plot_df, n_total, n_agree, n_disagree, concordance, discordance)
+  rm(plot_df, n_total, n_agree, n_disagree, concordance, discordance)
 }
 
 # Phased somatic mutations on haplotypes
@@ -256,31 +256,26 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
   print(c("% phase blocks with > 0 somatic mutations:", pb_1_sm))
   print(c("Somatic mutations per Mb within phase blocks:", sm_mb))
 
-
   plot_data <- phasing_variants_grouped %>%
-    filter(Phase_Set_Length >= 1e3, n_phased > 1) #%>%
-    #mutate(n_pairs_color = case_when(n_pairs_phased < 10 ~ "<10",
-    #                                 n_pairs_phased < 100 ~ "<100",
-    #                                 n_pairs_phased < 1000 ~ "<1000",
-    #                                 TRUE ~ "1000+")) %>%
-    #mutate(n_pairs_size = case_when(n_pairs_phased == 1 ~ 0,
-    #                                n_pairs_phased <= 10 ~ 5,
-    #                                n_pairs_phased <= 100 ~ 50,
-    #                                n_pairs_phased <= 1000 ~ 500,
-    #                                TRUE ~ 5000)) %>%
-    #mutate(n_pairs_color = factor(n_pairs_color,
-    #                              levels = c("0", "<10", "<100", "<1000", "1000+"),
-    #                              ordered = TRUE)) %>%
-    #arrange(n_pairs_color)
+    filter(Phase_Set_Length >= 1e3, n_phased > 1) %>%
+    mutate(n_pairs_color = case_when(n_pairs_phased == 1 ~ "1 pair",
+                                     n_pairs_phased <= 3 ~ "< 3",
+                                     n_pairs_phased <= 10 ~ "< 10",
+                                     n_pairs_phased <= 100 ~ "< 100",
+                                     TRUE ~ "> 100")) %>%
+    mutate(n_pairs_color = factor(n_pairs_color,
+                                  levels = c("0", "1 pair", "< 3", "< 10", "< 100", "> 100"),
+                                  ordered = TRUE)) %>%
+    arrange(n_pairs_color)
 
   print("With WGS only:")
   plot_data %>% pull(n_pairs_color) %>% table() %>% print()
 
   n_pb <- plot_data %>% nrow()
   n_pb_1.0 <- plot_data %>% filter(proportion_variants_phased == 1) %>% nrow()
-  n_pb_0.5 <- plot_data %>% filter(proportion_variants_phased >= 0.5) %>% nrow()
+  n_pb_0.75 <- plot_data %>% filter(proportion_variants_phased >= 0.75) %>% nrow()
   print(c("Percentage of phase blocks with all variants phased: ", 100*n_pb_1.0/n_pb))
-  print(c("Percentage of phase blocks with half variants phased: ", 100*n_pb_0.5/n_pb))
+  print(c("Percentage of phase blocks with half variants phased: ", 100*n_pb_0.75/n_pb))
 
   min_log2 <- plot_data %>% pull(somatic_mutations_per_Mb) %>%
     log2() %>% min() %>% round(digits = 0)
@@ -288,18 +283,13 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
     log2() %>% max() %>% round(digits = 0)
   my_breaks <- seq(from = min_log2, to = max_log2, by = 1)
 
-  p <- ggplot(data = plot_data, aes(x = log2(somatic_mutations_per_Mb),
-                                    y = proportion_variants_phased,
-                                    color = n_pairs_color,
-                                    size = n_pairs_size)) +
+  p <- ggplot(data = plot_data,
+              aes(x = log2(somatic_mutations_per_Mb),
+                  y = proportion_variants_phased,
+                  color = n_pairs_color)) +
     geom_point(shape = 16, alpha = 0.75) +
     scale_y_continuous(limits = c(0, 1)) +
-    #scale_x_continuous(breaks = my_breaks) +
-    scale_size_discrete(breaks = c(5, 50, 500, 5000),
-                          labels = c("<10",
-                                     "<100",
-                                     "<1000",
-                                     "1000+")) +
+    scale_x_continuous(breaks = my_breaks) +
     labs(x = "Somatic Mutations per Mb (log2)",
          y = "Proportion of Mutations Phased",
          color = "Pairs of Phased\nSomatic Mutations",
@@ -318,10 +308,11 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
           strip.text = element_text(size = 8),
           plot.margin = unit(c(0,0,0,0), "lines"))
 
-  q_with_legend <- ggExtra::ggMarginal(p, type = "histogram", groupFill = TRUE)
+  q_with_legend <- ggExtra::ggMarginal(p, type = "histogram", groupFill = TRUE, color = NA)
   q <- ggExtra::ggMarginal(p + guides(color = FALSE, size = FALSE),
                            type = "histogram",
-                           groupFill = TRUE)
+                           groupFill = TRUE,
+                           color = NA)
 
   ggsave(str_c(main, "somatic_mutations_per_Mb.with_legend.pdf"), q_with_legend,
          width = 4.75, height = 1.5*2.25, useDingbats = FALSE)
@@ -330,8 +321,119 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
          width = 4.75, height = 1.5*2.25, useDingbats = FALSE)
 
   rm(phasing_variants_grouped, plot_data, stat_data, p, q, q_with_legend,
-     n_pb, n_pb_0.5, n_pb_1_sm, n_pb_1.0, pb_1_sm, sm_mb, tot_len, tot_sm,
+     n_pb, n_pb_0.75, n_pb_1_sm, n_pb_1.0, pb_1_sm, sm_mb, tot_len, tot_sm,
      min_log2, max_log2, my_breaks)
 }
+
+# looking at important mutations
+{
+  important_ones <- important_mutations_tbl %>%
+    rowwise() %>%
+    mutate(p1 = str_sub(str_split(protein, pattern = "\\.", simplify = TRUE)[2], 1, 1),
+           p2 = str_sub(str_split(protein, pattern = "\\.", simplify = TRUE)[2], -1),
+           synonymous = (p1 == p2),
+           Variant = str_c(chr, pos, ref, alt, sep = ":"))
+
+  tumor_vafs <- important_mutations_vaf_tbl %>%
+    filter(timepoint != "Normal") %>%
+    mutate(variant_key = str_c(chr, pos, ref, alt, sep = ":"))
+  normal_vafs <- important_mutations_vaf_tbl %>%
+    filter(timepoint == "Normal")  %>%
+    mutate(variant_key = str_c(chr, pos, ref, alt, sep = ":")) %>%
+    mutate(normal_vaf = vaf,
+           normal_alleles = alleles)
+
+  plot_df <- sombx_all_mapq20_tbl %>%
+    mutate(Variant = str_c(chromosome, position, ref, alt, sep = ":")) %>%
+    left_join(important_ones, by = c("Variant", "ref", "alt")) %>%
+    filter(!synonymous) %>%
+    rowwise() %>%
+    mutate(n_ref_h1_bx = case_when(is.na(ref_barcodes_H1) ~ 0,
+                                   TRUE ~ as.double(length(str_split(ref_barcodes_H1, ";", simplify = TRUE)))),
+           n_ref_h2_bx = case_when(is.na(ref_barcodes_H2) ~ 0,
+                                   TRUE ~ as.double(length(str_split(ref_barcodes_H2, ";", simplify = TRUE)))),
+           n_ref_none_bx = case_when(is.na(ref_barcodes_None) ~ 0,
+                                   TRUE ~ as.double(length(str_split(ref_barcodes_None, ";", simplify = TRUE)))),
+           n_alt_h1_bx = case_when(is.na(alt_barcodes_H1) ~ 0,
+                                   TRUE ~ as.double(length(str_split(alt_barcodes_H1, ";", simplify = TRUE)))),
+           n_alt_h2_bx = case_when(is.na(alt_barcodes_H2) ~ 0,
+                                   TRUE ~ as.double(length(str_split(alt_barcodes_H2, ";", simplify = TRUE)))),
+           n_alt_none_bx = case_when(is.na(alt_barcodes_None) ~ 0,
+                                   TRUE ~ as.double(length(str_split(alt_barcodes_None, ";", simplify = TRUE)))),
+           total_ref = sum(n_ref_h1_bx, n_ref_h2_bx, n_ref_none_bx),
+           total_alt = sum(n_alt_h1_bx, n_alt_h2_bx, n_alt_none_bx),
+           barcode_vaf = total_alt/(total_alt + total_ref)) %>%
+    left_join(tumor_vafs %>% select(variant_key, sample, vaf, alleles),
+              by = c("variant_key", "sample")) %>%
+    left_join(normal_vafs %>% select(variant_key, patient, normal_vaf, normal_alleles),
+              by = c("variant_key", "patient")) %>%
+    filter(!is.na(normal_vaf),
+           normal_vaf <= 0.02,
+           vaf > 0.05,
+           nchar(alleles) > 10,
+           n_alt_h1_bx + n_alt_h2_bx > 0) %>%
+    left_join(phasing_variants_all_mapq20_tbl %>%
+                select(-c("patient", "timepoint", "vcf_column", "sorted",
+                          "cnv_maf_status", "display_name", "sample_n",
+                          "my_color_100", "my_color_75", "my_color_50",
+                          "my_color_25", "my_shape")),
+              by = c("variant_key" = "Variant", "sample")) %>%
+    mutate(variant_name = str_c(gene, protein, sep = " ")) %>%
+    mutate(phased_by_SH = pct_ALT_on_H1 <= H1_proportion) %>%
+    replace_na(list(Genotype = "Missing"))
+
+  correlation_value <- round(as.numeric(cor.test(plot_df$vaf, plot_df$barcode_vaf)$estimate), 2)
+  ggplot(plot_df, aes(x = vaf, y = barcode_vaf)) +
+    geom_abline(lty = 2) +
+    geom_smooth(method = "lm") +
+    geom_point() +
+    coord_equal() +
+    expand_limits(x = c(0,1), y = c(0,1)) +
+    annotate("text", x = 1, y = 0, label = correlation_value, size = 2) +
+    labs(x = "Variant Allele Frequency (calculated from reads)",
+         y = "Variant Barcode Frequency (calculated from barcodes)") +
+    theme_bw() +
+    theme(axis.ticks = element_blank(),
+          axis.line = element_blank(),
+          axis.title = element_text(size = 8),
+          axis.text = element_text(size = 8),
+          panel.background = element_blank(),
+          panel.border = element_blank(),
+          panel.grid = element_line(size = 0.5),
+          panel.grid.minor.x = element_blank(),
+          strip.background = element_blank(),
+          strip.text = element_text(size = 8),
+          plot.margin = unit(c(0,0,0,0), "lines")) +
+    ggsave(str_c(supp, "vaf_correlation.pdf"),
+           height = 3.5, width = 3.5, useDingbats = FALSE)
+
+  max_vaf <- plot_df %>% pull(barcode_vaf) %>% max() %>% plyr::round_any(.1, f = ceiling)
+  ggplot(plot_df, aes(y = variant_name, x = barcode_vaf)) +
+    geom_segment(aes(yend = variant_name, xend = 0), show.legend = FALSE) +
+    geom_point(aes(shape = Genotype, color = phased_by_SH), show.legend = FALSE) +
+    geom_text(aes(label = variant_name), size = 2, hjust = 0, nudge_x = 0.025) +
+    facet_wrap(~display_name, ncol = 1, scales = "free_y", strip.position = "left") +
+    labs(x = "Variant Allele Frequency (VAF)", y = NULL) +
+    expand_limits(x = c(0, max_vaf)) +
+    theme_bw() +
+    theme(axis.ticks = element_blank(),
+          axis.line = element_blank(),
+          axis.title = element_text(size = 8),
+          axis.text = element_text(size = 8),
+          axis.text.y = element_blank(),
+          panel.background = element_blank(),
+          panel.border = element_blank(),
+          panel.grid = element_line(size = 0.5),
+          panel.grid.minor.x = element_blank(),
+          strip.background = element_blank(),
+          strip.text = element_text(size = 8),
+          plot.margin = unit(c(0,0,0,0), "lines")) +
+    ggsave(str_c(main, "mm_mutation.pdf"),
+           height = 4.75, width = 2.25, useDingbats = FALSE)
+
+  rm(plot_df, correlation_value, max_vaf, H1_proportion)
+
+}
+
 
 rm(main, supp)
