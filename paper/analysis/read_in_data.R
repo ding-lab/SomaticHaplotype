@@ -12,7 +12,7 @@ library(ggrepel)
 # a resusable input data object that is re-loaded at the beginning of each session.
 # (We do not save the environment to .Rdata at the end of the session.)
 
-last_updated <- "2020-01-20"
+last_updated <- "2020-01-27"
 input_data_path_str <- str_c("data/collected_input_objects.", last_updated, ".RData")
 if (file.exists(input_data_path_str)) {
   load(input_data_path_str)
@@ -40,7 +40,16 @@ if (file.exists(input_data_path_str)) {
                                          "Remission",
                                          "Relapse",
                                          "Normal"),
-                              ordered = TRUE))
+                              ordered = TRUE)) %>%
+    mutate(display_name = case_when(timepoint == "SMM" ~ str_c(patient, " (S)"),
+                                    timepoint == "Primary" ~ str_c(patient, " (P)"),
+                                    timepoint == "Pre-transplant" ~ str_c(patient, " (PrT)"),
+                                    timepoint == "Post-transplant" ~ str_c(patient, " (PoT)"),
+                                    timepoint == "Remission" ~ str_c(patient, " (Rem)"),
+                                    timepoint == "Relapse" ~ str_c(patient, " (Rel)"),
+                                    timepoint == "Normal" ~ str_c(patient, " (N)"))) %>%
+    mutate(display_name = factor(display_name, levels = display_name, ordered = TRUE))
+
 
   color_tbl <- patient_sample_names_tbl %>%
     filter(timepoint != "Normal") %>%
@@ -642,6 +651,15 @@ if (file.exists(input_data_path_str)) {
       mutate(chr = factor(chr,
                           levels = str_c("chr", seq(1:22)),
                           ordered = TRUE))
+
+    important_mutations_vaf_tbl <- read_tsv("data/important_mutations_vaf.txt",
+                                          col_types = "cccccicccdc") %>%
+      select(-c("timepoint")) %>%
+      mutate(chr = factor(chr,
+                          levels = str_c("chr", seq(1:22)),
+                          ordered = TRUE)) %>%
+      left_join(patient_sample_names_tbl,
+                by = c("sample", "patient"))
 
 
     barcodes_variants_all_mapq20_tbl <- list() # use a list to keep samples separate
