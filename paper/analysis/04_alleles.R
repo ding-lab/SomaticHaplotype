@@ -74,7 +74,6 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
     filter(phased_barcode_coverage <= 100) %>%
     filter(phased_alt_barcode_coverage > 0)
 
-
   variant_pairs_mapq20_tbl_cnv_neutral_good_coverage <- NULL
 
   for (sample_id in patient_sample_names_tbl %>%
@@ -94,7 +93,11 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
     }
   }
 
-  median_molecule_length <- lr_summary_tbl %>% pull(molecule_length_mean) %>% median() %>% plyr::round_any(1000)
+  median_molecule_length <- lr_summary_tbl %>%
+    filter(timepoint != "Normal") %>%
+    pull(molecule_length_mean) %>%
+    median() %>%
+    plyr::round_any(2000)
   max_overlapping_bx <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>%
     filter(distance_between_variants <= median_molecule_length) %>%
     filter(distance_between_variants >= 100) %>%
@@ -381,6 +384,10 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
                    Genotype != "1|1") |
                   Variant %in% variants_of_interest))
 
+    if (bcv_filtered %>% pull(Somatic_Variant) %>% unique() %>% length() == 1) {
+      return("Only one somatic variant with passing coverage.")
+    }
+
     variants_more_than_1 <- bcv_filtered %>%
       group_by(Variant) %>%
       summarize(count = n()) %>%
@@ -464,7 +471,7 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
             strip.text = element_text(size = 8),
             plot.margin = unit(c(0,0,0,0), "lines")
       ) +
-      ggsave(str_c(supp, mutation_pattern, "/", output_filename), width = 7.5, height = 10, useDingbats = FALSE)
+      ggsave(str_c(output_dir, output_filename), width = 7.5, height = 10, useDingbats = FALSE)
   }
 
   variant_pairs_with_mutation_coverage <- variant_pairs_all_mapq20_tbl %>%
@@ -472,6 +479,7 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
                                          (n_bx_overlap_01 > 0 & n_bx_overlap_10 == 0 & n_bx_overlap_11 > 0) ~ 'var2>var1',
                                          (n_bx_overlap_01 == 0 & n_bx_overlap_10 > 0 & n_bx_overlap_11 > 0) ~ 'var1>var2')) %>%
     filter(!is.na(mutation_pattern))
+
   for (i in 1:nrow(variant_pairs_with_mutation_coverage)) {
 
     this_mutation_pattern <- variant_pairs_with_mutation_coverage$mutation_pattern[i]
@@ -522,7 +530,7 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
                           protein2 = this_protein2,
                           position1 = this_position1,
                           position2 = this_position2,
-                          output_dir =  supp,
+                          output_dir =  str_c(supp, this_mutation_pattern, "/"),
                           mutation_pattern = this_mutation_pattern,
                           output_filename = this_output_filename)
 
@@ -538,6 +546,7 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
                 filter(n_bx_overlap_01 == 0, n_bx_overlap_10 > 1, n_bx_overlap_11 > 1)) %>%
     mutate(mutation_pattern = "sequential") %>%
     filter(distance_between_variants > 3)
+
   for (i in 1:nrow(sequential_variant_pairs)) {
 
     this_mutation_pattern <- sequential_variant_pairs$mutation_pattern[i]
@@ -574,7 +583,7 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
                           protein2 = this_protein2,
                           position1 = this_position1,
                           position2 = this_position2,
-                          output_dir =  supp,
+                          output_dir =  str_c(supp, this_mutation_pattern, "/"),
                           mutation_pattern = this_mutation_pattern,
                           output_filename = this_output_filename)
 
@@ -583,6 +592,86 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
   rm(sequential_variant_pairs, i, this_gene1, this_gene2,
      this_mutation_pattern, this_output_filename, this_position1, this_position2,
      this_protein1, this_protein2, this_sample, this_var1, this_var2, this_variants_of_interest)
+
+  pv <- phasing_variants_mapq20_tbl
+  vp <- variant_pairs_mapq20_tbl
+
+  perfect_alt_on_H1 <- pv %>%
+    filter(barcode_ALT_H1 >= 2 | barcode_ALT_H2 >= 2) %>%
+    filter(pct_ALT_on_H1 >= 0.91) %>%
+    select(Variant, sample) %>% unique() %>% mutate(combo = str_c(Variant, sample))
+
+  perfect_alt_on_H2 <- pv %>%
+    filter(barcode_ALT_H1 >= 2 | barcode_ALT_H2 >= 2) %>%
+    filter(pct_ALT_on_H1 <= 0.09) %>%
+    select(Variant, sample) %>% unique() %>% mutate(combo = str_c(Variant, sample))
+
+  phased_pairs <- vp %>%
+    mutate(mutation_pattern = case_when( (n_bx_overlap_01 > 0 & n_bx_overlap_10 > 0 & n_bx_overlap_11 == 0) ~ 'independent',
+                                         (n_bx_overlap_01 > 0 & n_bx_overlap_10 == 0 & n_bx_overlap_11 > 0) ~ 'var2>var1',
+                                         (n_bx_overlap_01 == 0 & n_bx_overlap_10 > 0 & n_bx_overlap_11 > 0) ~ 'var1>var2',
+                                         (n_bx_overlap_01 == 0 & n_bx_overlap_10 == 0 & n_bx_overlap_11 > 0) ~ 'co-occur')) %>%
+    filter(cnv_over_range > -.25,
+           cnv_over_range < .2,
+           cnv_over_range == cnv_position1,
+           cnv_over_range == cnv_position2) %>%
+    filter(!is.na(mutation_pattern)) %>%
+    filter(position2 - position1 <= 1000,
+           position2 - position1 > 100) %>%
+    filter(n_overlapping_barcodes >= 10,
+           n_barcodes_with_mutation < 5,
+           n_barcodes_with_mutation >= 3) %>%
+    mutate(combo1 = str_c(Variant1, sample),
+           combo2 = str_c(Variant2, sample)) %>%
+    filter( (combo1 %in% perfect_alt_on_H1$combo & combo2 %in% perfect_alt_on_H1$combo) |
+              (combo1 %in% perfect_alt_on_H2$combo & combo2 %in% perfect_alt_on_H2$combo) |
+              (combo1 %in% perfect_alt_on_H1$combo & combo2 %in% perfect_alt_on_H2$combo) |
+              (combo1 %in% perfect_alt_on_H2$combo & combo2 %in% perfect_alt_on_H1$combo))
+
+  for (i in 1:nrow(phased_pairs)) {
+
+    this_mutation_pattern <- phased_pairs$mutation_pattern[i]
+
+    dir.create(str_c(supp, "phased_pairs/", this_mutation_pattern), recursive = TRUE, showWarnings = FALSE)
+
+    this_var1 <- phased_pairs$Variant1[i]
+    this_var2 <- phased_pairs$Variant2[i]
+
+    this_variants_of_interest <- c(this_var1, this_var2)
+
+    this_sample <- phased_pairs$sample[i]
+
+    this_gene1 <- "Gene1"
+    this_protein1 <- "Protein1"
+
+    this_position1 <- phased_pairs$position1[i]
+
+    this_gene2 <- "Gene2"
+    this_protein2 <- "Protein2"
+
+    this_position2 <- phased_pairs$position2[i]
+
+    this_output_filename <- str_c(this_sample, i, "barcode_variants.pdf", sep = ".")
+    print(this_output_filename)
+
+    plot_barcode_variants(barcodes_variants = barcodes_variants_mapq20_tbl,
+                          sample = this_sample,
+                          variants_of_interest = this_variants_of_interest,
+                          var1 = this_var1,
+                          var2 = this_var2,
+                          gene1 = this_gene1,
+                          gene2 = this_gene2,
+                          protein1 = this_protein1,
+                          protein2 = this_protein2,
+                          position1 = this_position1,
+                          position2 = this_position2,
+                          output_dir =  str_c(supp, "phased_pairs/", this_mutation_pattern, "/"),
+                          mutation_pattern = this_mutation_pattern,
+                          output_filename = this_output_filename)
+
+  }
+
+
 }
 
 # 27522_1 NRAS G13 Q61 figure
