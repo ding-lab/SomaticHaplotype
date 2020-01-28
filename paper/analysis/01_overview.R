@@ -12,7 +12,23 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
 
 # Data available
 {
-  plot_df <- patient_sample_names_tbl
+  plot_df <- patient_sample_names_tbl %>%
+    mutate(timepoint = factor(timepoint,
+                              levels = c("SMM",
+                                         "Primary",
+                                         "Pre-transplant",
+                                         "Post-transplant",
+                                         "Remission",
+                                         "Relapse",
+                                         "Normal"),
+                              labels = c("SMM (S)",
+                                         "Primary (P)",
+                                         "Pre-transplant (PrT)",
+                                         "Post-transplant (PoT)",
+                                         "Remission (Rem)",
+                                         "Relapse (Rel)",
+                                         "Normal (N)"),
+                              ordered = TRUE))
 
   ggplot(plot_df, aes(x = timepoint, y = patient)) +
     geom_point(aes(color = my_color_100), shape = 16, size = 3, show.legend = FALSE) +
@@ -31,7 +47,7 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
           strip.text = element_text(size = 8)) +
     ggsave(str_c(main, "samples.pdf"),
            width = 2.75,
-           height = 2.0,
+           height = 2.5,
            useDingbats = FALSE)
 
   rm(plot_df)
@@ -66,10 +82,14 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
                                      TRUE ~ "Tumor")) %>%
     left_join(multiplier_tbl, by = "category")
 
-  ggplot(plot_df, aes(x = normal_sample, y = result*data_multiplier)) +
+  ggplot(plot_df %>% filter(!str_detect(patient, "NA1")),
+         aes(x = normal_sample, y = result*data_multiplier)) +
     geom_violin(show.legend = FALSE, draw_quantiles = .5) +
     geom_jitter(aes(color = my_color_100, shape = my_shape),
-                height = 0, width = 0.25, show.legend = FALSE) + #, shape = 16) +
+                height = 0, width = 0.25, show.legend = FALSE) +
+    geom_point(data = plot_df %>% filter(str_detect(patient, "NA1")),
+               aes(color = my_color_100, shape = my_shape),
+               show.legend = FALSE) +
     geom_label(data = plot_df %>%
                  select(category, data_multiplier_label, normal_sample) %>%
                  filter(normal_sample == "Tumor") %>% unique(),
@@ -137,10 +157,14 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
                                         "Linked-reads per\nmolecule (N50)",
                                         "Phase Set Length\n(N50, Mb)")))
 
-  ggplot(plot_df, aes(x = normal_sample, y = result*data_multiplier)) +
+  ggplot(plot_df %>% filter(!str_detect(patient, "NA1")),
+         aes(x = normal_sample, y = result*data_multiplier)) +
     geom_violin(show.legend = FALSE, draw_quantiles = .5) +
     geom_jitter(aes(color = my_color_100, shape = my_shape),
-                height = 0, width = 0.25, show.legend = FALSE) + #, shape = 16) +
+                height = 0, width = 0.25, show.legend = FALSE) +
+    geom_point(data = plot_df %>% filter(str_detect(patient, "NA1")),
+               aes(color = my_color_100, shape = my_shape),
+               show.legend = FALSE) +
     expand_limits(y = 0) +
     facet_wrap(~category, nrow = 1, scales = "free_y") +
     scale_color_identity() +
@@ -158,7 +182,7 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
           plot.margin = unit(c(0,0,0,0), "lines")) +
     ggsave(str_c(main, "top_qc_metrics.pdf"),
            useDingbats = FALSE,
-           height = 2,
+           height = 2.5,
            width = 4.25)
 
   rm(plot_df, data_columns, data_multiplier, data_multiplier_label, highlight_columns, multiplier_tbl)
