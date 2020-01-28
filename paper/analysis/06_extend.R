@@ -209,7 +209,7 @@ extend_stats_no_skin <- extend_stats_tbl %>%
            left_aligned_ps_midpoint = ps_midpoint - min_position,
            left_aligned_first_variant_position = ps1_FirstVariantPosition - min_position,
            left_aligned_last_variant_position = ps1_LastVariantPosition - min_position) %>%
-    filter((sample == "27522_1" & extended_by == "27522_2" & ps1_Chromosome == "chr1") | (sample == "58408_2" & extended_by == "58408_1" & ps1_Chromosome == "chr1")) %>%
+    filter((sample == "27522_1" & extended_by == "27522_2" & ps1_Chromosome == "chr1")) %>%
     arrange(length_after) %>%
     mutate(ps2 = fct_reorder(factor(ps2), length_after))
 
@@ -224,8 +224,8 @@ extend_stats_no_skin <- extend_stats_tbl %>%
                size = 3,
                show.legend = FALSE) +
     labs(x = "Relative Genomic Length (Mb)",
-         y = "Group of Extended Phase Sets") +
-    facet_wrap(~sample, scales = "free_y") +
+         y = "Group of Extendable Phase Sets") +
+    #facet_wrap(~sample, scales = "free_y") +
     scale_color_viridis_d(option = "C", drop = F) +
     theme_bw() +
     theme(axis.ticks.x = element_blank(),
@@ -241,6 +241,47 @@ extend_stats_no_skin <- extend_stats_tbl %>%
           plot.margin = unit(c(0,0,0,0), "lines")) +
     ggsave(str_c(main, "extension_landscape.pdf"),
            useDingbats = FALSE, width = 4.75, height = 4.75)
+
+  plot_df_dist_after <- rm_no_rec %>%
+    group_by(sample, extended_by, ps2) %>%
+    summarize(min_position = min(ps1_FirstVariantPosition),
+              max_position = max(ps1_LastVariantPosition),
+              length_after = max_position - min_position,
+              count = n()) %>%
+    filter(count > 1) %>%
+    ungroup()
+  plot_df_dist_before <- plot_df_dist_after %>%
+    left_join(rm_no_rec,
+              by = c("sample", "extended_by", "ps2")) %>%
+    ungroup() %>%
+    mutate(ps_midpoint = ps1_FirstVariantPosition + (ps1_LastVariantPosition - ps1_FirstVariantPosition)/2,
+           left_aligned_ps_midpoint = ps_midpoint - min_position,
+           left_aligned_first_variant_position = ps1_FirstVariantPosition - min_position,
+           left_aligned_last_variant_position = ps1_LastVariantPosition - min_position)
+
+  ggplot() +
+    geom_violin(data = plot_df_dist_before, aes(x = "Before",
+                                                y = log10(ps1_LastVariantPosition - ps1_FirstVariantPosition)), draw_quantiles = 0.5) +
+    geom_violin(data = plot_df_dist_after, aes(x = "Extended",
+                                                y = log10(length_after)), draw_quantiles = 0.5) +
+    expand_limits(y = c(0)) +
+    labs(y = "Phase Set Length (bp, log10)", x = NULL) +
+    theme_bw() +
+    theme(axis.ticks.x = element_blank(),
+          axis.ticks.y = element_blank(),
+          axis.title = element_text(size = 8),
+          axis.title.x = element_blank(),
+          axis.text.y = element_text(size = 8),
+          axis.text.x = element_text(size = 8),
+          panel.background = element_blank(),
+          panel.border = element_blank(),
+          panel.grid = element_line(size = 0.5),
+          strip.background = element_blank(),
+          #plot.margin = unit(c(0,0,0,0), "lines"),
+          strip.text = element_text(size = 8)) +
+    ggsave(str_c(main, "extension_distribution.pdf"),
+           useDingbats = FALSE, width = 1.75, height = 3.25)
+
 
   rm(plot_df, rm_no_rec)
 }
