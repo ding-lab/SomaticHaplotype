@@ -104,7 +104,7 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
     geom_jitter(aes(color = color_gt),
                 shape = 16, height = 0, width = 0.25,
                 alpha = 0.25, show.legend = FALSE) +
-    geom_violin(fill = "white", draw_quantiles = 0.5) +
+    geom_violin(fill = "white") +
     geom_hline(yintercept = H1_proportion*100, linetype = 2) +
     geom_hline(yintercept = (1 - H1_proportion)*100, linetype = 2) +
     scale_y_continuous(limits = c(0, 100),
@@ -165,8 +165,8 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
           TRUE ~ "Not Phased")) %>%
         mutate(haplotype_of_variant_yaxis = case_when(
           n_ALT_H1 + n_ALT_H2 < 10 ~ 1,
-          pct_ALT_on_H1 > 0.91 ~ 0.1,
-          pct_ALT_on_H2 > 0.91 ~ 1.9,
+          pct_ALT_on_H1 >= 0.91 ~ 0.1,
+          pct_ALT_on_H2 >= 0.91 ~ 1.9,
           TRUE ~ 1)) %>%
         filter(haplotype_of_variant_shape != "Not Enough Coverage")
 
@@ -325,27 +325,27 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
      min_log2, max_log2, my_breaks)
 }
 
-# looking at important mutations
+# looking at driver mutations
 {
-  important_ones <- important_mutations_tbl %>%
+  drivers <- driver_mutations_tbl %>%
     rowwise() %>%
     mutate(p1 = str_sub(str_split(protein, pattern = "\\.", simplify = TRUE)[2], 1, 1),
            p2 = str_sub(str_split(protein, pattern = "\\.", simplify = TRUE)[2], -1),
            synonymous = (p1 == p2),
            Variant = str_c(chr, pos, ref, alt, sep = ":"))
 
-  tumor_vafs <- important_mutations_vaf_tbl %>%
+  tumor_vafs <- driver_mutations_vaf_tbl %>%
     filter(timepoint != "Normal") %>%
     mutate(variant_key = str_c(chr, pos, ref, alt, sep = ":"))
-  normal_vafs <- important_mutations_vaf_tbl %>%
+  normal_vafs <- driver_mutations_vaf_tbl %>%
     filter(timepoint == "Normal")  %>%
     mutate(variant_key = str_c(chr, pos, ref, alt, sep = ":")) %>%
     mutate(normal_vaf = vaf,
            normal_alleles = alleles)
 
-  plot_df <- sombx_all_mapq20_tbl %>%
+  plot_df <- sombx_driver_mapq20_tbl %>%
     mutate(Variant = str_c(chromosome, position, ref, alt, sep = ":")) %>%
-    left_join(important_ones, by = c("Variant", "ref", "alt")) %>%
+    left_join(drivers, by = c("Variant", "ref", "alt")) %>%
     filter(!synonymous) %>%
     rowwise() %>%
     mutate(n_ref_h1_bx = case_when(is.na(ref_barcodes_H1) ~ 0,
@@ -369,18 +369,21 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
               by = c("variant_key", "patient")) %>%
     filter(!is.na(normal_vaf),
            normal_vaf <= 0.02,
-           vaf > 0.05,
-           nchar(alleles) > 10,
+           vaf >= 0.05,
+           nchar(alleles) >= 10,
            n_alt_h1_bx + n_alt_h2_bx > 0) %>%
-    left_join(phasing_variants_all_mapq20_tbl %>%
+    left_join(phasing_variants_driver_mapq20_tbl %>%
                 select(-c("patient", "timepoint", "vcf_column", "sorted",
                           "cnv_maf_status", "display_name", "sample_n",
                           "my_color_100", "my_color_75", "my_color_50",
                           "my_color_25", "my_shape")),
               by = c("variant_key" = "Variant", "sample")) %>%
     mutate(variant_name = str_c(gene, protein, sep = " ")) %>%
-    mutate(phased_by_SH = pct_ALT_on_H1 <= H1_proportion) %>%
-    replace_na(list(Genotype = "Missing"))
+    mutate(phased_by_SH = case_when(pct_ALT_on_H1 <= H1_proportion ~ "H2",
+                                    pct_ALT_on_H2 <= H1_proportion ~ "H1",
+                                    TRUE ~ "NP")) %>%
+    replace_na(list(Genotype = "Missing")) %>%
+    filter(gene %in% important_mutations_tbl$gene)
 
   correlation_value <- round(as.numeric(cor.test(plot_df$vaf, plot_df$barcode_vaf)$estimate), 2)
   ggplot(plot_df, aes(x = vaf, y = barcode_vaf)) +
@@ -407,29 +410,27 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
     ggsave(str_c(supp, "vaf_correlation.pdf"),
            height = 3.5, width = 3.5, useDingbats = FALSE)
 
-  max_vaf <- plot_df %>% pull(barcode_vaf) %>% max() %>% plyr::round_any(.1, f = ceiling)
-  ggplot(plot_df, aes(y = variant_name, x = barcode_vaf)) +
-    geom_segment(aes(yend = variant_name, xend = 0), show.legend = FALSE) +
-    geom_point(aes(shape = Genotype, color = phased_by_SH), show.legend = FALSE) +
-    geom_text(aes(label = variant_name), size = 2, hjust = 0, nudge_x = 0.025) +
-    facet_wrap(~display_name, ncol = 1, scales = "free_y", strip.position = "left") +
-    labs(x = "Variant Allele Frequency (VAF)", y = NULL) +
-    expand_limits(x = c(0, max_vaf)) +
+  p <- ggplot(plot_df, aes(y = variant_name, x = display_name)) +
+    geom_point(aes(shape = Genotype, color = phased_by_SH)) +
+    scale_shape_manual(values = c(16,17,3)) +
     theme_bw() +
     theme(axis.ticks = element_blank(),
           axis.line = element_blank(),
-          axis.title = element_text(size = 8),
-          axis.text = element_text(size = 8),
-          axis.text.y = element_blank(),
+          axis.title = element_blank(),
+          axis.text.y = element_text(size = 6),
+          axis.text.x = element_text(angle = 270, size = 8, hjust = 0, vjust = 0.5),
           panel.background = element_blank(),
           panel.border = element_blank(),
           panel.grid = element_line(size = 0.5),
           panel.grid.minor.x = element_blank(),
           strip.background = element_blank(),
           strip.text = element_text(size = 8),
-          plot.margin = unit(c(0,0,0,0), "lines")) +
-    ggsave(str_c(main, "mm_mutation.pdf"),
-           height = 4.75, width = 2.25, useDingbats = FALSE)
+          plot.margin = unit(c(0,0,0,0), "lines"))
+
+  ggsave(str_c(main, "mm_mutations.with_legend.pdf"), p,
+         height = 3, width = 2, useDingbats = FALSE)
+  ggsave(str_c(main, "mm_mutations.pdf"), p + guides(color = FALSE, shape = FALSE),
+         height = 3, width = 2, useDingbats = FALSE)
 
   rm(plot_df, correlation_value, max_vaf, H1_proportion)
 
