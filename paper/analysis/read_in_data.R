@@ -12,7 +12,7 @@ library(ggrepel)
 # a resusable input data object that is re-loaded at the beginning of each session.
 # (We do not save the environment to .Rdata at the end of the session.)
 
-last_updated <- "2020-01-27"
+last_updated <- "2020-01-28"
 input_data_path_str <- str_c("data/collected_input_objects.", last_updated, ".RData")
 if (file.exists(input_data_path_str)) {
   load(input_data_path_str)
@@ -661,7 +661,6 @@ if (file.exists(input_data_path_str)) {
       left_join(patient_sample_names_tbl,
                 by = c("sample", "patient"))
 
-
     barcodes_variants_all_mapq20_tbl <- list() # use a list to keep samples separate
                                                # because combined files are too big
 
@@ -805,7 +804,14 @@ if (file.exists(input_data_path_str)) {
                                   levels = str_c("chr", seq(1:22)),
                                   ordered = TRUE)) %>%
       mutate(position1 = as.numeric(position1),
-             position2 = as.numeric(position2))
+             position2 = as.numeric(position2)) %>%
+      rowwise() %>%
+      mutate(distance_between_variants = position2 - position1,
+             n_overlapping_barcodes = sum(n_bx_overlap_00, n_bx_overlap_01,
+                                          n_bx_overlap_10, n_bx_overlap_11),
+             n_barcodes_with_mutation = sum(n_bx_overlap_01, n_bx_overlap_10,
+                                            n_bx_overlap_11)) %>%
+      ungroup()
 
     # (all) somatic somatic barcodes (sombx)
 
@@ -834,6 +840,218 @@ if (file.exists(input_data_path_str)) {
 
     sombx_all_mapq20_tbl <- sombx_all_mapq20_tbl %>%
       left_join(patient_sample_names_tbl, by = "sample") %>%
+      mutate(chromosome = factor(chromosome,
+                                 levels = str_c("chr", seq(1:22)),
+                                 ordered = TRUE))
+  }
+
+  # somatic events (all tumor samples, driver_mm genes only)
+  {
+    # (drivers) somatic barcodes variants
+
+    driver_mutations_tbl <- read_delim("data/driver_mm_genes.mutations.with_annotation.txt",
+                                       delim = ":",
+                                       col_names = c("gene", "chr", "pos",
+                                                     "ref", "alt", "protein"),
+                                       col_types = "cciccc") %>%
+      filter(chr %in% str_c("chr", seq(1:22))) %>%
+      mutate(chr = factor(chr,
+                          levels = str_c("chr", seq(1:22)),
+                          ordered = TRUE))
+
+    driver_mutations_vaf_tbl <- read_tsv("data/driver_mm_mutations_vaf.txt",
+                                         col_types = "cccccicccdc") %>%
+      select(-c("timepoint")) %>%
+      filter(chr %in% str_c("chr", seq(1:22))) %>%
+      mutate(chr = factor(chr,
+                          levels = str_c("chr", seq(1:22)),
+                          ordered = TRUE)) %>%
+      left_join(patient_sample_names_tbl,
+                by = c("sample", "patient"))
+
+    barcodes_variants_driver_mapq20_tbl <- list() # use a list to keep samples separate
+    # because combined files are too big
+
+    for (sample_id in patient_sample_names_tbl %>% filter(timepoint != "Normal") %>% pull(sample)) {
+      barcodes_variants_driver_mapq20_tbl[[sample_id]] <- NULL
+      for (chromosome in unique(driver_mutations_tbl$chr)) {
+        if (is.null(barcodes_variants_driver_mapq20_tbl[[sample_id]])) {
+          barcodes_variants_driver_mapq20_tbl[[sample_id]] <- read_tsv(str_c(
+            str_c("data/somatic_drivers/", sample_id, "/"),
+            str_c(sample_id, chromosome,
+                  "mapq20.barcodes_variants.tsv", sep = ".")),
+            col_types = "ccciccccccc") %>%
+            mutate(sample = sample_id)
+        } else {
+          q20 <- read_tsv(str_c(
+            str_c("data/somatic_drivers/", sample_id, "/"),
+            str_c(sample_id, chromosome,
+                  "mapq20.barcodes_variants.tsv", sep = ".")),
+            col_types = "ccciccccccc") %>%
+            mutate(sample = sample_id)
+          barcodes_variants_driver_mapq20_tbl[[sample_id]] <- bind_rows(barcodes_variants_driver_mapq20_tbl[[sample_id]], q20)
+          rm(q20)
+        }
+      }
+
+      barcodes_variants_driver_mapq20_tbl[[sample_id]] <- barcodes_variants_driver_mapq20_tbl[[sample_id]] %>%
+        left_join(patient_sample_names_tbl, by = "sample") %>%
+        #filter(Chromosome %in% str_c("chr", seq(1:22))) %>%
+        mutate(Chromosome = factor(Chromosome,
+                                   levels = str_c("chr", seq(1:22)),
+                                   ordered = TRUE))
+
+    }
+
+    # (driver) somatic phasing variants
+
+    phasing_variants_driver_mapq20_tbl <- NULL
+
+    for (sample_id in patient_sample_names_tbl %>%
+         filter(timepoint != "Normal") %>% pull(sample)) {
+      for (chromosome in unique(driver_mutations_tbl$chr)) {
+        if (is.null(phasing_variants_driver_mapq20_tbl)) {
+          phasing_variants_driver_mapq20_tbl <- read_tsv(str_c(
+            str_c("data/somatic_drivers/", sample_id, "/"),
+            str_c(sample_id, chromosome,
+                  "mapq20.phasing_variants.tsv", sep = ".")),
+            col_types = "cciccciccddddiiiiiddddiiiii") %>%
+            mutate(sample = sample_id)
+        } else {
+          q20 <- read_tsv(str_c(
+            str_c("data/somatic_drivers/", sample_id, "/"),
+            str_c(sample_id, chromosome,
+                  "mapq20.phasing_variants.tsv", sep = ".")),
+            col_types = "cciccciccddddiiiiiddddiiiii") %>%
+            mutate(sample = sample_id)
+          phasing_variants_driver_mapq20_tbl <- bind_rows(phasing_variants_driver_mapq20_tbl, q20)
+          rm(q20)
+        }
+      }
+    }
+
+    phasing_variants_driver_mapq20_tbl <- phasing_variants_driver_mapq20_tbl %>%
+      left_join(patient_sample_names_tbl, by = "sample") %>%
+      filter(Chromosome %in% str_c("chr", seq(1:22))) %>%
+      mutate(Chromosome = factor(Chromosome,
+                                 levels = str_c("chr", seq(1:22)),
+                                 ordered = TRUE))
+
+    # (driver) somatic somatic per phase set
+
+    somatic_per_phase_set_driver_mapq20_tbl <- NULL
+
+    for (sample_id in patient_sample_names_tbl %>%
+         filter(timepoint != "Normal") %>% pull(sample)) {
+      for (chromosome in unique(driver_mutations_tbl$chr)) {
+        if (is.null(somatic_per_phase_set_driver_mapq20_tbl)) {
+          somatic_per_phase_set_driver_mapq20_tbl <- read_tsv(str_c(
+            str_c("data/somatic_drivers/", sample_id, "/"),
+            str_c(sample_id, chromosome,
+                  "mapq20.somatic_per_phase_set.tsv", sep = ".")),
+            col_types = "cciiiiiiiiii") %>%
+            mutate(sample = sample_id)
+        } else {
+          q20 <- read_tsv(str_c(
+            str_c("data/somatic_drivers/", sample_id, "/"),
+            str_c(sample_id, chromosome,
+                  "mapq20.somatic_per_phase_set.tsv", sep = ".")),
+            col_types = "cciiiiiiiiii") %>%
+            mutate(sample = sample_id)
+          somatic_per_phase_set_driver_mapq20_tbl <- bind_rows(somatic_per_phase_set_driver_mapq20_tbl, q20)
+          rm(q20)
+        }
+      }
+    }
+
+    somatic_per_phase_set_driver_mapq20_tbl <- somatic_per_phase_set_driver_mapq20_tbl %>%
+      left_join(patient_sample_names_tbl, by = "sample") %>%
+      filter(chrom %in% str_c("chr", seq(1:22))) %>%
+      mutate(chrom = factor(chrom,
+                            levels = str_c("chr", seq(1:22)),
+                            ordered = TRUE))
+
+    # (driver) somatic somatic per phase set
+
+    variant_pairs_driver_mapq20_tbl <- NULL
+
+    for (sample_id in patient_sample_names_tbl %>%
+         filter(timepoint != "Normal") %>% pull(sample)) {
+      for (chromosome in unique(driver_mutations_tbl$chr)) {
+        if (is.null(variant_pairs_driver_mapq20_tbl)) {
+          variant_pairs_driver_mapq20_tbl <- read_tsv(str_c(
+            str_c("data/somatic_drivers/", sample_id, "/"),
+            str_c(sample_id, chromosome,
+                  "mapq20.variant_pairs.tsv", sep = ".")),
+            col_types = "ccccccciiii") %>%
+            mutate(sample = sample_id)
+        } else {
+          q20 <- read_tsv(str_c(
+            str_c("data/somatic_drivers/", sample_id, "/"),
+            str_c(sample_id, chromosome,
+                  "mapq20.variant_pairs.tsv", sep = ".")),
+            col_types = "ccccccciiii") %>%
+            mutate(sample = sample_id)
+          variant_pairs_driver_mapq20_tbl <- bind_rows(variant_pairs_driver_mapq20_tbl, q20)
+          rm(q20)
+        }
+      }
+    }
+
+    variant_pairs_driver_mapq20_tbl <- variant_pairs_driver_mapq20_tbl %>%
+      left_join(patient_sample_names_tbl, by = "sample") %>%
+      separate(Variant1, into = c("chromosome1", "position1",
+                                  "reference1", "alternate1"),
+               sep = ":", remove = FALSE) %>%
+      separate(Variant2, into = c("chromosome2", "position2",
+                                  "reference2", "alternate2"),
+               sep = ":", remove = FALSE) %>%
+      filter(chromosome1 %in% str_c("chr", seq(1:22))) %>%
+      filter(chromosome2 %in% str_c("chr", seq(1:22))) %>%
+      mutate(chromosome1 = factor(chromosome1,
+                                  levels = str_c("chr", seq(1:22)),
+                                  ordered = TRUE),
+             chromosome2 = factor(chromosome2,
+                                  levels = str_c("chr", seq(1:22)),
+                                  ordered = TRUE)) %>%
+      mutate(position1 = as.numeric(position1),
+             position2 = as.numeric(position2)) %>%
+      rowwise() %>%
+      mutate(distance_between_variants = position2 - position1,
+             n_overlapping_barcodes = sum(n_bx_overlap_00, n_bx_overlap_01,
+                                          n_bx_overlap_10, n_bx_overlap_11),
+             n_barcodes_with_mutation = sum(n_bx_overlap_01, n_bx_overlap_10,
+                                            n_bx_overlap_11)) %>%
+      ungroup()
+
+    # (driver) somatic somatic barcodes (sombx)
+
+    sombx_driver_mapq20_tbl <- NULL
+
+    for (sample_id in patient_sample_names_tbl %>%
+         filter(timepoint != "Normal") %>% pull(sample)) {
+      if (is.null(sombx_driver_mapq20_tbl)) {
+        sombx_driver_mapq20_tbl <- read_tsv(str_c(
+          str_c("data/somatic_drivers/", sample_id, "/"),
+          str_c(sample_id,
+                "mapq20.sombx.tsv", sep = ".")),
+          col_types = "ccccccccccc") %>%
+          mutate(sample = sample_id)
+      } else {
+        q20 <- read_tsv(str_c(
+          str_c("data/somatic_drivers/", sample_id, "/"),
+          str_c(sample_id,
+                "mapq20.sombx.tsv", sep = ".")),
+          col_types = "ccccccccccc") %>%
+          mutate(sample = sample_id)
+        sombx_driver_mapq20_tbl <- bind_rows(sombx_driver_mapq20_tbl, q20)
+        rm(q20)
+      }
+    }
+
+    sombx_driver_mapq20_tbl <- sombx_driver_mapq20_tbl %>%
+      left_join(patient_sample_names_tbl, by = "sample") %>%
+      filter(chromosome %in% str_c("chr", seq(1:22))) %>%
       mutate(chromosome = factor(chromosome,
                                  levels = str_c("chr", seq(1:22)),
                                  ordered = TRUE))
