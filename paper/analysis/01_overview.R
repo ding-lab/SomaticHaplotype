@@ -10,6 +10,8 @@ supp = "figures/01_overview/supplementary/"
 dir.create(main, recursive = TRUE, showWarnings = FALSE)
 dir.create(supp, recursive = TRUE, showWarnings = FALSE)
 
+manuscript_numbers[["01_overview"]] <- list()
+
 # Data available
 {
   plot_df <- patient_sample_names_tbl %>%
@@ -49,6 +51,12 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
            width = 2.75,
            height = 2.5,
            useDingbats = FALSE)
+
+  manuscript_numbers[["01_overview"]][["n_patients"]] <- patient_sample_names_tbl %>% pull(patient) %>% unique() %>% length()
+  manuscript_numbers[["01_overview"]][["n_tumor_samples"]] <- patient_sample_names_tbl %>% filter(timepoint != "Normal") %>% pull(sample) %>% unique() %>% length()
+  manuscript_numbers[["01_overview"]][["n_tumor_samples_sorted"]] <- patient_sample_names_tbl %>% filter(timepoint != "Normal") %>% filter(sorted) %>% pull(sample) %>% unique() %>% length()
+  manuscript_numbers[["01_overview"]][["n_tumor_wgs_sorted"]] <- patient_sample_names_tbl %>% filter(timepoint != "Normal") %>% filter(cnv_maf_status) %>% pull(sample) %>% unique() %>% length()
+  manuscript_numbers[["01_overview"]][["n_normal_samples"]] <- patient_sample_names_tbl %>% filter(timepoint == "Normal") %>% pull(sample) %>% unique() %>% length()
 
   rm(plot_df)
 }
@@ -186,6 +194,17 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
            width = 4.25)
 
   rm(plot_df, data_columns, data_multiplier, data_multiplier_label, highlight_columns, multiplier_tbl)
+
+  manuscript_numbers[["01_overview"]][["mean_molecule_length_tumor"]] <- lr_summary_tbl %>% filter(timepoint != "Normal") %>% select(molecule_length_mean) %>% summary()
+  manuscript_numbers[["01_overview"]][["mean_molecule_length_normal"]] <- lr_summary_tbl %>% filter(timepoint == "Normal") %>% select(molecule_length_mean) %>% summary()
+  manuscript_numbers[["01_overview"]][["n50_linked_reads_per_molecule_tumor"]] <- lr_summary_tbl %>% filter(timepoint != "Normal") %>% select(n50_linked_reads_per_molecule) %>% summary()
+  manuscript_numbers[["01_overview"]][["n50_linked_reads_per_molecule_normal"]] <- lr_summary_tbl %>% filter(timepoint == "Normal") %>% select(n50_linked_reads_per_molecule) %>% summary()
+  manuscript_numbers[["01_overview"]][["n50_phase_block_tumor"]] <- lr_summary_tbl %>% filter(timepoint != "Normal") %>% select(n50_phase_block) %>% summary()
+  manuscript_numbers[["01_overview"]][["n50_phase_block_normal"]] <- lr_summary_tbl %>% filter(timepoint == "Normal") %>% select(n50_phase_block) %>% summary()
+  manuscript_numbers[["01_overview"]][["corrected_loaded_mass_ng_tumor"]] <- lr_summary_tbl %>% filter(timepoint != "Normal") %>% select(corrected_loaded_mass_ng) %>% summary()
+  manuscript_numbers[["01_overview"]][["mean_depth_tumor"]] <- lr_summary_tbl %>% filter(timepoint != "Normal") %>% select(mean_depth) %>% summary()
+  manuscript_numbers[["01_overview"]][["snps_phased_tumor"]] <- lr_summary_tbl %>% filter(timepoint != "Normal") %>% select(snps_phased) %>% summary()
+
 }
 
 rm(main, supp)

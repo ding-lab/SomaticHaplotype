@@ -9,6 +9,8 @@ supp = "figures/06_extend/supplementary/"
 dir.create(main, recursive = TRUE, showWarnings = FALSE)
 dir.create(supp, recursive = TRUE, showWarnings = FALSE)
 
+manuscript_numbers[["06_extend"]] <- list()
+
 extend_ps_no_skin <- extend_phase_sets_tbl %>%
   filter(!is.na(cluster_base_phase_set)) %>%
   filter(!str_detect(sample, "skin"), !str_detect(extended_by, "skin"))
@@ -88,7 +90,7 @@ extend_stats_no_skin <- extend_stats_tbl %>%
                aes(x = ps2_midpoint), y = 1) +
     scale_linetype_manual(values = c(1, 5, 3)) +
     scale_y_continuous(breaks = c(1, y_top_position),
-                       labels = c("27522_1", "27522_3"),
+                       labels = c("27522 (P)", "27522 (Rel)"),
                        limits = c(1 - up_and_down, y_top_position + up_and_down)) +
     scale_x_continuous(expand = c(0.02, 0.02)) +
     scale_fill_brewer(palette = "Pastel1") +
@@ -137,6 +139,7 @@ extend_stats_no_skin <- extend_stats_tbl %>%
     ggplot(aes(x = log10(length_overlap),
                fill = recommendation)) +
     geom_histogram(boundary = 0, binwidth = 0.25, show.legend = FALSE) +
+    geom_vline(xintercept = log10(10^5), lty = 2) +
     labs(x = "Phase Set Overlap Length (bp, log10)", y = NULL) +
     scale_fill_viridis_d(option = "C") +
     scale_y_continuous(expand = c(0.02,0.02)) +
@@ -160,6 +163,7 @@ extend_stats_no_skin <- extend_stats_tbl %>%
     ggplot(aes(x = log10(n_variants_overlap + 1),
                fill = recommendation)) +
     geom_histogram(boundary = 0, binwidth = 0.25, show.legend = FALSE) +
+    geom_vline(xintercept = log10(10^1), lty = 2) +
     labs(x = "Overlapping Phased Variants (log10)", y = NULL) +
     scale_fill_viridis_d(option = "C") +
     scale_y_continuous(expand = c(0.02,0.02)) +
@@ -178,6 +182,12 @@ extend_stats_no_skin <- extend_stats_tbl %>%
           plot.margin = unit(c(0,0,0,0), "lines")) +
     ggsave(str_c(main, "variants_overlap.pdf"),
            useDingbats = FALSE, width = 2.25, height = 2.25)
+
+  manuscript_numbers[["06_extend"]][["n_extend_patients"]] <- plot_df %>% pull(patient) %>% unique() %>% length()
+  manuscript_numbers[["06_extend"]][["n_extend_sample_pairs"]] <- plot_df %>% select(sample, extended_by) %>% unique() %>% nrow()
+  manuscript_numbers[["06_extend"]][["n_overlapping_phase_sets"]] <- plot_df %>% nrow()
+  manuscript_numbers[["06_extend"]][["n_recommendations"]] <- plot_df %>% select(recommendation) %>% table()
+  manuscript_numbers[["06_extend"]][["pct_recommendations"]] <- 100*manuscript_numbers[["06_extend"]][["n_recommendations"]]/manuscript_numbers[["06_extend"]][["n_overlapping_phase_sets"]]
 
   rm(plot_df)
 }
@@ -243,7 +253,7 @@ extend_stats_no_skin <- extend_stats_tbl %>%
            useDingbats = FALSE, width = 4.75, height = 4.75)
 
   plot_df_dist_after <- rm_no_rec %>%
-    group_by(sample, extended_by, ps2) %>%
+    group_by(sample, extended_by, ps2, ps1_Chromosome) %>%
     summarize(min_position = min(ps1_FirstVariantPosition),
               max_position = max(ps1_LastVariantPosition),
               length_after = max_position - min_position,
@@ -252,7 +262,7 @@ extend_stats_no_skin <- extend_stats_tbl %>%
     ungroup()
   plot_df_dist_before <- plot_df_dist_after %>%
     left_join(rm_no_rec,
-              by = c("sample", "extended_by", "ps2")) %>%
+              by = c("sample", "extended_by", "ps2", "ps1_Chromosome")) %>%
     ungroup() %>%
     mutate(ps_midpoint = ps1_FirstVariantPosition + (ps1_LastVariantPosition - ps1_FirstVariantPosition)/2,
            left_aligned_ps_midpoint = ps_midpoint - min_position,
@@ -281,6 +291,22 @@ extend_stats_no_skin <- extend_stats_tbl %>%
           strip.text = element_text(size = 8)) +
     ggsave(str_c(main, "extension_distribution.pdf"),
            useDingbats = FALSE, width = 1.75, height = 3.25)
+
+
+  manuscript_numbers[["06_extend"]][["27522_1_27522_2_before_Mb"]] <- plot_df_dist_before %>% filter(sample == "27522_1", extended_by == "27522_2", ps1_Chromosome == "chr1") %>% mutate(length_before = ps1_LastVariantPosition - ps1_FirstVariantPosition) %>% pull(length_before) %>% median()/1e6
+  manuscript_numbers[["06_extend"]][["27522_1_27522_2_after_Mb"]] <- plot_df_dist_after %>% filter(sample == "27522_1", extended_by == "27522_2", ps1_Chromosome == "chr1") %>% pull(length_after) %>% median()/1e6
+  manuscript_numbers[["06_extend"]][["27522_1_27522_2_fold_change"]] <- manuscript_numbers[["06_extend"]][["27522_1_27522_2_after_Mb"]]/manuscript_numbers[["06_extend"]][["27522_1_27522_2_before_Mb"]]
+
+  manuscript_numbers[["06_extend"]][["27522_1_27522_2_before_log10"]] <- plot_df_dist_before %>% filter(sample == "27522_1", extended_by == "27522_2", ps1_Chromosome == "chr1") %>% mutate(length_before = ps1_LastVariantPosition - ps1_FirstVariantPosition) %>% pull(length_before) %>% median() %>% log10()
+  manuscript_numbers[["06_extend"]][["27522_1_27522_2_after_log10"]] <- plot_df_dist_after %>% filter(sample == "27522_1", extended_by == "27522_2", ps1_Chromosome == "chr1") %>% pull(length_after) %>% median() %>% log10()
+
+  manuscript_numbers[["06_extend"]][["all_before_Mb"]] <- plot_df_dist_before %>% mutate(length_before = ps1_LastVariantPosition - ps1_FirstVariantPosition) %>% pull(length_before) %>% median()/1e6
+  manuscript_numbers[["06_extend"]][["all_after_Mb"]] <- plot_df_dist_after %>% pull(length_after) %>% median()/1e6
+  manuscript_numbers[["06_extend"]][["all_fold_change"]] <- manuscript_numbers[["06_extend"]][["all_after_Mb"]]/manuscript_numbers[["06_extend"]][["all_before_Mb"]]
+
+  manuscript_numbers[["06_extend"]][["all_before_log10"]] <- plot_df_dist_before %>% mutate(length_before = ps1_LastVariantPosition - ps1_FirstVariantPosition) %>% pull(length_before) %>% median() %>% log10()
+  manuscript_numbers[["06_extend"]][["all_after_log10"]] <- plot_df_dist_after %>% pull(length_after) %>% median() %>% log10()
+
 
 
   rm(plot_df, rm_no_rec)

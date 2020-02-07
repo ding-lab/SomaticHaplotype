@@ -13,6 +13,8 @@ dir.create(main, recursive = TRUE, showWarnings = FALSE)
 dir.create(supp, recursive = TRUE, showWarnings = FALSE)
 dir.create(str_c(supp, "/phase_sets"), recursive = TRUE, showWarnings = FALSE)
 
+manuscript_numbers[["02_phase_sets"]] <- list()
+
 # Phase set N50 by chromosome
 
 {
@@ -38,6 +40,13 @@ dir.create(str_c(supp, "/phase_sets"), recursive = TRUE, showWarnings = FALSE)
           plot.margin = unit(c(0,0,0,0), "lines")) +
     ggsave(str_c(main, "phase_set_by_chromosome.pdf"),
            useDingbats = FALSE, width = 7.25, height = 1.5)
+
+  manuscript_numbers[["02_phase_sets"]][["median_phase_set_length_chr_min"]] <- phase_set_summary_tbl %>% filter(timepoint != "Normal") %>% group_by(chromosome) %>% summarize(median_ps_length = median(N50_broad/1e6)) %>% arrange(median_ps_length) %>% head(1)
+  manuscript_numbers[["02_phase_sets"]][["median_phase_set_length_chr_max"]] <- phase_set_summary_tbl %>% filter(timepoint != "Normal") %>% group_by(chromosome) %>% summarize(median_ps_length = median(N50_broad/1e6)) %>% arrange(median_ps_length) %>% tail(1)
+  manuscript_numbers[["02_phase_sets"]][["phase_set_length_sd_min"]] <- phase_set_summary_tbl %>% filter(timepoint != "Normal") %>% group_by(chromosome) %>% summarize(median_ps_length = median(N50_broad/1e6), sd_ps_length = sd(N50_broad/1e6)) %>% arrange(sd_ps_length) %>% head(1)
+  manuscript_numbers[["02_phase_sets"]][["phase_set_length_sd_max"]] <- phase_set_summary_tbl %>% filter(timepoint != "Normal") %>% group_by(chromosome) %>% summarize(median_ps_length = median(N50_broad/1e6), sd_ps_length = sd(N50_broad/1e6)) %>% arrange(sd_ps_length) %>% tail(1)
+  manuscript_numbers[["02_phase_sets"]][["chr21_phase_sets_gt20Mb"]] <- phase_set_summary_tbl %>% filter(timepoint != "Normal") %>% filter(chromosome == "chr21", N50_broad > 20*1e6) %>% nrow()
+  manuscript_numbers[["02_phase_sets"]][["25183_qc_measures"]] <- lr_summary_tbl %>% filter(timepoint != "Normal") %>% select(sample, molecule_length_mean, mapped_reads) %>% arrange(molecule_length_mean) %>% tail(1)
 }
 
 # Phase set N50 by sample
@@ -95,13 +104,16 @@ dir.create(str_c(supp, "/phase_sets"), recursive = TRUE, showWarnings = FALSE)
           plot.margin = unit(c(0,0,0,0), "lines")) +
     ggsave(str_c(main, "phase_set_deletion.pdf"),
            useDingbats = FALSE, width = 2, height = 1.5)
+
+  manuscript_numbers[["02_phase_sets"]][["27522_1_chr13_chr22_phase_set_lengths"]] <- phase_set_summary_tbl %>% filter(sample == "27522_1", chromosome %in% c("chr13", "chr22")) %>% select(sample, N50_broad, chromosome)
+  manuscript_numbers[["02_phase_sets"]][["27522_1_overall_phase_set_lengths"]] <- phase_set_summary_tbl %>% group_by(sample) %>% summarize(median_n50_ps_length = median(N50_broad)) %>% filter(sample == "27522_1")
 }
 
 # Phase sets genome coverage
 {
-  phase_sets_tbl %>% filter(!is.na(length_variants),
-                            length_variants > 0,
-                            timepoint != "Normal") %>%
+  plot_df <- phase_sets_tbl %>% filter(!is.na(length_variants),
+                                       length_variants > 0,
+                                       timepoint != "Normal") %>%
     mutate(length_group = plyr::round_any(length_variants,
                                           accuracy = 1e6,
                                           f = ceiling)/1e6) %>%
@@ -111,8 +123,9 @@ dir.create(str_c(supp, "/phase_sets"), recursive = TRUE, showWarnings = FALSE)
               count = n()) %>%
     ungroup() %>%
     mutate(length_label = str_c(length_group - 1, "-", length_group)) %>%
-    mutate(length_factor = factor(length_label, levels = length_label, ordered = TRUE)) %>%
-    ggplot(aes(x = length_factor, y = total_length/1e9)) +
+    mutate(length_factor = factor(length_label, levels = length_label, ordered = TRUE))
+
+  ggplot(plot_df, aes(x = length_factor, y = total_length/1e9)) +
     geom_col(fill = "#bdbdbd") +
     geom_text(aes(label = str_c("", count)), angle = -90,
               hjust = 1, vjust = 0.5,  nudge_y = 0.05, size = 2) +
@@ -125,7 +138,6 @@ dir.create(str_c(supp, "/phase_sets"), recursive = TRUE, showWarnings = FALSE)
           panel.border = element_blank(),
           panel.background = element_blank(),
           axis.ticks.x = element_blank(),
-          #axis.ticks.y = element_blank(),
           axis.title = element_text(size = 8),
           axis.text.y = element_text(size = 8),
           axis.text.x = element_text(size = 8),
@@ -135,6 +147,16 @@ dir.create(str_c(supp, "/phase_sets"), recursive = TRUE, showWarnings = FALSE)
     ) +
     ggsave(str_c(main, "phase_set_genome_coverage.pdf"),
            useDingbats = FALSE, width = 7.25, height = 1.75)
+
+  manuscript_numbers[["02_phase_sets"]][["total_genome_coverage"]] <- plot_df %>% pull(total_length) %>% sum()/1e9
+  manuscript_numbers[["02_phase_sets"]][["average_genome_coverage"]] <- plot_df %>% pull(total_length) %>% sum()/(23*1e9)
+  manuscript_numbers[["02_phase_sets"]][["length_group_most_ps"]] <- plot_df %>% group_by(length_factor) %>% summarize(count = count, total = sum(plot_df$count), count_pct = 100*count/total) %>% arrange(count_pct) %>% tail(1)
+  manuscript_numbers[["02_phase_sets"]][["0-1_Mb_percentage_of_coverage"]] <- plot_df %>% group_by(length_factor) %>% summarize(total_length = total_length/1e9, total_length_all = sum(plot_df$total_length)/1e9, total_length_pct = 100*total_length/total_length_all) %>% filter(length_factor == "0-1")
+  manuscript_numbers[["02_phase_sets"]][["1-2_Mb_percentage_of_coverage"]] <- plot_df %>% group_by(length_factor) %>% summarize(count = count, total_length = total_length/1e9, total_length_all = sum(plot_df$total_length)/1e9, total_length_pct = 100*total_length/total_length_all) %>% filter(length_factor == "1-2")
+  manuscript_numbers[["02_phase_sets"]][["n_phase_sets_gt_30Mb"]] <- plot_df %>% filter(length_group >= 31) %>% pull(count) %>% sum()
+  manuscript_numbers[["02_phase_sets"]][["longest_ps"]] <- plot_df %>% arrange(length_group) %>% tail(1)
+
+  rm(plot_df)
 }
 
 # Phase sets by sample
@@ -208,11 +230,9 @@ dir.create(str_c(supp, "/phase_sets"), recursive = TRUE, showWarnings = FALSE)
     expand_limits(x = 0) +
     scale_color_identity() +
     labs(x = "Phase Set Length (Mb)", y = "Number of Phased Heterozygotes (thousands)") +
-    facet_wrap( ~ sample, ncol = 4) + #, scales = "free") +
+    facet_wrap( ~ sample, ncol = 4) +
     theme_bw() +
     theme(panel.background = element_blank(),
-          #axis.ticks.x = element_blank(),
-          #axis.ticks.y = element_blank(),
           axis.title = element_text(size = 8),
           axis.text.y = element_text(size = 8),
           axis.text.x = element_text(size = 8),
@@ -221,6 +241,8 @@ dir.create(str_c(supp, "/phase_sets"), recursive = TRUE, showWarnings = FALSE)
           plot.margin = unit(c(0,0,0,0), "lines")) +
     ggsave(str_c(supp, "phase_set_length_vs_variants.pdf"),
            width = 7.5, height = 7.5, useDingbats = FALSE)
+
+  manuscript_numbers[["02_phase_sets"]][["phase_set_length_vs_n_phased_variants"]] <- summary(lm(n_variants_total ~ length_variants, data = phase_sets_tbl %>% mutate(phase_set_length_Mb = length_variants/1e6, n_variants_total_per1000 = n_variants_total/1000) %>% filter(timepoint != "Normal")))
 
   phase_sets_tbl %>%
     filter(n_variants_total > 0,

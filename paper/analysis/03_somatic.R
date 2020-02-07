@@ -12,6 +12,16 @@ supp = "figures/03_somatic_phasing/supplementary/"
 dir.create(main, recursive = TRUE, showWarnings = FALSE)
 dir.create(supp, recursive = TRUE, showWarnings = FALSE)
 
+manuscript_numbers[["03_somatic"]] <- list()
+
+manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_maf"]] <- maf_tbl %>% nrow()
+manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_maf_per_sample"]] <- maf_tbl %>% nrow()/6
+manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping"]] <- phasing_variants_mapq20_tbl %>% nrow()
+manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_per_sample"]] <- phasing_variants_mapq20_tbl %>% nrow()/6
+manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_10_linked_alleles"]] <- phasing_variants_mapq20_tbl %>% filter(n_ALT_H1 + n_ALT_H2 >= 10) %>% nrow()
+manuscript_numbers[["03_somatic"]][["pct_somatic_mutations_from_10Xmapping_10_linked_alleles"]] <- 100*manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_10_linked_alleles"]]/manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping"]]
+manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_10_linked_alleles_by_sample"]] <- phasing_variants_mapq20_tbl %>% filter(n_ALT_H1 + n_ALT_H2 >= 10) %>% group_by(sample) %>% summarize(n())
+
 # Precision/recall balance threshold to maximize longranger concordance
 {
   proportions <- seq(0, 0.1, by = 0.01)
@@ -72,6 +82,16 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
     ggsave(str_c(supp, "precision_recall.pdf"),
            width = 3.5, height = 3.5, useDingbats = FALSE)
 
+  manuscript_numbers[["03_somatic"]][["precision_at_0.09"]] <- prec[which(proportions == 0.09)]
+  manuscript_numbers[["03_somatic"]][["recall_at_0.09"]] <- rec[which(proportions == 0.09)]
+  manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_10_linked_alleles"]] <- phasing_variants_mapq20_tbl %>% filter(n_ALT_H1 + n_ALT_H2 >= 10) %>% nrow()
+  manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_10_linked_alleles_phased"]] <- phasing_variants_mapq20_tbl %>% filter(n_ALT_H1 + n_ALT_H2 >= 10) %>% filter(pct_ALT_on_H1 >= 0.91 | pct_ALT_on_H2 >= 0.91) %>% nrow()
+  manuscript_numbers[["03_somatic"]][["pct_somatic_mutations_with_10_linked_alleles_phased"]] <- 100*manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_10_linked_alleles_phased"]]/manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_10_linked_alleles"]]
+
+  manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_10_linked_alleles_0/1"]] <- phasing_variants_mapq20_tbl %>% filter(n_ALT_H1 + n_ALT_H2 >= 10, Genotype == "0/1") %>% nrow()
+  manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_10_linked_alleles_0/1_phased"]] <- phasing_variants_mapq20_tbl %>% filter(n_ALT_H1 + n_ALT_H2 >= 10, Genotype == "0/1") %>% filter(pct_ALT_on_H1 >= 0.91 | pct_ALT_on_H2 >= 0.91) %>% nrow()
+  manuscript_numbers[["03_somatic"]][["pct_somatic_mutations_with_10_linked_alleles_0/1_phased"]] <- 100*manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_10_linked_alleles_0/1_phased"]]/manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_10_linked_alleles_0/1"]]
+
   rm(proportions, tp, tn, fp, fn, prec, rec, tpr, fpr, i)
 }
 
@@ -109,11 +129,11 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
     geom_hline(yintercept = (1 - H1_proportion)*100, linetype = 2) +
     scale_y_continuous(limits = c(0, 100),
                        breaks = seq(0, 100, 10),
-                       expand = c(0.01, 0.01)) +
+                       expand = c(0.02, 0.02)) +
     scale_color_manual(values = c("#3182bd", "#e31a1c", "#bdbdbd")) +
     annotate("text", x = "0|1", y = 93.5, label = "Phased as 1|0", size = 2) +
     annotate("text", x = "1|0", y = 6.5, label = "Phased as 0|1", size = 2) +
-    labs(x = "Somatic Mutation Genotype (longranger)",
+    labs(x = "Somatic Mutation Genotype",
          y = "Linked Variants Assigned to H1 (%)") +
     theme_bw() +
     theme(axis.ticks.x = element_blank(),
@@ -240,21 +260,14 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
            proportion_variants_phased = n_phased / n_somatic_variants,
            n_pairs_phased = choose(n_phased, 2))
 
-  stat_data <- somatic_per_phase_set_mapq20_tbl %>%
-    left_join(phasing_variants_grouped,
-              by = c("sample", "ps_id" = "Phase_Set",
-                     "length_variants" = "Phase_Set_Length")) %>%
-    replace_na(list(somatic_mutations_per_Mb = 0)) %>%
-    filter(length_variants >= 1e3)
+  manuscript_numbers[["03_somatic"]][["n_phase_sets_1kb"]] <- phasing_variants_grouped %>% filter(Phase_Set_Length >= 1e3) %>% nrow()
+  manuscript_numbers[["03_somatic"]][["n_phase_sets_1kb_0_somatic_mutation_pairs"]] <- phasing_variants_grouped %>% filter(Phase_Set_Length >= 1e3) %>% filter(n_pairs_phased == 0) %>% nrow()
+  manuscript_numbers[["03_somatic"]][["n_phase_sets_1kb_0_somatic_mutations"]] <- phasing_variants_grouped %>% filter(Phase_Set_Length >= 1e3) %>% filter(n_phased == 0) %>% nrow()
+  manuscript_numbers[["03_somatic"]][["n_phase_sets_1kb_1_somatic_mutations"]] <- phasing_variants_grouped %>% filter(Phase_Set_Length >= 1e3) %>% filter(n_phased == 1) %>% nrow()
 
-  n_pb <- stat_data %>% nrow()
-  n_pb_1_sm <- stat_data %>% filter(n_somatic_variants.x > 0) %>% nrow()
-  tot_len <- stat_data %>% pull(length_variants) %>% sum()
-  tot_sm <- stat_data %>% pull(n_somatic_variants.x) %>% sum()
-  pb_1_sm <- 100*n_pb_1_sm/n_pb
-  sm_mb <- 1e6*tot_sm/tot_len
-  print(c("% phase blocks with > 0 somatic mutations:", pb_1_sm))
-  print(c("Somatic mutations per Mb within phase blocks:", sm_mb))
+  manuscript_numbers[["03_somatic"]][["pct_phase_sets_1kb_0_somatic_mutation_pairs"]] <- 100*manuscript_numbers[["03_somatic"]][["n_phase_sets_1kb_0_somatic_mutation_pairs"]]/manuscript_numbers[["03_somatic"]][["n_phase_sets_1kb"]]
+  manuscript_numbers[["03_somatic"]][["pct_phase_sets_1kb_0_somatic_mutations"]] <- 100*manuscript_numbers[["03_somatic"]][["n_phase_sets_1kb_0_somatic_mutations"]]/manuscript_numbers[["03_somatic"]][["n_phase_sets_1kb"]]
+  manuscript_numbers[["03_somatic"]][["pct_phase_sets_1kb_1_somatic_mutation"]] <- 100*manuscript_numbers[["03_somatic"]][["n_phase_sets_1kb_1_somatic_mutations"]]/manuscript_numbers[["03_somatic"]][["n_phase_sets_1kb"]]
 
   plot_data <- phasing_variants_grouped %>%
     filter(Phase_Set_Length >= 1e3, n_phased > 1) %>%
@@ -268,20 +281,27 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
                                   ordered = TRUE)) %>%
     arrange(n_pairs_color)
 
-  print("With WGS only:")
-  plot_data %>% pull(n_pairs_color) %>% table() %>% print()
-
-  n_pb <- plot_data %>% nrow()
-  n_pb_1.0 <- plot_data %>% filter(proportion_variants_phased == 1) %>% nrow()
-  n_pb_0.75 <- plot_data %>% filter(proportion_variants_phased >= 0.75) %>% nrow()
-  print(c("Percentage of phase blocks with all variants phased: ", 100*n_pb_1.0/n_pb))
-  print(c("Percentage of phase blocks with half variants phased: ", 100*n_pb_0.75/n_pb))
+  n_phase_sets <- plot_data %>% nrow()
+  n_phase_sets_1.0 <- plot_data %>% filter(proportion_variants_phased == 1) %>% nrow()
+  n_phase_sets_0.75 <- plot_data %>% filter(proportion_variants_phased >= 0.75) %>% nrow()
+  manuscript_numbers[["03_somatic"]][["n_phase_sets_gt_1kb_1_pair"]] <- n_phase_sets
+  manuscript_numbers[["03_somatic"]][["n_phase_sets_gt_1kb_1_pair_all_phased"]] <- n_phase_sets_1.0
+  manuscript_numbers[["03_somatic"]][["n_phase_sets_gt_1kb_1_pair_0.75_phased"]] <- n_phase_sets_0.75
+  manuscript_numbers[["03_somatic"]][["pct_phase_sets_all_variants_phased"]] <- 100*n_phase_sets_1.0/n_phase_sets
+  manuscript_numbers[["03_somatic"]][["pct_phase_sets_all_variants_phased"]] <- 100*n_phase_sets_1.0/n_phase_sets
+  manuscript_numbers[["03_somatic"]][["pct_phase_sets_0.75_variants_phased"]] <- 100*n_phase_sets_0.75/n_phase_sets
 
   min_log2 <- plot_data %>% pull(somatic_mutations_per_Mb) %>%
     log2() %>% min() %>% round(digits = 0)
   max_log2 <- plot_data %>% pull(somatic_mutations_per_Mb) %>%
     log2() %>% max() %>% round(digits = 0)
   my_breaks <- seq(from = min_log2, to = max_log2, by = 1)
+
+  manuscript_numbers[["03_somatic"]][["min_log2_somatic_mutations_per_Mb"]] <- min_log2
+  manuscript_numbers[["03_somatic"]][["max_log2_somatic_mutations_per_Mb"]] <- max_log2
+  manuscript_numbers[["03_somatic"]][["min_somatic_mutations_per_Mb"]] <- 2^min_log2
+  manuscript_numbers[["03_somatic"]][["max_somatic_mutations_per_Mb"]] <- 2^max_log2
+  manuscript_numbers[["03_somatic"]][["median_somatic_mutations_per_Mb"]] <- plot_data %>% pull(somatic_mutations_per_Mb) %>% summary()
 
   p <- ggplot(data = plot_data,
               aes(x = log2(somatic_mutations_per_Mb),
@@ -320,7 +340,7 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
   ggsave(str_c(main, "somatic_mutations_per_Mb.pdf"), q,
          width = 4.75, height = 1.5*2.25, useDingbats = FALSE)
 
-  rm(phasing_variants_grouped, plot_data, stat_data, p, q, q_with_legend,
+  rm(phasing_variants_grouped, plot_data, p, q, q_with_legend,
      n_pb, n_pb_0.75, n_pb_1_sm, n_pb_1.0, pb_1_sm, sm_mb, tot_len, tot_sm,
      min_log2, max_log2, my_breaks)
 }
@@ -382,10 +402,11 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
     mutate(phased_by_SH = case_when(pct_ALT_on_H1 <= H1_proportion ~ "H2",
                                     pct_ALT_on_H2 <= H1_proportion ~ "H1",
                                     TRUE ~ "NP")) %>%
-    replace_na(list(Genotype = "Missing")) %>%
+    replace_na(list(Genotype = "NA")) %>%
     filter(gene %in% important_mutations_tbl$gene)
 
   correlation_value <- round(as.numeric(cor.test(plot_df$vaf, plot_df$barcode_vaf)$estimate), 2)
+
   ggplot(plot_df, aes(x = vaf, y = barcode_vaf)) +
     geom_abline(lty = 2) +
     geom_smooth(method = "lm") +
@@ -412,7 +433,9 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
 
   p <- ggplot(plot_df, aes(y = variant_name, x = display_name)) +
     geom_point(aes(shape = Genotype, color = phased_by_SH)) +
-    scale_shape_manual(values = c(16,17,3)) +
+    scale_shape_manual(values = c(16,17,3), drop = FALSE) +
+    scale_color_brewer(palette = "Set2") +
+    labs(shape = "GT", color = "Hap") +
     theme_bw() +
     theme(axis.ticks = element_blank(),
           axis.line = element_blank(),
@@ -425,12 +448,18 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
           panel.grid.minor.x = element_blank(),
           strip.background = element_blank(),
           strip.text = element_text(size = 8),
-          plot.margin = unit(c(0,0,0,0), "lines"))
+          plot.margin = unit(c(0,0,0,0), "lines"),
+          legend.background = element_blank(),
+          legend.text = element_text(size = 6),
+          legend.title = element_text(size = 8),
+          legend.key = element_blank())
 
   ggsave(str_c(main, "mm_mutations.with_legend.pdf"), p,
-         height = 3, width = 2, useDingbats = FALSE)
+         height = 3.375, width = 2.25, useDingbats = FALSE)
   ggsave(str_c(main, "mm_mutations.pdf"), p + guides(color = FALSE, shape = FALSE),
-         height = 3, width = 2, useDingbats = FALSE)
+         height = 3.375, width = 2.25, useDingbats = FALSE)
+
+  manuscript_numbers[["03_somatic"]][["ATR_pct_ALT_on_H1"]] <- plot_df %>% filter(gene == "ATR") %>% select(pct_ALT_on_H1, pct_ALT_on_H2)
 
   rm(plot_df, correlation_value, max_vaf, H1_proportion)
 

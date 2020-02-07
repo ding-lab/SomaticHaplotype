@@ -9,6 +9,8 @@ supp = "figures/04_alleles/supplementary/"
 dir.create(main, recursive = TRUE, showWarnings = FALSE)
 dir.create(supp, recursive = TRUE, showWarnings = FALSE)
 
+manuscript_numbers[["04_alleles"]] <- list()
+
 # mutation coverage at CNV neutral sites
 {
   cnv_neutral_mutation_sites <- variant_pairs_mapq20_tbl %>%
@@ -41,6 +43,7 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
                y = phased_alt_barcode_coverage)) +
     geom_vline(xintercept = log2(10), lty = 2) +
     geom_vline(xintercept = log2(100), lty = 2) +
+    geom_hline(yintercept = 1, lty = 2) +
     geom_point(aes(color = my_color_100), shape = 16, alpha = 0.25) +
     scale_color_identity() +
     facet_wrap(~sample, ncol = 1) +
@@ -98,6 +101,7 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
     pull(molecule_length_mean) %>%
     median() %>%
     plyr::round_any(2000)
+
   max_overlapping_bx <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>%
     filter(distance_between_variants <= median_molecule_length) %>%
     filter(distance_between_variants >= 100) %>%
@@ -174,6 +178,34 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
           plot.margin = unit(c(0,0,0,0), "lines")) +
     ggsave(str_c(supp, "overlapping_barcodes.lt_100.pdf"),
            width = 7.25, height = 2, useDingbats = FALSE)
+
+  manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% nrow()
+  manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_gt62kb"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% filter(distance_between_variants > median_molecule_length) %>% nrow()
+  manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_gt62kb_no_shared_barcodes"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% filter(distance_between_variants > median_molecule_length) %>% filter(n_overlapping_barcodes == 0) %>% nrow()
+  manuscript_numbers[["04_alleles"]][["pct_variant_pairs_cnv_neutral_good_coverage_gt62kb_no_shared_barcodes"]] <- 100*manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_gt62kb_no_shared_barcodes"]]/manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_gt62kb"]]
+
+  manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% filter(distance_between_variants <= median_molecule_length) %>% nrow()
+  manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte1_overlap"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% filter(distance_between_variants <= median_molecule_length) %>% filter(n_overlapping_barcodes >= 1) %>% nrow()
+  manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte1_overlap_gte1_mutation"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% filter(distance_between_variants <= median_molecule_length) %>% filter(n_overlapping_barcodes >= 1) %>% filter(n_barcodes_with_mutation >= 1) %>% nrow()
+
+  manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% filter(distance_between_variants <= median_molecule_length, distance_between_variants >= 100) %>% nrow()
+  manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp_0_overlap"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% filter(distance_between_variants <= median_molecule_length, distance_between_variants >= 100) %>% filter(n_overlapping_barcodes == 0) %>% nrow()
+  manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp_lte10_overlap"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% filter(distance_between_variants <= median_molecule_length, distance_between_variants >= 100) %>% filter(n_overlapping_barcodes <= 10, n_overlapping_barcodes > 0) %>% nrow()
+  manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp_lte20_overlap"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% filter(distance_between_variants <= median_molecule_length, distance_between_variants >= 100) %>% filter(n_overlapping_barcodes <= 20, n_overlapping_barcodes > 10) %>% nrow()
+  manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp_gt20_overlap"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% filter(distance_between_variants <= median_molecule_length, distance_between_variants >= 100) %>% filter(n_overlapping_barcodes > 20) %>% nrow()
+
+  manuscript_numbers[["04_alleles"]][["pct_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp_0_overlap"]] <- 100*manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp_0_overlap"]]/manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp"]]
+  manuscript_numbers[["04_alleles"]][["pct_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp_lte10_overlap"]] <- 100*manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp_lte10_overlap"]]/manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp"]]
+  manuscript_numbers[["04_alleles"]][["pct_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp_lte20_overlap"]] <- 100*manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp_lte20_overlap"]]/manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp"]]
+  manuscript_numbers[["04_alleles"]][["pct_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp_gt20_overlap"]] <- 100*manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp_gt20_overlap"]]/manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp"]]
+
+  manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_lt100bp"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% filter(distance_between_variants <= median_molecule_length, distance_between_variants < 100) %>% nrow()
+  manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_lt100bp_0_overlap"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% filter(distance_between_variants <= median_molecule_length, distance_between_variants < 100) %>% filter(n_overlapping_barcodes == 0) %>% nrow()
+  manuscript_numbers[["04_alleles"]][["pct_variant_pairs_cnv_neutral_good_coverage_lte62kb_lt100bp_0_overlap"]] <- 100*manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_lt100bp_0_overlap"]]/manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_lt100bp"]]
+
+  manuscript_numbers[["04_alleles"]][["pct_variant_pairs_cnv_neutral_good_coverage_lte62kb"]] <- 100*manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb"]]/manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage"]]
+  manuscript_numbers[["04_alleles"]][["pct_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte1_overlap"]] <- 100*(manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte1_overlap"]]/manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb"]])
+  manuscript_numbers[["04_alleles"]][["pct_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte1_overlap_gte1_mutation"]] <- 100*(manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte1_overlap_gte1_mutation"]]/manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte1_overlap"]])
 
   rm(cnv_neutral_mutation_sites, cnv_neutral_good_coverage_sites, max_overlapping_bx, sample_id, this_sample)
 }
@@ -347,6 +379,8 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
           strip.text = element_text(size = 8),
           plot.margin = unit(c(0,0,0,0), "lines")) +
     ggsave(str_c(main, "allele_combinations.pdf"), height = 2, width = 3, useDingbats = FALSE)
+
+  manuscript_numbers[["04_alleles"]][["allele_pair_combinations"]] <- text_df %>% mutate(pct = 100*total/n_within_length_share_barcode_share_variant)
 
   rm(n_total, n_within_length, p_within_length,
      n_within_length_share_barcode, p_within_length_share_barcode,
@@ -613,7 +647,7 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
       this_output_filename <- str_c(this_sample, i, "barcode_variants.pdf", sep = ".")
       print(this_output_filename)
 
-      plot_barcode_variants(barcodes_variants = barcodes_variants_all_mapq20_tbl,
+      plot_barcode_variants(barcodes_variants = barcodes_variants_driver_mapq20_tbl,
                             sample = this_sample,
                             variants_of_interest = this_variants_of_interest,
                             var1 = this_var1,
@@ -632,6 +666,66 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
   }
 
 }
+
+manuscript_numbers[["04_alleles"]][["27522_NRAS_allele_combinations"]] <- variant_pairs_driver_mapq20_tbl %>% filter(sample == "27522_1", Variant1 == "chr1:114713909:G:T", Variant2 == "chr1:114716124:C:G") %>% select(starts_with("n_bx_overlap"))
+manuscript_numbers[["04_alleles"]][["27522_NRAS_VAFs"]] <- driver_mutations_vaf_tbl %>% filter(patient == "27522", gene == "NRAS") %>% select(sample, gene, vaf, protein)
+
+
+
+barcodes_variants_driver_mapq20_tbl[["27522_1"]] %>%
+  filter(Somatic_Variant %in% c("chr1:114713909:G:T", "chr1:114716124:C:G"),
+         Variant %in% c("chr1:114713909:G:T", "chr1:114716124:C:G")) %>%
+  mutate(V1_allele = case_when(Variant == "chr1:114713909:G:T" & Allele == 1 ~ "ALT",
+                               Variant == "chr1:114713909:G:T" & Allele == 0 ~ "REF",
+                               TRUE ~ "Missing"),
+         V2_allele = case_when(Variant == "chr:114716124:C:G" & Allele == 1 ~ "ALT",
+                               Variant == "chr:114716124:C:G" & Allele == 0 ~ "REF",
+                               TRUE ~ "Missing")) %>%
+  select(Barcode, Variant, Allele, V1_allele, V2_allele) %>% View()
+
+
+barcodes_variants_driver_mapq20_tbl[["27522_1"]] %>%
+  filter(Somatic_Variant %in% c("chr1:114713909:G:T", "chr1:114716124:C:G"),
+         Variant %in% c("chr1:114713909:G:T", "chr1:114716124:C:G")) %>%
+  group_by(Barcode) %>%
+  summarize(V1_0 = sum(Variant == "chr1:114713909:G:T" & Allele == 0),
+            V1_1 = sum(Variant == "chr1:114713909:G:T" & Allele == 1),
+            V2_0 = sum(Variant == "chr1:114716124:C:G" & Allele == 0),
+            V2_1 = sum(Variant == "chr1:114716124:C:G" & Allele == 1)) %>%
+  mutate(V1_allele = case_when(V1_0 == 1 & V1_1 == 0 ~ "REF",
+                               V1_0 == 0 & V1_1 == 1 ~ "ALT",
+                               TRUE ~ "Missing"),
+         V2_allele = case_when(V2_0 == 1 & V2_1 == 0 ~ "REF",
+                               V2_0 == 0 & V2_1 == 1 ~ "ALT",
+                               TRUE ~ "Missing")) %>%
+  group_by(V1_allele, V2_allele) %>%
+  summarize(count = n()) %>%
+  ungroup() %>%
+  mutate(allele_pair = str_c(V1_allele, V2_allele, sep = "/")) %>%
+  mutate(allele_pair_label = str_c(allele_pair, " (", count, ")")) %>%
+  mutate(V1_allele = factor(V1_allele, levels = c("REF", "ALT", "NC"), ordered = TRUE),
+         V2_allele = factor(V2_allele, levels = c("REF", "ALT", "NC"), ordered = TRUE),
+         allele_pair = factor(allele_pair,
+                              levels = c("REF/REF", "REF/ALT", "ALT/REF", "ALT/ALT", "REF/NC", "ALT/NC", "NC/REF", "NC/ALT"),
+                              ordered = TRUE)) %>%
+  gather(V1_allele, V2_allele, key = "variant", value = "allele") %>%
+  mutate(allele = factor(allele, levels = c("REF", "ALT", "Missing"), ordered = TRUE)) %>%
+  ggplot(aes(x = variant, y = fct_rev(allele_pair))) +
+  geom_point(aes(shape = allele), size = 4) +
+  scale_shape_manual(values = c(1, 6, 4)) +
+  theme_bw() +
+  theme(panel.grid.major.y = element_line(size = 4),
+        panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_blank())
+
+# all all the theme elements
+# make right proportions
+# get protein name on x axis
+# get gene name on X title
+# no y title
+# no legend
+# dots filled in (change shape)
+
 
 # 27522_1 NRAS G13 Q61 figure
 {
