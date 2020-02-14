@@ -670,62 +670,82 @@ manuscript_numbers[["04_alleles"]] <- list()
 manuscript_numbers[["04_alleles"]][["27522_NRAS_allele_combinations"]] <- variant_pairs_driver_mapq20_tbl %>% filter(sample == "27522_1", Variant1 == "chr1:114713909:G:T", Variant2 == "chr1:114716124:C:G") %>% select(starts_with("n_bx_overlap"))
 manuscript_numbers[["04_alleles"]][["27522_NRAS_VAFs"]] <- driver_mutations_vaf_tbl %>% filter(patient == "27522", gene == "NRAS") %>% select(sample, gene, vaf, protein)
 
+# plot interesting allele pairs
+{
+  plot_allele_pairs <- function(sample_id, gene, variant1, variant2, protein1, protein2, barcodes_variants){
+  barcodes_variants[[sample_id]] %>%
+    filter(Somatic_Variant %in% c(variant1, variant2),
+           Variant %in% c(variant1, variant2)) %>%
+    group_by(Barcode) %>%
+    summarize(V1_0 = sum(Variant == variant1 & Allele == 0),
+              V1_1 = sum(Variant == variant1 & Allele == 1),
+              V2_0 = sum(Variant == variant2 & Allele == 0),
+              V2_1 = sum(Variant == variant2 & Allele == 1)) %>%
+    mutate(V1_allele = case_when(V1_0 == 1 & V1_1 == 0 ~ "REF",
+                                 V1_0 == 0 & V1_1 == 1 ~ "ALT",
+                                 TRUE ~ "NC"),
+           V2_allele = case_when(V2_0 == 1 & V2_1 == 0 ~ "REF",
+                                 V2_0 == 0 & V2_1 == 1 ~ "ALT",
+                                 TRUE ~ "NC")) %>%
+    group_by(V1_allele, V2_allele) %>%
+    summarize(count = n()) %>%
+    ungroup() %>%
+    arrange(desc(count)) %>%
+    mutate(allele_pair = str_c(V1_allele, V2_allele, sep = "/")) %>%
+    mutate(allele_pair = str_c(allele_pair, " (", count, ")")) %>%
+    mutate(V1_allele = factor(V1_allele, levels = c("REF", "ALT", "NC"), ordered = TRUE),
+           V2_allele = factor(V2_allele, levels = c("REF", "ALT", "NC"), ordered = TRUE)) %>%
+    gather(V1_allele, V2_allele, key = "variant", value = "allele") %>%
+    mutate(allele = factor(allele, levels = c("REF", "ALT", "NC"), ordered = TRUE)) %>%
+    ggplot(aes(x = variant, y = fct_reorder(allele_pair, count))) +
+    geom_point(aes(shape = allele), color = "#000000", fill = "#FFFFFF",
+               size = 3, show.legend = FALSE) +
+    scale_shape_manual(values = c(21, 25, 4)) +
+    scale_x_discrete(labels = c(protein1, protein2)) +
+    scale_y_discrete(expand = c(0.04, 0.04)) +
+    labs(x = gene, y = NULL) +
+    theme_bw() +
+    theme(panel.grid.major.y = element_line(size = 2),
+          panel.grid.minor = element_blank(),
+          panel.grid.major.x = element_blank(),
+          panel.border = element_blank(),
+          panel.background = element_blank(),
+          axis.ticks.y = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y = element_text(size = 8),
+          axis.line.y = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.line.x = element_blank(),
+          axis.text.x = element_text(size = 6),
+          axis.title.x = element_text(size = 8),
+          strip.background = element_blank(),
+          strip.text = element_text(size = 8),
+          plot.margin = unit(c(0,0,0,0), "lines"),
+          legend.background = element_blank(),
+          legend.text = element_text(size = 6)) +
+    ggsave(str_c(main, "allele_pairs.", sample_id, ".", gene, ".pdf"),
+           width = 1.5, height = 1.75, useDingbats = FALSE)
+}
+
+  plot_allele_pairs(sample_id = "27522_1",
+                    variant1 = "chr1:114713909:G:T",
+                    variant2 = "chr1:114716124:C:G",
+                    gene = "NRAS",
+                    protein1 = "Q61K",
+                    protein2 = "G13R",
+                    barcodes_variants = barcodes_variants_driver_mapq20_tbl)
+
+  plot_allele_pairs(sample_id = "27522_3",
+                    variant1 = "chr6:145194306:G:C",
+                    variant2 = "chr6:145195351:G:T",
+                    gene = "chr6",
+                    protein1 = "G>C",
+                    protein2 = "G>T",
+                    barcodes_variants = barcodes_variants_mapq20_tbl)
 
 
-barcodes_variants_driver_mapq20_tbl[["27522_1"]] %>%
-  filter(Somatic_Variant %in% c("chr1:114713909:G:T", "chr1:114716124:C:G"),
-         Variant %in% c("chr1:114713909:G:T", "chr1:114716124:C:G")) %>%
-  mutate(V1_allele = case_when(Variant == "chr1:114713909:G:T" & Allele == 1 ~ "ALT",
-                               Variant == "chr1:114713909:G:T" & Allele == 0 ~ "REF",
-                               TRUE ~ "Missing"),
-         V2_allele = case_when(Variant == "chr:114716124:C:G" & Allele == 1 ~ "ALT",
-                               Variant == "chr:114716124:C:G" & Allele == 0 ~ "REF",
-                               TRUE ~ "Missing")) %>%
-  select(Barcode, Variant, Allele, V1_allele, V2_allele) %>% View()
 
-
-barcodes_variants_driver_mapq20_tbl[["27522_1"]] %>%
-  filter(Somatic_Variant %in% c("chr1:114713909:G:T", "chr1:114716124:C:G"),
-         Variant %in% c("chr1:114713909:G:T", "chr1:114716124:C:G")) %>%
-  group_by(Barcode) %>%
-  summarize(V1_0 = sum(Variant == "chr1:114713909:G:T" & Allele == 0),
-            V1_1 = sum(Variant == "chr1:114713909:G:T" & Allele == 1),
-            V2_0 = sum(Variant == "chr1:114716124:C:G" & Allele == 0),
-            V2_1 = sum(Variant == "chr1:114716124:C:G" & Allele == 1)) %>%
-  mutate(V1_allele = case_when(V1_0 == 1 & V1_1 == 0 ~ "REF",
-                               V1_0 == 0 & V1_1 == 1 ~ "ALT",
-                               TRUE ~ "Missing"),
-         V2_allele = case_when(V2_0 == 1 & V2_1 == 0 ~ "REF",
-                               V2_0 == 0 & V2_1 == 1 ~ "ALT",
-                               TRUE ~ "Missing")) %>%
-  group_by(V1_allele, V2_allele) %>%
-  summarize(count = n()) %>%
-  ungroup() %>%
-  mutate(allele_pair = str_c(V1_allele, V2_allele, sep = "/")) %>%
-  mutate(allele_pair_label = str_c(allele_pair, " (", count, ")")) %>%
-  mutate(V1_allele = factor(V1_allele, levels = c("REF", "ALT", "NC"), ordered = TRUE),
-         V2_allele = factor(V2_allele, levels = c("REF", "ALT", "NC"), ordered = TRUE),
-         allele_pair = factor(allele_pair,
-                              levels = c("REF/REF", "REF/ALT", "ALT/REF", "ALT/ALT", "REF/NC", "ALT/NC", "NC/REF", "NC/ALT"),
-                              ordered = TRUE)) %>%
-  gather(V1_allele, V2_allele, key = "variant", value = "allele") %>%
-  mutate(allele = factor(allele, levels = c("REF", "ALT", "Missing"), ordered = TRUE)) %>%
-  ggplot(aes(x = variant, y = fct_rev(allele_pair))) +
-  geom_point(aes(shape = allele), size = 4) +
-  scale_shape_manual(values = c(1, 6, 4)) +
-  theme_bw() +
-  theme(panel.grid.major.y = element_line(size = 4),
-        panel.grid.minor = element_blank(),
-        panel.grid.major.x = element_blank())
-
-# all all the theme elements
-# make right proportions
-# get protein name on x axis
-# get gene name on X title
-# no y title
-# no legend
-# dots filled in (change shape)
-
+}
 
 # 27522_1 NRAS G13 Q61 figure
 {
