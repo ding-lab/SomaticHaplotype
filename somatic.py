@@ -278,6 +278,14 @@ def create_somatic_barcodes_dictionary(somatic_barcodes_filepath):
       sombx_dict[variant_key].extend(alt_barcodes_None.split(";"))
       sombx_dict_by_haplotype[variant_key]['alt_None'] = alt_barcodes_None.split(";")
 
+    sombx_dict[variant_key] = list(set(sombx_dict[variant_key]))
+    sombx_dict_by_haplotype[variant_key]['ref_H1'] = list(set(sombx_dict_by_haplotype[variant_key]['ref_H1']))
+    sombx_dict_by_haplotype[variant_key]['ref_H2'] = list(set(sombx_dict_by_haplotype[variant_key]['ref_H2']))
+    sombx_dict_by_haplotype[variant_key]['ref_None'] = list(set(sombx_dict_by_haplotype[variant_key]['ref_None']))
+    sombx_dict_by_haplotype[variant_key]['alt_H1'] = list(set(sombx_dict_by_haplotype[variant_key]['alt_H1']))
+    sombx_dict_by_haplotype[variant_key]['alt_H2'] = list(set(sombx_dict_by_haplotype[variant_key]['alt_H2']))
+    sombx_dict_by_haplotype[variant_key]['alt_None'] = list(set(sombx_dict_by_haplotype[variant_key]['alt_None']))
+
   return([sombx_dict, sombx_dict_by_haplotype])
 
 def create_somatic_variants_dictionary(maf_filepath, variant_filepath, chrom, start_bp, end_bp):
@@ -286,7 +294,7 @@ def create_somatic_variants_dictionary(maf_filepath, variant_filepath, chrom, st
   elif variant_filepath is not None and maf_filepath is None:
     somatic_variants_dictionary = extract_variant_variants(variant_filepath, chrom, start_bp, end_bp)
   else:
-    sys.error("Whoa, either maf_filepath and variant_filepath are both given or neither maf_filepath nor variant_filepath is given.")
+    sys.error("Whoa, somatic module requires one and only one of maf_filepath and variant_filepath to be given.")
 
   # CHECK THERE IS AT LEAST ONE VARIANT
   if len(somatic_variants_dictionary) > 0:
@@ -427,7 +435,7 @@ def return_variant_phase_set(base_variant_key, vcf_variants_dictionary, phase_se
       this_variant_phase_set = None
   else:
     # if the variant was NOT called by longranger (not in longranger VCF)
-    # see if variants falls within range of any existing phase sets and report that phase set
+    # see if variant falls within range of any existing phase sets and report that phase set
     chrom, pos, ref, alt = base_variant_key.split(":")
     this_variant_phase_set = None
     for ps_id in phase_set_dictionary.keys():
