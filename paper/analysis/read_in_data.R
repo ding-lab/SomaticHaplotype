@@ -12,7 +12,10 @@ library(ggrepel)
 # a resusable input data object that is re-loaded at the beginning of each session.
 # (We do not save the environment to .Rdata at the end of the session.)
 
-last_updated <- "2020-01-28"
+# numbers used in manuscript
+manuscript_numbers <- list()
+
+last_updated <- "2020-01-29"
 input_data_path_str <- str_c("data/collected_input_objects.", last_updated, ".RData")
 if (file.exists(input_data_path_str)) {
   load(input_data_path_str)
@@ -896,7 +899,7 @@ if (file.exists(input_data_path_str)) {
 
       barcodes_variants_driver_mapq20_tbl[[sample_id]] <- barcodes_variants_driver_mapq20_tbl[[sample_id]] %>%
         left_join(patient_sample_names_tbl, by = "sample") %>%
-        #filter(Chromosome %in% str_c("chr", seq(1:22))) %>%
+        filter(Chromosome %in% str_c("chr", seq(1:22))) %>%
         mutate(Chromosome = factor(Chromosome,
                                    levels = str_c("chr", seq(1:22)),
                                    ordered = TRUE))
