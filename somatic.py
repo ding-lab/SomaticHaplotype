@@ -110,14 +110,14 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
 
   if variant_key in vcf_variants_dictionary:
     # get barcode information as reported by longranger in VCF
-    bx_supporting_variants = return_barcodes_supporting_variant_vcf(variant_key, vcf_variants_dictionary)
+    bx_supporting_variants1 = return_barcodes_supporting_variant_vcf(variant_key, vcf_variants_dictionary)
   else:
     # if variant is not in VCF, use somatic barcodes reported in --sombx input
     bx_supporting_variants_by_haplotype = return_barcodes_supporting_variant_bam(variant_key, somatic_barcodes_dictionary_by_haplotype)
-    bx_supporting_variants = []
+    bx_supporting_variants2 = []
     for k,v in bx_supporting_variants_by_haplotype.items():
-      bx_supporting_variants.extend(v)
-  # TODO consider adding these lists together
+      bx_supporting_variants2.extend(v)
+  bx_supporting_variants = list(set(bx_supporting_variants1 + bx_supporting_variants2))
 
   variants_covered_in_vcf = return_variants_covered_by_barcodes(bx_supporting_variants, phase_set_of_variant, vcf_variants_dictionary)
 
@@ -205,7 +205,9 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
         just_barcode_ALT_H1 += 1
       elif bx in somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_H2']:
         just_barcode_ALT_H2 += 1
-      else:
+      elif bx in somatic_barcodes_dictionary_by_haplotype[variant_key]['ref_None']:
+        just_barcode_not_phased += 1
+      elif bx in somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_None']:
         just_barcode_not_phased += 1
 
   if n_REF_H1 > 0 or n_REF_H2 > 0:
@@ -388,11 +390,11 @@ def return_barcodes_supporting_variant_vcf(variant_key, vcf_variants_dictionary)
   else:
     molecules_supporting_this_position = list(this_variant.return_Molecules()[0].keys()) # 0 refers to return_Molecules() dictionary {0:{ref bx}, 1:{alt bx}}
     molecules_supporting_this_position.extend(list(this_variant.return_Molecules()[1].keys())) # 1 refers to return_Molecules() dictionary {0:{ref bx}, 1:{alt bx}}
-  return(list(set(molecules_supporting_this_position))) # List of barcodes supporting either REF or ALT allele
+  return(list(set(molecules_supporting_this_position)) # List of barcodes supporting either REF or ALT allele
 
 def return_barcodes_supporting_variant_bam(variant_key, somatic_barcodes_dictionary):
   barcodes_list = somatic_barcodes_dictionary[variant_key]
-  return(barcodes_list)
+  return(list(set(barcodes_list))
 
 def return_haplotype_supported_by_barcode(barcode, variant_key, vcf_variants_dictionary, somatic_barcodes_dictionary_by_haplotype):
   if variant_key in vcf_variants_dictionary and len(vcf_variants_dictionary[variant_key]) > 1:
