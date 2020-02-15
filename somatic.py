@@ -108,15 +108,19 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
   if variant_key in vcf_variants_dictionary and len(vcf_variants_dictionary[variant_key]) > 1:
     sys.exit("Variant " + variant_key + " has more than one VCF record.")
 
+  bx_supporting_variants1 = []
+  bx_supporting_variants2 = []
   if variant_key in vcf_variants_dictionary:
     # get barcode information as reported by longranger in VCF
     bx_supporting_variants1 = return_barcodes_supporting_variant_vcf(variant_key, vcf_variants_dictionary)
-  else:
+  
+  if variant_key in somatic_barcodes_dictionary_by_haplotype:
     # if variant is not in VCF, use somatic barcodes reported in --sombx input
     bx_supporting_variants_by_haplotype = return_barcodes_supporting_variant_bam(variant_key, somatic_barcodes_dictionary_by_haplotype)
     bx_supporting_variants2 = []
     for k,v in bx_supporting_variants_by_haplotype.items():
       bx_supporting_variants2.extend(v)
+
   bx_supporting_variants = list(set(bx_supporting_variants1 + bx_supporting_variants2))
 
   variants_covered_in_vcf = return_variants_covered_by_barcodes(bx_supporting_variants, phase_set_of_variant, vcf_variants_dictionary)
@@ -131,6 +135,7 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
   coverage_dictionary = {}
   n_REF_H1, n_REF_H2, n_ALT_H1, n_ALT_H2, n_not_phased = 0, 0, 0, 0, 0
   just_barcode_REF_H1, just_barcode_REF_H2, just_barcode_ALT_H1, just_barcode_ALT_H2, just_barcode_not_phased = 0, 0, 0, 0, 0
+  length_of_bx_supporting_variants = len(bx_supporting_variants)
   for bx in bx_supporting_variants:
     this_bx_supports_somatic_01 = return_allele_supported_by_barcode(bx, variant_key, vcf_variants_dictionary, somatic_barcodes_dictionary_by_haplotype)
     for var in variants_covered_in_vcf:
