@@ -117,6 +117,7 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
     bx_supporting_variants = []
     for k,v in bx_supporting_variants_by_haplotype.items():
       bx_supporting_variants.extend(v)
+  # TODO consider adding these lists together
 
   variants_covered_in_vcf = return_variants_covered_by_barcodes(bx_supporting_variants, phase_set_of_variant, vcf_variants_dictionary)
 
@@ -145,6 +146,7 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
         filter_string = ",".join(var.return_Filter())
 
       if filter_string in ["PASS", "10X_PHASING_INCONSISTENT"] and var.return_Genotype() != "1|1":
+        # not including variants with 10X_ALLELE_FRACTION_FILTER excludes variants with VAF < 0.15
         if this_bx_supports_somatic_01 == "0" and haplotype_supported_by_barcode == "H1":
           n_REF_H1 += 1
         elif this_bx_supports_somatic_01 == "0" and haplotype_supported_by_barcode == "H2":
@@ -153,7 +155,7 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
           n_ALT_H1 += 1
         elif this_bx_supports_somatic_01 == "1" and haplotype_supported_by_barcode == "H2":
           n_ALT_H2 += 1
-        elif haplotype_supported_by_barcode == "Not phased":
+        elif haplotype_supported_by_barcode == "Not_Phased/Not_Heterozygote/Allele_Not_Matching":
           n_not_phased += 1
 
       if allele_supported_by_barcode != "No Coverage":
@@ -179,6 +181,8 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
         n_ALT_H1 += 1
       elif bx in somatic_barcodes_dictionary_by_haplotype[variant_key]['alt_H2']:
         n_ALT_H2 += 1
+      elif haplotype_supported_by_barcode == "Not_Phased/Not_Heterozygote/Allele_Not_Matching":
+          n_not_phased += 1
 
       if allele_supported_by_barcode != "No Coverage":
         coverage_dictionary[bx + "--" + variant_key].extend([
@@ -358,7 +362,7 @@ def return_allele_supported_by_barcode(barcode, variant_key, vcf_variants_dictio
     else:
       for i in range(1, n_alleles):
         if barcode in this_variant.return_Molecules()[i]:
-          barcode_supports_this_allele = str(1) # treats 1 and 2 alleles as same
+          barcode_supports_this_allele = str(1) # treats multiple ALT alleles as same
     
   elif variant_key in somatic_barcodes_dictionary_by_haplotype:
     
@@ -506,10 +510,11 @@ def write_somatic_variants_dictionary(somatic_variants_dictionary, output_file_p
       for bx_pos in somatic_variants_dictionary[var]:
         if len(somatic_variants_dictionary[var][bx_pos]) == 2:
           continue
-        elif bx_pos not in print_these_combinations:
-          print_these_combinations[bx_pos] = '\t'.join([str(x) for x in somatic_variants_dictionary[var][bx_pos]]) + '\t' + var + '\n'
+        #elif bx_pos not in print_these_combinations:
         else:
-          continue
+          print_these_combinations[bx_pos] = '\t'.join([str(x) for x in somatic_variants_dictionary[var][bx_pos]]) + '\t' + var + '\n'
+        #else:
+        #  continue
   for bx_pos in sorted(print_these_combinations.keys()):
     output_file.write(print_these_combinations[bx_pos])
 
@@ -578,7 +583,6 @@ def main(args):
 
   # create coverage dictionary for each somatic variant
   phasing_dictionary = {}
-  variants_overlap = 0
   for variant_key in somatic_variants_dictionary.keys():
     this_ps_id = return_variant_phase_set(variant_key, vcf_variants_dictionary, phase_set_dictionary)
     if this_ps_id is None: # variant does not fall within an existing phase set
