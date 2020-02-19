@@ -263,7 +263,7 @@ def sum_graph_edges(phase_set_graph, vertex_number_1, vertex_number_2):
     weight_sum += phase_set_graph[x,y]
     n_edges += 1
   
-  return([weight_sum % 2, n_edges/2]) # 0 if even (no switch) 1 if odd (switch)
+  return([weight_sum % 2, int(n_edges/2)]) # 0 if even (no switch) 1 if odd (switch)
 
 ################################################################################
 # main
