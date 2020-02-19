@@ -94,6 +94,9 @@ def extend_phase_sets(ps_dict1, ps_dict2, chrom, start, end):
       # check if they overlap
       if ranges_overlap(phase_set_1.return_Chromosome(), phase_set_1.return_FirstVariantPosition(), phase_set_1.return_LastVariantPosition(), phase_set_2.return_Chromosome(), phase_set_2.return_FirstVariantPosition(), phase_set_2.return_LastVariantPosition()):
 
+        print(phase_set_1.return_Chromosome()+":"+str(phase_set_1.return_FirstVariantPosition())+"-"+str(phase_set_1.return_LastVariantPosition()))
+        print(phase_set_2.return_Chromosome()+":"+str(phase_set_2.return_FirstVariantPosition())+"-"+str(phase_set_2.return_LastVariantPosition()))
+
         min_overlap_position, max_overlap_position, length_overlap = ranges_overlap_stats(phase_set_1.return_Chromosome(), phase_set_1.return_FirstVariantPosition(), phase_set_1.return_LastVariantPosition(), phase_set_2.return_Chromosome(), phase_set_2.return_FirstVariantPosition(), phase_set_2.return_LastVariantPosition())
 
         # get list of overlapping variants
@@ -241,7 +244,7 @@ def ranges_overlap(chr1, start1, end1, chr2, start2, end2):
     return(False)
 
 def ranges_overlap_stats(chr1, start1, end1, chr2, start2, end2):
-  overlap = set(range(start1, end1)).intersection(range(start2, end2))
+  overlap = set(range(start1, end1 + 1)).intersection(range(start2, end2 + 1))
   min_overlap_position = min(overlap)
   max_overlap_position = max(overlap)
   length_overlap = len(overlap)
