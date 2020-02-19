@@ -90,7 +90,7 @@ def extend_phase_sets(ps_dict1, ps_dict2, chrom, start, end):
     phase_set_1 = ps_dict1['phase_sets'][ps1]
     for ps2 in ps2_phase_sets_in_range:
       phase_set_2 = ps_dict2['phase_sets'][ps2]
-      
+
       # check if they overlap
       if ranges_overlap(phase_set_1.return_Chromosome(), phase_set_1.return_FirstVariantPosition(), phase_set_1.return_LastVariantPosition(), phase_set_2.return_Chromosome(), phase_set_2.return_FirstVariantPosition(), phase_set_2.return_LastVariantPosition()):
 
@@ -303,10 +303,7 @@ def main(args):
 
   # run functions
 
-  extended_phase_set_dictionary = extend_phase_sets(
-    bam_phase_set_dictionary_ps1,
-    bam_phase_set_dictionary_ps2,
-    chrom, start, end)
+  extended_phase_set_dictionary = extend_phase_sets(bam_phase_set_dictionary_ps1, bam_phase_set_dictionary_ps2, chrom, start, end)
 
   extended_phase_set_graph = create_graph(extended_phase_set_dictionary)
 
