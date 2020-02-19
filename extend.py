@@ -100,50 +100,46 @@ def extend_phase_sets(ps_dict1, ps_dict2, chrom, start, end):
         overlapping_variants_list = list(set(phase_set_1.return_Variants().keys()).intersection(phase_set_2.return_Variants().keys()))
         n_variants_overlap = len(overlapping_variants_list)
         n_variants_flip_to_match = 0
+        pct_switch = "NA"
 
         if n_variants_overlap > 0:
           for variant in overlapping_variants_list:
             if phase_set_1.return_Variants()[variant][0].return_Genotype() == phase_set_2.return_Variants()[variant][0].return_Genotype()[::-1]:
               n_variants_flip_to_match += 1
           pct_switch = n_variants_flip_to_match/n_variants_overlap
-        else:
-          next
 
-        # define null hypothesis using switch error rate
-        # Switch error rate defined at ~2x10-4
-        # Marks, P. et al.Resolving the full spectrum of human genome variation using Linked-Reads.Genome Res.29, 635–645 (2019).
-        # PMID: 30894395
-        # https://www.ncbi.nlm.nih.gov/pubmed/30894395
-        # We set an ultra-conservative (random) short switch error rate at 0.5
-        # Even using very conservative short switch error rate of 0.001 was too lenient
-        p_short_switch_error = 0.5
+          # define null hypothesis using switch error rate
+          # Switch error rate defined at ~2x10-4
+          # Marks, P. et al.Resolving the full spectrum of human genome variation using Linked-Reads.Genome Res.29, 635–645 (2019).
+          # PMID: 30894395
+          # https://www.ncbi.nlm.nih.gov/pubmed/30894395
+          # We set an ultra-conservative (random) short switch error rate at 0.5
+          # Even using very conservative short switch error rate of 0.001 was too lenient
+          p_short_switch_error = 0.5
 
-        # null is no switch, so probability of switch is short switch error rate
-        # p value is right side of probability distribution, or 1 - left side
-        # P(Y >= X | No switch) = 1 - P(Y < X | No switch)
-        p_value_switch = 1 - binom.cdf(n_variants_flip_to_match - 1, n_variants_overlap, p_short_switch_error)
-        # null is switch, so probability of no switch is 1 - short switch error rate
-        # p value is left side of probability of probability distribution
-        # P(Y <= X | Switch)
-        p_value_no_switch = binom.cdf(n_variants_flip_to_match, n_variants_overlap, 1 - p_short_switch_error)
+          # null is no switch, so probability of switch is short switch error rate
+          # p value is right side of probability distribution, or 1 - left side
+          # P(Y >= X | No switch) = 1 - P(Y < X | No switch)
+          p_value_switch = 1 - binom.cdf(n_variants_flip_to_match - 1, n_variants_overlap, p_short_switch_error)
+          # null is switch, so probability of no switch is 1 - short switch error rate
+          # p value is left side of probability of probability distribution
+          # P(Y <= X | Switch)
+          p_value_no_switch = binom.cdf(n_variants_flip_to_match, n_variants_overlap, 1 - p_short_switch_error)
 
-        min_p_value = min(p_value_switch, p_value_no_switch)
-        min_p_value_bonferroni = min_p_value/n_tests
+          min_p_value = min(p_value_switch, p_value_no_switch)
+          min_p_value_bonferroni = min_p_value/n_tests
 
-        if p_value_switch < p_value_no_switch and min_p_value_bonferroni < 0.05 and pct_switch > 0.95:
-          recommendation = "Switch"
-          graph_weight = 1
-        elif p_value_no_switch < p_value_switch and min_p_value_bonferroni < 0.05  and pct_switch < 0.05:
-          recommendation = "No Switch"
-          graph_weight = 2
-        else:
-          recommendation = "No Recommendation"
-          graph_weight = 0
+          if p_value_switch < p_value_no_switch and min_p_value_bonferroni < 0.05 and pct_switch > 0.95:
+            recommendation = "Switch"
+            graph_weight = 1
+          elif p_value_no_switch < p_value_switch and min_p_value_bonferroni < 0.05  and pct_switch < 0.05:
+            recommendation = "No Switch"
+            graph_weight = 2
+          else:
+            recommendation = "No Recommendation"
+            graph_weight = 0
 
-        extended_ps_dict1[ps1][ps2] = [ps1, phase_set_1.return_Chromosome(), phase_set_1.return_FirstVariantPosition(), phase_set_1.return_LastVariantPosition(), ps2, phase_set_2.return_Chromosome(), phase_set_2.return_FirstVariantPosition(), phase_set_2.return_LastVariantPosition(), min_overlap_position, max_overlap_position, length_overlap, n_variants_overlap, n_variants_flip_to_match, p_value_switch, p_value_no_switch, min_p_value, min_p_value_bonferroni, pct_switch, recommendation, graph_weight] # graph_weight must be final element of list to work with create_graph()
-
-      else:
-        next
+          extended_ps_dict1[ps1][ps2] = [ps1, phase_set_1.return_Chromosome(), phase_set_1.return_FirstVariantPosition(), phase_set_1.return_LastVariantPosition(), ps2, phase_set_2.return_Chromosome(), phase_set_2.return_FirstVariantPosition(), phase_set_2.return_LastVariantPosition(), min_overlap_position, max_overlap_position, length_overlap, n_variants_overlap, n_variants_flip_to_match, p_value_switch, p_value_no_switch, min_p_value, min_p_value_bonferroni, pct_switch, recommendation, graph_weight] # graph_weight must be final element of list to work with create_graph()
   
   return(extended_ps_dict1)
 
