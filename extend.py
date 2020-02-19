@@ -74,16 +74,6 @@ def extend_phase_sets(ps_dict1, ps_dict2, chrom, start, end):
     elif ranges_overlap(phase_set_2.return_Chromosome(), phase_set_2.return_FirstVariantPosition(), phase_set_2.return_LastVariantPosition(), chrom, start, end): # ps range overlaps given range
       ps2_phase_sets_in_range.append(ps)
 
-  # determine number of overlapping ranges that will be tested
-  n_tests = 0
-  for ps1 in ps1_phase_sets_in_range:
-    phase_set_1 = ps_dict1['phase_sets'][ps1]
-    for ps2 in ps2_phase_sets_in_range:
-      phase_set_2 = ps_dict2['phase_sets'][ps2]
-      # check if they overlap
-      if ranges_overlap(phase_set_1.return_Chromosome(), phase_set_1.return_FirstVariantPosition(), phase_set_1.return_LastVariantPosition(), phase_set_2.return_Chromosome(), phase_set_2.return_FirstVariantPosition(), phase_set_2.return_LastVariantPosition()):
-        n_tests += 1
-
   # for each ps1 phase set in range, iterate over each in-range ps in ps2
   for ps1 in ps1_phase_sets_in_range:
     extended_ps_dict1[ps1] = {}
@@ -122,58 +112,25 @@ def extend_phase_sets(ps_dict1, ps_dict2, chrom, start, end):
           # P(Y >= X | No switch) = 1 - P(Y < X | No switch)
           p_value_switch = 1 - binom.cdf(n_variants_flip_to_match - 1, n_variants_overlap, p_short_switch_error)
           # null is switch, so probability of no switch is 1 - short switch error rate
-          # p value is left side of probability of probability distribution
+          # p value is left side of probability probability distribution
           # P(Y <= X | Switch)
           p_value_no_switch = binom.cdf(n_variants_flip_to_match, n_variants_overlap, 1 - p_short_switch_error)
 
           min_p_value = min(p_value_switch, p_value_no_switch)
-          min_p_value_bonferroni = min(1, min_p_value*n_tests)
 
-          if p_value_switch < p_value_no_switch and min_p_value_bonferroni < 0.05 and pct_switch > 0.95:
+          if p_value_switch < p_value_no_switch and min_p_value < 0.001 and pct_switch > 0.95:
             recommendation = "Switch"
             graph_weight = 1
-          elif p_value_no_switch < p_value_switch and min_p_value_bonferroni < 0.05  and pct_switch < 0.05:
+          elif p_value_no_switch < p_value_switch and min_p_value < 0.001 and pct_switch < 0.05:
             recommendation = "No Switch"
             graph_weight = 2
           else:
             recommendation = "No Recommendation"
             graph_weight = 0
 
-          extended_ps_dict1[ps1][ps2] = [ps1, phase_set_1.return_Chromosome(), phase_set_1.return_FirstVariantPosition(), phase_set_1.return_LastVariantPosition(), ps2, phase_set_2.return_Chromosome(), phase_set_2.return_FirstVariantPosition(), phase_set_2.return_LastVariantPosition(), min_overlap_position, max_overlap_position, length_overlap, n_variants_overlap, n_variants_flip_to_match, p_value_switch, p_value_no_switch, min_p_value, min_p_value_bonferroni, pct_switch, recommendation, graph_weight] # graph_weight must be final element of list to work with create_graph()
+          extended_ps_dict1[ps1][ps2] = [ps1, phase_set_1.return_Chromosome(), phase_set_1.return_FirstVariantPosition(), phase_set_1.return_LastVariantPosition(), ps2, phase_set_2.return_Chromosome(), phase_set_2.return_FirstVariantPosition(), phase_set_2.return_LastVariantPosition(), min_overlap_position, max_overlap_position, length_overlap, n_variants_overlap, n_variants_flip_to_match, p_value_switch, p_value_no_switch, min_p_value, pct_switch, recommendation, graph_weight] # graph_weight must be final element of list to work with create_graph()
   
   return(extended_ps_dict1)
-
-def pairwise_phase_set_relationships(extended_ps_dict, phase_set_graph):
-
-  vertex_dict_ps_key = {}
-  vertex_count = -1 # graph vertices start from 0
-
-  for ps1 in sorted(extended_ps_dict.keys()):
-    if ps1 + "_s1" not in vertex_dict_ps_key:
-      vertex_count += 1
-      vertex_dict_ps_key[ps1 + "_s1"] = vertex_count
-    for ps2 in sorted(extended_ps_dict[ps1].keys()):
-      if ps2 + "_s2" not in vertex_dict_ps_key:
-        vertex_count += 1
-        vertex_dict_ps_key[ps2 + "_s2"] = vertex_count
-
-  vertex_dict_number_key = {v:k for k,v in vertex_dict_ps_key.items()}
-
-  pairwise_dict = {}
-
-  sample_1_phase_sets = sorted(extended_ps_dict.keys())
-  n_sample_1_phase_sets = len(sample_1_phase_sets)
-  for i in range(n_sample_1_phase_sets - 1):
-    ps1 = sample_1_phase_sets[i]
-    pairwise_dict[ps1] = {}
-    for j in range(i + 1, n_sample_1_phase_sets):
-      ps2 = sample_1_phase_sets[j]
-      phase_set_relationship = sum_graph_edges(phase_set_graph, vertex_dict_ps_key[ps1 + "_s1"], vertex_dict_ps_key[ps2 + "_s1"]) # 0 if no switch, 1 if switch
-      if phase_set_relationship in [0,1]:
-        pairwise_dict[ps1][ps2] = phase_set_relationship
-
-  return(pairwise_dict)
-
 
 def super_phase_set_relationships(extended_ps_dict, phase_set_graph):
 
@@ -266,7 +223,8 @@ def sum_graph_edges(phase_set_graph, vertex_number_1, vertex_number_2):
     weight_sum += phase_set_graph[x,y]
     n_edges += 1
   
-  return([weight_sum % 2, int(n_edges/2)]) # 0 if even (no switch) 1 if odd (switch)
+  # [0 if even (no switch) 1 if odd (switch), number of reference edges]
+  return([weight_sum % 2, int(n_edges/2)])
 
 ################################################################################
 # main
@@ -311,7 +269,7 @@ def main(args):
   super_sets = super_phase_set_relationships(extended_phase_set_dictionary, extended_phase_set_graph)
 
   # write output for extended_phase_set_dictionary
-  header_line = ["ps1", "ps1_Chromosome", "ps1_FirstVariantPosition", "ps1_LastVariantPosition", "ps2", "ps2_Chromosome", "ps2_FirstVariantPosition", "ps2_LastVariantPosition", "min_overlap_position", "max_overlap_position", "length_overlap", "n_variants_overlap", "n_variants_flip_to_match", "p_value_switch", "p_value_no_switch", "min_p_value", "min_p_value_bonferroni", "pct_switch", "recommendation", "graph_weight"]
+  header_line = ["ps1", "ps1_Chromosome", "ps1_FirstVariantPosition", "ps1_LastVariantPosition", "ps2", "ps2_Chromosome", "ps2_FirstVariantPosition", "ps2_LastVariantPosition", "min_overlap_position", "max_overlap_position", "length_overlap", "n_variants_overlap", "n_variants_flip_to_match", "p_value_switch", "p_value_no_switch", "min_p_value", "pct_switch", "recommendation", "graph_weight"]
   os.makedirs(args.output_directory, exist_ok = True)
   output_file_path = os.path.join(args.output_directory, args.output_prefix + ".extend_stats.tsv")
   output_file = open(output_file_path, 'w')
