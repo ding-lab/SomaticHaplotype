@@ -81,12 +81,7 @@ def extend_phase_sets(ps_dict1, ps_dict2, chrom, start, end):
     for ps2 in ps2_phase_sets_in_range:
       phase_set_2 = ps_dict2['phase_sets'][ps2]
       # check if they overlap
-      if ranges_overlap(phase_set_1.return_Chromosome(), 
-        phase_set_1.return_FirstVariantPosition(), 
-        phase_set_1.return_LastVariantPosition(), 
-        phase_set_2.return_Chromosome(), 
-        phase_set_2.return_FirstVariantPosition(), 
-        phase_set_2.return_LastVariantPosition()):
+      if ranges_overlap(phase_set_1.return_Chromosome(), phase_set_1.return_FirstVariantPosition(), phase_set_1.return_LastVariantPosition(), phase_set_2.return_Chromosome(), phase_set_2.return_FirstVariantPosition(), phase_set_2.return_LastVariantPosition()):
         n_tests += 1
 
   # for each ps1 phase set in range, iterate over each in-range ps in ps2
@@ -95,13 +90,10 @@ def extend_phase_sets(ps_dict1, ps_dict2, chrom, start, end):
     phase_set_1 = ps_dict1['phase_sets'][ps1]
     for ps2 in ps2_phase_sets_in_range:
       phase_set_2 = ps_dict2['phase_sets'][ps2]
+      
       # check if they overlap
-      if ranges_overlap(phase_set_1.return_Chromosome(),
-        phase_set_1.return_FirstVariantPosition(),
-        phase_set_1.return_LastVariantPosition(),
-        phase_set_2.return_Chromosome(),
-        phase_set_2.return_FirstVariantPosition(),
-        phase_set_2.return_LastVariantPosition()):
+      if ranges_overlap(phase_set_1.return_Chromosome(), phase_set_1.return_FirstVariantPosition(), phase_set_1.return_LastVariantPosition(), phase_set_2.return_Chromosome(), phase_set_2.return_FirstVariantPosition(), phase_set_2.return_LastVariantPosition()):
+
         min_overlap_position, max_overlap_position, length_overlap = ranges_overlap_stats(phase_set_1.return_Chromosome(), phase_set_1.return_FirstVariantPosition(), phase_set_1.return_LastVariantPosition(), phase_set_2.return_Chromosome(), phase_set_2.return_FirstVariantPosition(), phase_set_2.return_LastVariantPosition())
 
         # get list of overlapping variants
