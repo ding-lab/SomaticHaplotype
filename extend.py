@@ -210,12 +210,15 @@ def super_phase_set_relationships(extended_ps_dict, phase_set_graph):
   for cluster, index_list in super_set_dict_cluster_key.items():
     base_phase_set_index = None
     for index in index_list:
-      if vertex_dict_number_key[index].endswith("_s1"):
-        if base_phase_set_index is None:
-          base_phase_set_index = index
-          base_phase_set = vertex_dict_number_key[index][:-3]
-        phase_set_relationship_dict[vertex_dict_number_key[index][:-3]] = [str(x) for x in [cluster, base_phase_set]]
-        phase_set_relationship_dict[vertex_dict_number_key[index][:-3]].extend([str(x) for x in sum_graph_edges(phase_set_graph, index, base_phase_set_index)])
+      if len(index_list) == 1:
+        phase_set_relationship_dict[vertex_dict_number_key[index][:-3]] = ["NA"]*4
+      else:
+        if vertex_dict_number_key[index].endswith("_s1"):
+          if base_phase_set_index is None:
+            base_phase_set_index = index
+            base_phase_set = vertex_dict_number_key[index][:-3]
+          phase_set_relationship_dict[vertex_dict_number_key[index][:-3]] = [str(x) for x in [cluster, base_phase_set]]
+          phase_set_relationship_dict[vertex_dict_number_key[index][:-3]].extend([str(x) for x in sum_graph_edges(phase_set_graph, index, base_phase_set_index)])
 
   return(phase_set_relationship_dict)
 
