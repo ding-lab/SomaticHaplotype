@@ -127,7 +127,7 @@ def extend_phase_sets(ps_dict1, ps_dict2, chrom, start, end):
           p_value_no_switch = binom.cdf(n_variants_flip_to_match, n_variants_overlap, 1 - p_short_switch_error)
 
           min_p_value = min(p_value_switch, p_value_no_switch)
-          min_p_value_bonferroni = min_p_value/n_tests
+          min_p_value_bonferroni = min(1, min_p_value*n_tests)
 
           if p_value_switch < p_value_no_switch and min_p_value_bonferroni < 0.05 and pct_switch > 0.95:
             recommendation = "Switch"
