@@ -1,5 +1,5 @@
 import igraph
-import numpy
+from scipy.stats import binom
 import os
 import pickle
 import pysam
