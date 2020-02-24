@@ -511,20 +511,14 @@ def write_somatic_variants_dictionary(somatic_variants_dictionary, output_file_p
   output_file = open(output_file_path, "w")
   output_file.write('\t'.join(["Barcode", "Variant", "Phase_Set", "Allele", "Haplotype", 
     "Phased_Heterozygote", "Chromosome", "Position", "Genotype", "Filter", "Somatic_Variant"]) + '\n')
-  print_these_combinations = {}
   for var in somatic_variants_dictionary:
     if somatic_variants_dictionary[var] is not None:
       for bx_pos in somatic_variants_dictionary[var]:
         if len(somatic_variants_dictionary[var][bx_pos]) == 2:
           continue
-        #elif bx_pos not in print_these_combinations:
         else:
-          print_these_combinations[bx_pos] = '\t'.join([str(x) for x in somatic_variants_dictionary[var][bx_pos]]) + '\t' + var + '\n'
-        #else:
-        #  continue
-  for bx_pos in sorted(print_these_combinations.keys()):
-    output_file.write(print_these_combinations[bx_pos])
-
+          print_these_combinations = '\t'.join([str(x) for x in somatic_variants_dictionary[var][bx_pos]]) + '\t' + var + '\n'
+          output_file.write(print_these_combinations)
   output_file.close()
 
 def write_somatic_variants_per_phase_set(phase_set_dictionary, output_file_path):
