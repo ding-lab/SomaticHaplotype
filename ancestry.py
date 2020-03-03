@@ -209,7 +209,7 @@ def main(args):
         #HBD segment overlap range of interest
       if chrom == hbd_chr:
         hbd_segment += 1
-        hbd_dict[hbd_segment] = {k:v for k,v in zip(["chr", "start", "end"], [hbd_chr, hbd_start, hbd_end])}
+        hbd_dict[str(hbd_segment)] = {k:v for k,v in zip(["chr", "start", "end"], [hbd_chr, hbd_start, hbd_end])}
   
   hbd_file.close()
 
@@ -240,16 +240,16 @@ def main(args):
 
         if args.vcf_id == line_strip_split[0]:
           ibd_segment += 1
-          ibd_dict[ibd_segment] = {k:v for k,v in zip(["this_id", "this_hap", "other_id", "other_hap", "chr", "start", "end", "LOD", "cM"], line_strip_split)}
+          ibd_dict[str(ibd_segment)] = {k:v for k,v in zip(["this_id", "this_hap", "other_id", "other_hap", "chr", "start", "end", "LOD", "cM"], line_strip_split)}
         elif args.vcf_id == line_strip_split[2]:
           ibd_segment += 1
-          ibd_dict[ibd_segment] = {k:v for k,v in zip(["other_id", "other_hap", "this_id", "this_hap", "chr", "start", "end", "LOD", "cM"], line_strip_split)}
+          ibd_dict[str(ibd_segment)] = {k:v for k,v in zip(["other_id", "other_hap", "this_id", "this_hap", "chr", "start", "end", "LOD", "cM"], line_strip_split)}
           
-        ibd_dict[ibd_segment]["hbd"] = hbd_status
-        ibd_dict[ibd_segment]["start"] = int(ibd_dict[ibd_segment]["start"])
-        ibd_dict[ibd_segment]["end"] = int(ibd_dict[ibd_segment]["end"])
-        ibd_dict[ibd_segment]["LOD"] = float(ibd_dict[ibd_segment]["LOD"])
-        ibd_dict[ibd_segment]["cM"] = float(ibd_dict[ibd_segment]["cM"])
+        ibd_dict[str(ibd_segment)]["hbd"] = hbd_status
+        ibd_dict[str(ibd_segment)]["start"] = int(ibd_dict[str(ibd_segment)]["start"])
+        ibd_dict[str(ibd_segment)]["end"] = int(ibd_dict[str(ibd_segment)]["end"])
+        ibd_dict[str(ibd_segment)]["LOD"] = float(ibd_dict[str(ibd_segment)]["LOD"])
+        ibd_dict[str(ibd_segment)]["cM"] = float(ibd_dict[str(ibd_segment)]["cM"])
     
     else: # neither sample is sample of interest
       continue
