@@ -162,10 +162,14 @@ manuscript_numbers[["02_phase_sets"]] <- list()
 # Phase sets by sample
 {
   phase_sets_tbl_short <- phase_sets_tbl %>%
+    filter(sample %in% c("27522_1", "27522_2"),
+           chromosome %in% c("chr13", "chr22")) %>%
     filter(timepoint != "Normal", length_variants > 0, length_variants <= 1e3) %>%
     mutate(phase_set_color = "#636363")
 
   phase_sets_tbl_long <- phase_sets_tbl %>%
+    filter(sample %in% c("27522_1", "27522_2"),
+           chromosome %in% c("chr13", "chr22")) %>%
     filter(timepoint != "Normal", length_variants > 1e3) %>%
     mutate(event_number = row_number() %% 2) %>%
     mutate(phase_set_color = case_when(event_number == 0 ~ my_color_100,
@@ -175,33 +179,25 @@ manuscript_numbers[["02_phase_sets"]] <- list()
     mutate(chr_num = as.numeric(chromosome)) %>%
     mutate(sample_num = as.numeric(display_name))
 
-  sample_names <- plot_df %>% filter(chromosome == "chr13") %>%
-    group_by(patient, display_name) %>%
-    summarize(mean_length = mean(length_variants)) %>%
-    group_by(patient) %>%
-    summarize(max_sample = display_name[which.max(mean_length)]) %>%
-    pull(max_sample)
-  sample_names <- sort(fct_c(sample_names,
-                             patient_sample_names_tbl %>% filter(sample == "27522_1") %>% pull(display_name)))
+  sample_names <- c("27522 (P)", "27522 (Rem)")
   n_samples <- length(sample_names)
 
-  ggplot(plot_df %>% filter(chromosome == "chr13",
-                            display_name %in% sample_names) %>%
-           mutate(display_name = fct_drop(display_name)) %>%
-           mutate(sample_num = as.numeric(display_name)),
+  ggplot(plot_df,
          aes(xmin = start/1e6, xmax = end/1e6,
-             ymin = sample_num - 0.25, ymax = sample_num + 0.25)) +
+             ymin = sample_num - 0.4, ymax = sample_num + 0.4)) +
     geom_rect(aes(fill = "#ffffff"), show.legend = FALSE) +
     geom_rect(aes(fill = phase_set_color), show.legend = FALSE) +
-    scale_y_continuous(breaks = seq(1, n_samples),
-                       expand = c(0.02, 0),
-                       limits = c(1 - 0.25, n_samples + 0.25),
+    scale_y_continuous(breaks = c(3, 4),
+                       expand = c(0.05, 0),
+                       limits = c(3 - 0.4, 4 + 0.4),
                        labels = sample_names) +
     scale_x_continuous(expand = c(0,0)) +
+    expand_limits(x = 0) +
     scale_fill_identity() +
-    labs(x = "chr13 Position (Mb)") +
+    facet_wrap(~ chr, ncol = 1, scales = "free_x") +
+    labs(x = "Position (Mb)") +
     theme_bw() +
-    theme(panel.grid.major.y = element_blank(),
+    theme(#panel.grid.major.y = element_blank(),
           panel.grid.minor.y = element_blank(),
           panel.border = element_blank(),
           panel.background = element_blank(),
@@ -213,7 +209,7 @@ manuscript_numbers[["02_phase_sets"]] <- list()
           strip.background = element_blank(),
           strip.text = element_text(size = 8),
           plot.margin = unit(c(0,0,0,0), "lines")) +
-    ggsave(str_c(main, "chr13_phase_sets.pdf"),
+    ggsave(str_c(main, "chr13_chr22_phase_sets.pdf"),
                  height = 2.65, width = 5, useDingbats = FALSE)
 
   rm(phase_sets_tbl_short, phase_sets_tbl_long, plot_df, sample_names, n_samples)
@@ -328,7 +324,7 @@ manuscript_numbers[["02_phase_sets"]] <- list()
         ggsave(str_c(supp, "phase_sets/", this_sample, ".phase_sets.pdf"),
                height = 4.875, width = 7.25, useDingbats = FALSE)
 
-      rm(phase_sets_tbl_short, phase_sets_tbl_long, plot_df, print_name)
+      rm(phase_sets_tbl_short, phase_sets_tbl_long, plot_df, print_name, plot_chr)
     }
   }
 

@@ -2,6 +2,8 @@
 # Read in all data for analysis
 ################################################################################
 
+phase_proportion <- 0.91
+
 # shh! (this is a library)
 library(tidyverse)
 library(viridis)
@@ -15,7 +17,7 @@ library(ggrepel)
 # numbers used in manuscript
 manuscript_numbers <- list()
 
-last_updated <- "2020-01-29"
+last_updated <- "2020-03-03"
 input_data_path_str <- str_c("data/collected_input_objects.", last_updated, ".RData")
 if (file.exists(input_data_path_str)) {
   load(input_data_path_str)
@@ -277,10 +279,10 @@ if (file.exists(input_data_path_str)) {
         if (file.exists(file_path)) {
           if ( is.null(extend_stats_tbl) ) {
             extend_stats_tbl <- read_tsv(file_path,
-                                         col_types = "ccddccddddddddddcd")  %>%
+                                         col_types = "ccddccdddddddddddci")  %>%
               mutate(sample = sample_id, extended_by = extended_by)
           } else {
-            new_row <- read_tsv(file_path, col_types = "ccddccddddddddddcd")  %>%
+            new_row <- read_tsv(file_path, col_types = "ccddccdddddddddddci")  %>%
               mutate(sample = sample_id, extended_by = extended_by)
             extend_stats_tbl <- bind_rows(extend_stats_tbl, new_row)
             rm(new_row)
@@ -315,10 +317,10 @@ if (file.exists(input_data_path_str)) {
         if (file.exists(file_path)) {
           if ( is.null(extend_phase_sets_tbl) ) {
             extend_phase_sets_tbl <- read_tsv(file_path,
-                                              col_types = "cciiiiiiiiiicl")  %>%
+                                              col_types = "cciiiiiiiiiicli")  %>%
               mutate(sample = sample_id, extended_by = extended_by)
           } else {
-            new_row <- read_tsv(file_path, col_types = "cciiiiiiiiiicl")  %>%
+            new_row <- read_tsv(file_path, col_types = "cciiiiiiiiiicli")  %>%
               mutate(sample = sample_id, extended_by = extended_by)
             extend_phase_sets_tbl <- bind_rows(extend_phase_sets_tbl, new_row)
             rm(new_row)
@@ -522,9 +524,31 @@ if (file.exists(input_data_path_str)) {
 
     phasing_variants_mapq20_tbl <- phasing_variants_mapq20_tbl %>%
       left_join(patient_sample_names_tbl, by = "sample") %>%
+      filter(Chromosome %in% str_c("chr", seq(1:22))) %>%
       mutate(Chromosome = factor(Chromosome,
                                  levels = str_c("chr", seq(1:22)),
-                                 ordered = TRUE))
+                                 ordered = TRUE)) %>%
+      mutate(enough_coverage = (n_ALT_H1 + n_ALT_H2 >= 10 | barcode_ALT_H1 + barcode_ALT_H2 > 0),
+             phased_by_linked_alleles = case_when(n_ALT_H1 + n_ALT_H2 < 10 ~ "NC",
+                                                  n_ALT_H1 + n_ALT_H2 >= 10 & pct_ALT_on_H1 >= phase_proportion ~ "H1",
+                                                  n_ALT_H1 + n_ALT_H2 >= 10 & pct_ALT_on_H2 >= phase_proportion ~ "H2",
+                                                  TRUE ~ "NP"),
+             phased_by_barcodes = case_when(barcode_ALT_H1 + barcode_ALT_H2 == 0 ~ "NC",
+                                            barcode_ALT_H1 + barcode_ALT_H2 > 0 & pct_barcode_ALT_on_H1 == 1 ~ "H1",
+                                            barcode_ALT_H1 + barcode_ALT_H2 > 0 & pct_barcode_ALT_on_H2 == 1 ~ "H2",
+                                            TRUE ~ "NP"),
+             phased_by = case_when(!enough_coverage ~ "NC",
+                                   phased_by_linked_alleles == "NC" & phased_by_barcodes %in% c("H1", "H2") ~ "BC",
+                                   phased_by_barcodes == "NC" & phased_by_linked_alleles %in% c("H1", "H2") ~ "LA",
+                                   phased_by_linked_alleles == "NP" & phased_by_barcodes %in% c("H1", "H2") ~ "BC",
+                                   phased_by_barcodes == "NP" & phased_by_linked_alleles %in% c("H1", "H2") ~ "LA",
+                                   phased_by_linked_alleles %in% c("H1", "H2") & phased_by_barcodes %in% c("H1", "H2")  & phased_by_linked_alleles == phased_by_barcodes ~ "Both (agree)",
+                                   phased_by_linked_alleles %in% c("H1", "H2") & phased_by_barcodes %in% c("H1", "H2")  & phased_by_linked_alleles != phased_by_barcodes ~ "Both (conflict)",
+                                   TRUE ~ "NP"),
+             phased = case_when(!enough_coverage ~ "Not enough coverage",
+                                phased_by == "Both (conflict)" ~ "Conflict",
+                                phased_by %in% c("BC", "LA", "Both (agree)") ~ "Phased",
+                                TRUE ~ "Not phased"))
 
     # somatic somatic per phase set
 
@@ -728,9 +752,31 @@ if (file.exists(input_data_path_str)) {
 
     phasing_variants_all_mapq20_tbl <- phasing_variants_all_mapq20_tbl %>%
       left_join(patient_sample_names_tbl, by = "sample") %>%
+      filter(Chromosome %in% str_c("chr", seq(1:22))) %>%
       mutate(Chromosome = factor(Chromosome,
                                  levels = str_c("chr", seq(1:22)),
-                                 ordered = TRUE))
+                                 ordered = TRUE)) %>%
+      mutate(enough_coverage = (n_ALT_H1 + n_ALT_H2 >= 10 | barcode_ALT_H1 + barcode_ALT_H2 > 0),
+             phased_by_linked_alleles = case_when(n_ALT_H1 + n_ALT_H2 < 10 ~ "NC",
+                                                  n_ALT_H1 + n_ALT_H2 >= 10 & pct_ALT_on_H1 >= phase_proportion ~ "H1",
+                                                  n_ALT_H1 + n_ALT_H2 >= 10 & pct_ALT_on_H2 >= phase_proportion ~ "H2",
+                                                  TRUE ~ "NP"),
+             phased_by_barcodes = case_when(barcode_ALT_H1 + barcode_ALT_H2 == 0 ~ "NC",
+                                            barcode_ALT_H1 + barcode_ALT_H2 > 0 & pct_barcode_ALT_on_H1 == 1 ~ "H1",
+                                            barcode_ALT_H1 + barcode_ALT_H2 > 0 & pct_barcode_ALT_on_H2 == 1 ~ "H2",
+                                            TRUE ~ "NP"),
+             phased_by = case_when(!enough_coverage ~ "NC",
+                                   phased_by_linked_alleles == "NC" & phased_by_barcodes %in% c("H1", "H2") ~ "BC",
+                                   phased_by_barcodes == "NC" & phased_by_linked_alleles %in% c("H1", "H2") ~ "LA",
+                                   phased_by_linked_alleles == "NP" & phased_by_barcodes %in% c("H1", "H2") ~ "BC",
+                                   phased_by_barcodes == "NP" & phased_by_linked_alleles %in% c("H1", "H2") ~ "LA",
+                                   phased_by_linked_alleles %in% c("H1", "H2") & phased_by_barcodes %in% c("H1", "H2")  & phased_by_linked_alleles == phased_by_barcodes ~ "Both (agree)",
+                                   phased_by_linked_alleles %in% c("H1", "H2") & phased_by_barcodes %in% c("H1", "H2")  & phased_by_linked_alleles != phased_by_barcodes ~ "Both (conflict)",
+                                   TRUE ~ "NP"),
+               phased = case_when(!enough_coverage ~ "Not enough coverage",
+                                  phased_by == "Both (conflict)" ~ "Conflict",
+                                  phased_by %in% c("BC", "LA", "Both (agree)") ~ "Phased",
+                                  TRUE ~ "Not phased"))
 
     # (all) somatic somatic per phase set
 
@@ -764,6 +810,7 @@ if (file.exists(input_data_path_str)) {
       mutate(chrom = factor(chrom,
                             levels = str_c("chr", seq(1:22)),
                             ordered = TRUE))
+
 
     # (all) somatic somatic per phase set
 
@@ -880,14 +927,14 @@ if (file.exists(input_data_path_str)) {
       for (chromosome in unique(driver_mutations_tbl$chr)) {
         if (is.null(barcodes_variants_driver_mapq20_tbl[[sample_id]])) {
           barcodes_variants_driver_mapq20_tbl[[sample_id]] <- read_tsv(str_c(
-            str_c("data/somatic_drivers/", sample_id, "/"),
+            str_c("data/somatic_driver/", sample_id, "/"),
             str_c(sample_id, chromosome,
                   "mapq20.barcodes_variants.tsv", sep = ".")),
             col_types = "ccciccccccc") %>%
             mutate(sample = sample_id)
         } else {
           q20 <- read_tsv(str_c(
-            str_c("data/somatic_drivers/", sample_id, "/"),
+            str_c("data/somatic_driver/", sample_id, "/"),
             str_c(sample_id, chromosome,
                   "mapq20.barcodes_variants.tsv", sep = ".")),
             col_types = "ccciccccccc") %>%
@@ -915,14 +962,14 @@ if (file.exists(input_data_path_str)) {
       for (chromosome in unique(driver_mutations_tbl$chr)) {
         if (is.null(phasing_variants_driver_mapq20_tbl)) {
           phasing_variants_driver_mapq20_tbl <- read_tsv(str_c(
-            str_c("data/somatic_drivers/", sample_id, "/"),
+            str_c("data/somatic_driver/", sample_id, "/"),
             str_c(sample_id, chromosome,
                   "mapq20.phasing_variants.tsv", sep = ".")),
             col_types = "cciccciccddddiiiiiddddiiiii") %>%
             mutate(sample = sample_id)
         } else {
           q20 <- read_tsv(str_c(
-            str_c("data/somatic_drivers/", sample_id, "/"),
+            str_c("data/somatic_driver/", sample_id, "/"),
             str_c(sample_id, chromosome,
                   "mapq20.phasing_variants.tsv", sep = ".")),
             col_types = "cciccciccddddiiiiiddddiiiii") %>%
@@ -938,7 +985,28 @@ if (file.exists(input_data_path_str)) {
       filter(Chromosome %in% str_c("chr", seq(1:22))) %>%
       mutate(Chromosome = factor(Chromosome,
                                  levels = str_c("chr", seq(1:22)),
-                                 ordered = TRUE))
+                                 ordered = TRUE)) %>%
+      mutate(enough_coverage = (n_ALT_H1 + n_ALT_H2 >= 10 | barcode_ALT_H1 + barcode_ALT_H2 > 0),
+             phased_by_linked_alleles = case_when(n_ALT_H1 + n_ALT_H2 < 10 ~ "NC",
+                                                  n_ALT_H1 + n_ALT_H2 >= 10 & pct_ALT_on_H1 >= phase_proportion ~ "H1",
+                                                  n_ALT_H1 + n_ALT_H2 >= 10 & pct_ALT_on_H2 >= phase_proportion ~ "H2",
+                                                  TRUE ~ "NP"),
+             phased_by_barcodes = case_when(barcode_ALT_H1 + barcode_ALT_H2 == 0 ~ "NC",
+                                            barcode_ALT_H1 + barcode_ALT_H2 > 0 & pct_barcode_ALT_on_H1 == 1 ~ "H1",
+                                            barcode_ALT_H1 + barcode_ALT_H2 > 0 & pct_barcode_ALT_on_H2 == 1 ~ "H2",
+                                            TRUE ~ "NP"),
+             phased_by = case_when(!enough_coverage ~ "NC",
+                                   phased_by_linked_alleles == "NC" & phased_by_barcodes %in% c("H1", "H2") ~ "BC",
+                                   phased_by_barcodes == "NC" & phased_by_linked_alleles %in% c("H1", "H2") ~ "LA",
+                                   phased_by_linked_alleles == "NP" & phased_by_barcodes %in% c("H1", "H2") ~ "BC",
+                                   phased_by_barcodes == "NP" & phased_by_linked_alleles %in% c("H1", "H2") ~ "LA",
+                                   phased_by_linked_alleles %in% c("H1", "H2") & phased_by_barcodes %in% c("H1", "H2")  & phased_by_linked_alleles == phased_by_barcodes ~ "Both (agree)",
+                                   phased_by_linked_alleles %in% c("H1", "H2") & phased_by_barcodes %in% c("H1", "H2")  & phased_by_linked_alleles != phased_by_barcodes ~ "Both (conflict)",
+                                   TRUE ~ "NP"),
+               phased = case_when(!enough_coverage ~ "Not enough coverage",
+                                  phased_by == "Both (conflict)" ~ "Conflict",
+                                  phased_by %in% c("BC", "LA", "Both (agree)") ~ "Phased",
+                                  TRUE ~ "Not phased"))
 
     # (driver) somatic somatic per phase set
 
@@ -949,14 +1017,14 @@ if (file.exists(input_data_path_str)) {
       for (chromosome in unique(driver_mutations_tbl$chr)) {
         if (is.null(somatic_per_phase_set_driver_mapq20_tbl)) {
           somatic_per_phase_set_driver_mapq20_tbl <- read_tsv(str_c(
-            str_c("data/somatic_drivers/", sample_id, "/"),
+            str_c("data/somatic_driver/", sample_id, "/"),
             str_c(sample_id, chromosome,
                   "mapq20.somatic_per_phase_set.tsv", sep = ".")),
             col_types = "cciiiiiiiiii") %>%
             mutate(sample = sample_id)
         } else {
           q20 <- read_tsv(str_c(
-            str_c("data/somatic_drivers/", sample_id, "/"),
+            str_c("data/somatic_driver/", sample_id, "/"),
             str_c(sample_id, chromosome,
                   "mapq20.somatic_per_phase_set.tsv", sep = ".")),
             col_types = "cciiiiiiiiii") %>%
@@ -983,14 +1051,14 @@ if (file.exists(input_data_path_str)) {
       for (chromosome in unique(driver_mutations_tbl$chr)) {
         if (is.null(variant_pairs_driver_mapq20_tbl)) {
           variant_pairs_driver_mapq20_tbl <- read_tsv(str_c(
-            str_c("data/somatic_drivers/", sample_id, "/"),
+            str_c("data/somatic_driver/", sample_id, "/"),
             str_c(sample_id, chromosome,
                   "mapq20.variant_pairs.tsv", sep = ".")),
             col_types = "ccccccciiii") %>%
             mutate(sample = sample_id)
         } else {
           q20 <- read_tsv(str_c(
-            str_c("data/somatic_drivers/", sample_id, "/"),
+            str_c("data/somatic_driver/", sample_id, "/"),
             str_c(sample_id, chromosome,
                   "mapq20.variant_pairs.tsv", sep = ".")),
             col_types = "ccccccciiii") %>%
@@ -1035,14 +1103,14 @@ if (file.exists(input_data_path_str)) {
          filter(timepoint != "Normal") %>% pull(sample)) {
       if (is.null(sombx_driver_mapq20_tbl)) {
         sombx_driver_mapq20_tbl <- read_tsv(str_c(
-          str_c("data/somatic_drivers/", sample_id, "/"),
+          str_c("data/somatic_driver/", sample_id, "/"),
           str_c(sample_id,
                 "mapq20.sombx.tsv", sep = ".")),
           col_types = "ccccccccccc") %>%
           mutate(sample = sample_id)
       } else {
         q20 <- read_tsv(str_c(
-          str_c("data/somatic_drivers/", sample_id, "/"),
+          str_c("data/somatic_driver/", sample_id, "/"),
           str_c(sample_id,
                 "mapq20.sombx.tsv", sep = ".")),
           col_types = "ccccccccccc") %>%
@@ -1064,7 +1132,7 @@ if (file.exists(input_data_path_str)) {
 
   segment_ancestry_tbl <- NULL
 
-  for (sample_id in patient_sample_names_tbl$sample) {
+  for (sample_id in c("NA12878")) {
     for (chromosome in chromosome_tbl$chromosome) {
       if ( is.null(segment_ancestry_tbl) ) {
         segment_ancestry_tbl <- read_tsv(str_c("data/ancestry/",
@@ -1093,7 +1161,7 @@ if (file.exists(input_data_path_str)) {
   }
 
   segment_ancestry_tbl <- segment_ancestry_tbl %>%
-    left_join(patient_sample_names_tbl, by = "sample") %>%
+    left_join(normal_samples_tbl, by = "sample") %>%
     mutate(Chromosome = factor(Chromosome,
                                levels = str_c("chr", seq(1:22)),
                                ordered = TRUE))
@@ -1102,7 +1170,7 @@ if (file.exists(input_data_path_str)) {
 
   segment_overlap_tbl <- NULL
 
-  for (sample_id in patient_sample_names_tbl$sample) {
+  for (sample_id in c("NA12878")) {
     for (chromosome in chromosome_tbl$chromosome) {
       if ( is.null(segment_overlap_tbl) ) {
         segment_overlap_tbl <- read_tsv(str_c("data/ancestry/",
@@ -1131,7 +1199,7 @@ if (file.exists(input_data_path_str)) {
   }
 
   segment_overlap_tbl <- segment_overlap_tbl %>%
-    left_join(patient_sample_names_tbl, by = "sample") %>%
+    left_join(normal_samples_tbl, by = "sample") %>%
     mutate(Chromosome = factor(Chromosome,
                                levels = str_c("chr", seq(1:22)),
                                ordered = TRUE))
@@ -1154,4 +1222,4 @@ if (file.exists(input_data_path_str)) {
 
 }
 
-# Steven Foltz (envest) January 2020
+# Steven Foltz (envest) January/February 2020

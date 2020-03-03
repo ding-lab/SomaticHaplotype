@@ -15,14 +15,11 @@ extend_ps_no_skin <- extend_phase_sets_tbl %>%
   filter(!is.na(cluster_base_phase_set)) %>%
   filter(!str_detect(sample, "skin"), !str_detect(extended_by, "skin"))
 extend_stats_no_skin <- extend_stats_tbl %>%
-  mutate(pct_switch_hilo = n_variants_flip_to_match/n_variants_overlap) %>%
   filter(!str_detect(sample, "skin"), !str_detect(extended_by, "skin"))
 
 # data-driven example
 {
   plot_df <- extend_stats_no_skin %>%
-    #filter(ps2 %in% c("chr1:109390814", "chr1:112459045", "chr1:115991285"),
-    #filter(ps2 %in% c("chr1:112459045", "chr1:115991285"),
     filter(ps2 %in% c("chr1:112459045"),
            sample == "27522_3", extended_by == "27522_1") %>%
     filter(ps1_LastVariantPosition - ps1_FirstVariantPosition > 1e3,
@@ -109,10 +106,9 @@ extend_stats_no_skin <- extend_stats_tbl %>%
           panel.grid.minor.y = element_blank(),
           strip.background = element_blank(),
           strip.text = element_text(size = 8),
-          #plot.margin = unit(c(0,0,0,0), "lines"),
+          plot.margin = unit(c(0,.3,0.3,0), "lines"),
           legend.spacing = unit(c(0,0,0,0), "lines"),
           legend.position = "bottom",
-          #legend.title = element_text(size = 8),
           legend.title = element_blank(),
           legend.text = element_text(size = 8),
           legend.margin = margin(0,0,0,0),
@@ -127,18 +123,15 @@ extend_stats_no_skin <- extend_stats_tbl %>%
 # n shared variants
 {
   plot_df <- extend_stats_no_skin %>%
-    mutate(recommendation = case_when(pct_switch_hilo < 0.95 & recommendation == "Switch" ~ "No Recommendation",
-                                      pct_switch_hilo > 0.05 & recommendation == "No Switch" ~ "No Recommendation",
-                                      TRUE ~ recommendation)) %>%
     mutate(recommendation = factor(recommendation,
                                    levels = c("Switch", "No Switch", "No Recommendation"),
                                    ordered = TRUE)) %>%
     arrange(desc(recommendation))
 
-  plot_df %>%
+  p <- plot_df %>%
     ggplot(aes(x = log10(length_overlap),
                fill = recommendation)) +
-    geom_histogram(boundary = 0, binwidth = 0.25, show.legend = FALSE) +
+    geom_histogram(boundary = 0, binwidth = 0.25) +
     geom_vline(xintercept = log10(10^5), lty = 2) +
     labs(x = "Phase Set Overlap Length (bp, log10)", y = NULL) +
     scale_fill_viridis_d(option = "C") +
@@ -150,14 +143,21 @@ extend_stats_no_skin <- extend_stats_tbl %>%
           axis.title = element_text(size = 8),
           axis.text.y = element_text(size = 8),
           axis.text.x = element_text(size = 8),
+          legend.background = element_blank(),
+          legend.text = element_text(size = 8),
           panel.background = element_blank(),
           panel.border = element_blank(),
           panel.grid = element_line(size = 0.5),
           strip.background = element_blank(),
           strip.text = element_text(size = 8),
-          plot.margin = unit(c(0,0,0,0), "lines")) +
-    ggsave(str_c(main, "length_overlap.pdf"),
+          plot.margin = unit(c(0,0,0,0), "lines"))
+
+    ggsave(str_c(main, "length_overlap.with_legend.pdf"), p,
            useDingbats = FALSE, width = 2.25, height = 2.25)
+    ggsave(str_c(main, "length_overlap.no_legend.pdf"), p + guides(fill = FALSE),
+           useDingbats = FALSE, width = 2.25, height = 2.25)
+
+    rm(p)
 
   plot_df %>%
     ggplot(aes(x = log10(n_variants_overlap + 1),
@@ -196,9 +196,6 @@ extend_stats_no_skin <- extend_stats_tbl %>%
 {
 
   rm_no_rec <- extend_stats_no_skin %>%
-    mutate(recommendation = case_when(pct_switch_hilo < 0.95 & recommendation == "Switch" ~ "No Recommendation",
-                                      pct_switch_hilo > 0.05 & recommendation == "No Switch" ~ "No Recommendation",
-                                      TRUE ~ recommendation)) %>%
     mutate(recommendation = factor(recommendation,
                                    levels = c("Switch", "No Switch", "No Recommendation"),
                                    ordered = TRUE)) %>%
@@ -230,12 +227,20 @@ extend_stats_no_skin <- extend_stats_tbl %>%
                      color = recommendation),
                  lwd = 2,
                  show.legend = FALSE) +
-    geom_point(aes(x = left_aligned_ps_midpoint/1e6, color = recommendation),
-               size = 3,
-               show.legend = FALSE) +
-    labs(x = "Relative Genomic Length (Mb)",
-         y = "Group of Extendable Phase Sets") +
-    #facet_wrap(~sample, scales = "free_y") +
+    geom_segment(aes(x = left_aligned_first_variant_position/1e6,
+                     xend = left_aligned_first_variant_position/1e6 + 0.1,
+                     yend = ps2,
+                     color = recommendation),
+                 lwd = 4,
+                 show.legend = FALSE) +
+    geom_segment(aes(x = left_aligned_last_variant_position/1e6 - 0.1,
+                     xend = left_aligned_last_variant_position/1e6,
+                     yend = ps2,
+                     color = recommendation),
+                 lwd = 4,
+                 show.legend = FALSE) +
+    labs(x = "Genomic Length and Relative Position (Mb)",
+         y = "Groups of Extendable Phase Sets") +
     scale_color_viridis_d(option = "C", drop = F) +
     theme_bw() +
     theme(axis.ticks.x = element_blank(),
@@ -273,7 +278,7 @@ extend_stats_no_skin <- extend_stats_tbl %>%
     geom_violin(data = plot_df_dist_before, aes(x = "Before",
                                                 y = log10(ps1_LastVariantPosition - ps1_FirstVariantPosition)), draw_quantiles = 0.5) +
     geom_violin(data = plot_df_dist_after, aes(x = "Extended",
-                                                y = log10(length_after)), draw_quantiles = 0.5) +
+                                               y = log10(length_after)), draw_quantiles = 0.5) +
     expand_limits(y = c(0)) +
     labs(y = "Phase Set Length (bp, log10)", x = NULL) +
     theme_bw() +
@@ -312,4 +317,4 @@ extend_stats_no_skin <- extend_stats_tbl %>%
   rm(plot_df, rm_no_rec)
 }
 
-rm(extend_stats_no_skin, extend_ps_no_skin)
+rm(extend_stats_no_skin, extend_ps_no_skin, main, supp)

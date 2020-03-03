@@ -5,6 +5,8 @@
 # Mutation pairs per phase set
 ################################################################################
 
+phase_proportion <- 0.91
+
 main = "figures/03_somatic_phasing/main/"
 supp = "figures/03_somatic_phasing/supplementary/"
 
@@ -18,13 +20,13 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_maf"]] <- maf_tbl 
 manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_maf_per_sample"]] <- maf_tbl %>% nrow()/6
 manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping"]] <- phasing_variants_mapq20_tbl %>% nrow()
 manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_per_sample"]] <- phasing_variants_mapq20_tbl %>% nrow()/6
-manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_10_linked_alleles"]] <- phasing_variants_mapq20_tbl %>% filter(n_ALT_H1 + n_ALT_H2 >= 10) %>% nrow()
-manuscript_numbers[["03_somatic"]][["pct_somatic_mutations_from_10Xmapping_10_linked_alleles"]] <- 100*manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_10_linked_alleles"]]/manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping"]]
-manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_10_linked_alleles_by_sample"]] <- phasing_variants_mapq20_tbl %>% filter(n_ALT_H1 + n_ALT_H2 >= 10) %>% group_by(sample) %>% summarize(n())
+manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_coverage"]] <- phasing_variants_mapq20_tbl %>% filter(enough_coverage) %>% nrow()
+manuscript_numbers[["03_somatic"]][["pct_somatic_mutations_from_10Xmapping_enough_coverage"]] <- 100*manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_coverage"]]/manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping"]]
+manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_coverage_by_sample"]] <- phasing_variants_mapq20_tbl %>% filter(enough_coverage) %>% group_by(sample) %>% summarize(n())
 
 # Precision/recall balance threshold to maximize longranger concordance
 {
-  proportions <- seq(0, 0.1, by = 0.01)
+  proportions <- seq(0.8, 1, by = 0.01)
   tp <- rep(NA, length(proportions))
   tn <- rep(NA, length(proportions))
   fp <- rep(NA, length(proportions))
@@ -33,41 +35,35 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_10_link
   for (i in 1:length(proportions)) {
     tp[i] <- phasing_variants_mapq20_tbl %>%
       filter(Genotype %in% c("0|1", "1|0")) %>%
-      filter(n_ALT_H1 + n_ALT_H2 >= 10) %>%
-      filter(pct_ALT_on_H1 <= proportions[i] & Genotype == "0|1") %>%
+      filter(phased_by_linked_alleles != "NC" & phased_by_barcodes != "NC") %>%
+      filter( (Genotype == "1|0" & (pct_ALT_on_H1 >= proportions[i] | phased_by_barcodes == "H1")) |
+                (Genotype == "0|1" & (pct_ALT_on_H2 >= proportions[i] | phased_by_barcodes == "H2"))) %>%
       nrow()
 
     fp[i] <- phasing_variants_mapq20_tbl %>%
       filter(Genotype %in% c("0|1", "1|0")) %>%
-      filter(n_ALT_H1 + n_ALT_H2 >= 10) %>%
-      filter(pct_ALT_on_H1 <= proportions[i] & Genotype == "1|0") %>%
+      filter(phased_by_linked_alleles != "NC" & phased_by_barcodes != "NC") %>%
+      filter( (Genotype == "1|0" & (pct_ALT_on_H2 >= proportions[i] | phased_by_barcodes == "H2")) |
+                (Genotype == "0|1" & (pct_ALT_on_H1 >= proportions[i] | phased_by_barcodes == "H1"))) %>%
       nrow()
 
     fn[i] <- phasing_variants_mapq20_tbl %>%
       filter(Genotype %in% c("0|1", "1|0")) %>%
-      filter(n_ALT_H1 + n_ALT_H2 >= 10) %>%
-      filter(pct_ALT_on_H1 > proportions[i] & Genotype == "0|1") %>%
-      nrow()
-
-    tn[i] <- phasing_variants_mapq20_tbl %>%
-      filter(Genotype %in% c("0|1", "1|0")) %>%
-      filter(n_ALT_H1 + n_ALT_H2 >= 10) %>%
-      filter(pct_ALT_on_H1 > proportions[i] & Genotype == "1|0") %>%
+      filter(phased_by_linked_alleles != "NC" & phased_by_barcodes != "NC") %>%
+      filter( pct_ALT_on_H1 < proportions[i] & pct_ALT_on_H2 < proportions[i] & phased_by_barcodes == "NP") %>%
       nrow()
   }
 
   prec = tp/(tp + fp)
   rec = tp/(tp + fn)
 
-  tpr = tp/(tp + fn)
-  fpr = fp/(fp + tn)
-
   ggplot(tibble(proportions, prec, rec), aes(x = prec, y = rec)) +
     geom_point() +
     geom_label_repel(aes(label = proportions), size = 3) +
-    expand_limits(x = 1, y = 1) +
+    expand_limits(x = c(.99,1), y = c(.9,1)) +
     labs(x = "Precision", y = "Recall") +
     theme_bw() +
+    #coord_equal() +
     theme(axis.ticks.x = element_blank(),
           axis.ticks.y = element_blank(),
           axis.title = element_text(size = 8),
@@ -82,59 +78,53 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_10_link
     ggsave(str_c(supp, "precision_recall.pdf"),
            width = 3.5, height = 3.5, useDingbats = FALSE)
 
-  manuscript_numbers[["03_somatic"]][["precision_at_0.09"]] <- prec[which(proportions == 0.09)]
-  manuscript_numbers[["03_somatic"]][["recall_at_0.09"]] <- rec[which(proportions == 0.09)]
-  manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_10_linked_alleles"]] <- phasing_variants_mapq20_tbl %>% filter(n_ALT_H1 + n_ALT_H2 >= 10) %>% nrow()
-  manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_10_linked_alleles_phased"]] <- phasing_variants_mapq20_tbl %>% filter(n_ALT_H1 + n_ALT_H2 >= 10) %>% filter(pct_ALT_on_H1 >= 0.91 | pct_ALT_on_H2 >= 0.91) %>% nrow()
-  manuscript_numbers[["03_somatic"]][["pct_somatic_mutations_with_10_linked_alleles_phased"]] <- 100*manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_10_linked_alleles_phased"]]/manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_10_linked_alleles"]]
+  manuscript_numbers[["03_somatic"]][["precision_at_phase_proportion"]] <- prec[which(proportions == phase_proportion)]
+  manuscript_numbers[["03_somatic"]][["recall_at_phase_proportion"]] <- rec[which(proportions == phase_proportion)]
+  manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_phased"]] <- phasing_variants_mapq20_tbl %>% filter(phased == "Phased") %>% nrow()
+  manuscript_numbers[["03_somatic"]][["pct_somatic_mutations_with_enough_coverage_phased"]] <- 100*manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_phased"]]/manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage"]]
 
-  manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_10_linked_alleles_0/1"]] <- phasing_variants_mapq20_tbl %>% filter(n_ALT_H1 + n_ALT_H2 >= 10, Genotype == "0/1") %>% nrow()
-  manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_10_linked_alleles_0/1_phased"]] <- phasing_variants_mapq20_tbl %>% filter(n_ALT_H1 + n_ALT_H2 >= 10, Genotype == "0/1") %>% filter(pct_ALT_on_H1 >= 0.91 | pct_ALT_on_H2 >= 0.91) %>% nrow()
-  manuscript_numbers[["03_somatic"]][["pct_somatic_mutations_with_10_linked_alleles_0/1_phased"]] <- 100*manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_10_linked_alleles_0/1_phased"]]/manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_10_linked_alleles_0/1"]]
+  manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_0/1"]] <- phasing_variants_mapq20_tbl %>% filter(enough_coverage, Genotype == "0/1") %>% nrow()
+  manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_0/1_phased"]] <- phasing_variants_mapq20_tbl %>% filter(Genotype == "0/1", phased == "Phased") %>% nrow()
+  manuscript_numbers[["03_somatic"]][["pct_somatic_mutations_with_enough_coverage_0/1_phased"]] <- 100*manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_0/1_phased"]]/manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_0/1"]]
 
-  rm(proportions, tp, tn, fp, fn, prec, rec, tpr, fpr, i)
+  # compare with barcode method
+  manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_phased_table"]] <- phasing_variants_mapq20_tbl %>% select(phased_by_linked_alleles, phased_by_barcodes) %>% table()
+
+  manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_phased_proportion"]] <- manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_phased_table"]]/manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_coverage"]]
+
+  manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_phased_concordant"]] <- diag(manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_10_linked_alleles_phased_linked_alleles_or_barcodes_table"]])
+
+  manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_10_linked_alleles_phased_linked_alleles_or_barcodes_table_concordant_proportion"]] <- diag(manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_10_linked_alleles_phased_linked_alleles_or_barcodes_table"]])/manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_10_linked_alleles"]]
+
+  rm(proportions, tp, tn, fp, fn, prec, rec, i)
 }
 
 # Concordance with longranger
 {
-  H1_proportion <- 0.09
-
-  plot_df <- phasing_variants_mapq20_tbl %>%
-    filter(Genotype %in% c("0|1", "1|0")) %>%
-    filter(!is.na(pct_ALT_on_H1)) %>%
-    filter(n_ALT_H1 + n_ALT_H2 >= 10) %>%
-    mutate(color_gt = case_when(
-      pct_ALT_on_H1 <= H1_proportion & Genotype == "0|1" ~ "Agree",
-      pct_ALT_on_H1 >= 1 - H1_proportion & Genotype == "1|0" ~ "Agree",
-      pct_ALT_on_H1 <= H1_proportion & Genotype == "1|0" ~ "Disagree",
-      pct_ALT_on_H1 >= 1 - H1_proportion & Genotype == "0|1" ~ "Disagree",
-      TRUE ~ "No call"
-    ))
-
-  n_total <- plot_df %>% nrow()
-  n_agree <- plot_df %>% filter(color_gt == "Agree") %>% nrow()
-  n_disagree <- plot_df %>% filter(color_gt == "Disagree") %>% nrow()
-  concordance <- n_agree/n_total
-  discordance <- n_disagree/n_total
-  print(c("Concordance: ", 100*concordance, n_agree, n_total))
-  print(c("Discordance: ", 100*discordance, n_disagree, n_total))
-
-  plot_df %>%
-    ggplot(aes(x = Genotype, y = pct_ALT_on_H1*100)) +
-    geom_jitter(aes(color = color_gt),
-                shape = 16, height = 0, width = 0.25,
-                alpha = 0.25, show.legend = FALSE) +
-    geom_violin(fill = "white") +
-    geom_hline(yintercept = H1_proportion*100, linetype = 2) +
-    geom_hline(yintercept = (1 - H1_proportion)*100, linetype = 2) +
-    scale_y_continuous(limits = c(0, 100),
-                       breaks = seq(0, 100, 10),
-                       expand = c(0.02, 0.02)) +
-    scale_color_manual(values = c("#3182bd", "#e31a1c", "#bdbdbd")) +
-    annotate("text", x = "0|1", y = 93.5, label = "Phased as 1|0", size = 2) +
-    annotate("text", x = "1|0", y = 6.5, label = "Phased as 0|1", size = 2) +
-    labs(x = "Somatic Mutation Genotype",
-         y = "Linked Variants Assigned to H1 (%)") +
+  phasing_variants_mapq20_tbl %>%
+    #filter(phased_by != "NC") %>%
+    #filter(!is.na(Genotype)) %>%
+    replace_na(list(pct_ALT_on_H1 = 0.5)) %>%
+    replace_na(list(Genotype = "Missing")) %>%
+    mutate(phasing_pair = str_c(phased_by_linked_alleles, phased_by_barcodes, sep = "/")) %>%
+    select(Genotype, phasing_pair, phased_by) %>%
+    mutate(Genotype = factor(Genotype),
+           phasing_pair = factor(phasing_pair),
+           phased_by = factor(phased_by,
+                              levels = c("Both (agree)", "BC", "LA", "LR", "Both (conflict)", "NC", "NP"),
+                              labels = c("Both (agree)", "Barcodes", "Linked Alleles", "Linked Alleles", "Both (conflict)", "Not Enough Coverage", "Not Phased"),
+                              ordered = TRUE)) %>%
+    group_by(Genotype, phasing_pair, phased_by) %>%
+    count(Genotype, phasing_pair, phased_by) %>%
+    mutate(my_color = case_when(phasing_pair == "NC/NC" & Genotype == "Missing" ~ "white",
+                                TRUE ~ "black")) %>%
+    ggplot(aes(x = Genotype, y = fct_rev(phasing_pair), fill = n)) +
+    geom_tile(color = "black", show.legend = FALSE) +
+    geom_text(aes(label = n, color = my_color), size = 8/ggplot2:::.pt) +
+    facet_wrap(~ phased_by, ncol = 1, scales = "free_y") +
+    labs(x = "Genotype (Long Ranger)", y = "Somatic Haplotype Phasing Call (Linked Alleles / Barcodes)") +
+    scale_fill_gradient2(low = "white", high = "#969696") +
+    scale_color_identity() +
     theme_bw() +
     theme(axis.ticks.x = element_blank(),
           axis.ticks.y = element_blank(),
@@ -143,15 +133,52 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_10_link
           axis.text.x = element_text(size = 8),
           panel.background = element_blank(),
           panel.border = element_blank(),
-          panel.grid = element_line(size = 0.5),
+          panel.grid = element_blank(),
+          strip.background = element_blank(),
+          strip.text = element_text(size = 8),
+          plot.margin = unit(c(0,0,0,0), "lines")) +
+    ggsave(str_c(supp, "longranger_concordance.pdf"),
+           width = 3.5, height = 7.25, useDingbats = FALSE)
+
+  n_nc <- phasing_variants_mapq20_tbl %>%
+    filter(phased_by_linked_alleles == "NC" & phased_by_barcodes == "NC") %>%
+    nrow()
+
+  phasing_variants_mapq20_tbl %>%
+    select(phased_by_linked_alleles, phased_by_barcodes) %>%
+    group_by(phased_by_barcodes, phased_by_linked_alleles) %>%
+    summarize(count = n()) %>%
+    filter(!(phased_by_linked_alleles == "NC" & phased_by_barcodes == "NC")) %>%
+    mutate(my_color = case_when(phased_by_linked_alleles == phased_by_barcodes ~ "white",
+                                TRUE ~ "black")) %>%
+    ggplot(aes(x = phased_by_linked_alleles,
+               y = phased_by_barcodes,
+               fill = count)) +
+    geom_tile(color = "black", show.legend = FALSE) +
+    geom_text(aes(label = count, color = my_color), size = 8/ggplot2:::.pt) +
+    annotate("text", x = "NC", y = "NC", label = str_c("(", n_nc, ")"), size = 8/ggplot2:::.pt) +
+    labs(x = "Linked Alleles Method", y = "Barcodes Method") +
+    scale_fill_gradient2(low = "white", high = "#969696") +
+    #scale_fill_gradient2(low = "white", high = "#000000") +
+    scale_color_identity() +
+    coord_equal() +
+    theme_bw() +
+    theme(axis.ticks.x = element_blank(),
+          axis.ticks.y = element_blank(),
+          axis.title = element_text(size = 8),
+          axis.text.y = element_text(size = 8),
+          axis.text.x = element_text(size = 8),
+          panel.background = element_blank(),
+          panel.border = element_blank(),
+          panel.grid = element_blank(),
           panel.grid.minor.y = element_blank(),
           strip.background = element_blank(),
           strip.text = element_text(size = 8),
           plot.margin = unit(c(0,0,0,0), "lines")) +
-    ggsave(str_c(main, "longranger_concordance.pdf"),
+    ggsave(str_c(main, "methods_phasing.pdf"),
            width = 2.25, height = 2.25, useDingbats = FALSE)
 
-  rm(plot_df, n_total, n_agree, n_disagree, concordance, discordance)
+  rm(n_nc)
 }
 
 # Phased somatic mutations on haplotypes
@@ -177,18 +204,21 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_10_link
   plot_df_together <- bind_rows(plot_df1, plot_df2) %>% arrange(ps_id)
 
   mut_df <- phasing_variants_mapq20_tbl %>%
-        filter(sample == sample_id, Chromosome == chromosome_of_interest) %>%
-        mutate(haplotype_of_variant_shape = case_when(
-          n_ALT_H1 + n_ALT_H2 < 10 ~ "Not Enough Coverage",
-          pct_ALT_on_H1 >= 0.91 ~ "Haplotype 1",
-          pct_ALT_on_H2 >= 0.91 ~ "Haplotype 2",
-          TRUE ~ "Not Phased")) %>%
-        mutate(haplotype_of_variant_yaxis = case_when(
-          n_ALT_H1 + n_ALT_H2 < 10 ~ 1,
-          pct_ALT_on_H1 >= 0.91 ~ 0.1,
-          pct_ALT_on_H2 >= 0.91 ~ 1.9,
-          TRUE ~ 1)) %>%
-        filter(haplotype_of_variant_shape != "Not Enough Coverage")
+    filter(sample == sample_id, Chromosome == chromosome_of_interest) %>%
+    mutate(haplotype_of_variant_shape = case_when(
+      !enough_coverage ~ "Not Enough Coverage",
+      phased == "Phased" & phased_by == "Both (agree)" & phased_by_linked_alleles == "H1" ~ "Haplotype 1",
+      phased == "Phased" & phased_by == "LA" & phased_by_linked_alleles == "H1" ~ "Haplotype 1",
+      phased == "Phased" & phased_by == "BC" & phased_by_barcodes == "H1" ~ "Haplotype 1",
+      phased == "Phased" & phased_by == "Both (agree)" & phased_by_linked_alleles == "H2" ~ "Haplotype 2",
+      phased == "Phased" & phased_by == "LA" & phased_by_linked_alleles == "H2" ~ "Haplotype 2",
+      phased == "Phased" & phased_by == "BC" & phased_by_barcodes == "H2" ~ "Haplotype 2",
+      phased_by == "Both (conflict)" ~ "Not Phased",
+      TRUE ~ "Not Phased")) %>%
+    mutate(haplotype_of_variant_yaxis = case_when(haplotype_of_variant_shape == "Haplotype 1" ~ 0.1,
+                                                  haplotype_of_variant_shape == "Haplotype 2" ~ 1.9,
+                                                  TRUE ~ 1)) %>%
+    filter(haplotype_of_variant_shape != "Not Enough Coverage")
 
   ggplot(plot_df_together) +
     geom_segment(data = chromosome_length_tbl %>%
@@ -252,10 +282,10 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_10_link
 {
 
   phasing_variants_grouped <- phasing_variants_mapq20_tbl %>%
-    filter(n_ALT_H1 + n_ALT_H2 >= 10, Phase_Set_Length > 1e3) %>%
+    filter(enough_coverage, Phase_Set_Length >= 1e3) %>%
     group_by(sample, Phase_Set, Phase_Set_Length) %>%
     summarize(n_somatic_variants = n(),
-              n_phased = sum(pct_ALT_on_H1 >= 0.91 | pct_ALT_on_H2 >= 0.91, na.rm = TRUE)) %>%
+              n_phased = sum(phased == "Phased")) %>%
     mutate(somatic_mutations_per_Mb = 1e6 * n_somatic_variants/Phase_Set_Length,
            proportion_variants_phased = n_phased / n_somatic_variants,
            n_pairs_phased = choose(n_phased, 2))
@@ -272,12 +302,12 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_10_link
   plot_data <- phasing_variants_grouped %>%
     filter(Phase_Set_Length >= 1e3, n_phased > 1) %>%
     mutate(n_pairs_color = case_when(n_pairs_phased == 1 ~ "1 pair",
-                                     n_pairs_phased <= 3 ~ "< 3",
-                                     n_pairs_phased <= 10 ~ "< 10",
-                                     n_pairs_phased <= 100 ~ "< 100",
+                                     n_pairs_phased <= 3 ~ "<= 3",
+                                     n_pairs_phased <= 10 ~ "<= 10",
+                                     n_pairs_phased <= 100 ~ "<= 100",
                                      TRUE ~ "> 100")) %>%
     mutate(n_pairs_color = factor(n_pairs_color,
-                                  levels = c("0", "1 pair", "< 3", "< 10", "< 100", "> 100"),
+                                  levels = c("0", "1 pair", "<= 3", "<= 10", "<= 100", "> 100"),
                                   ordered = TRUE)) %>%
     arrange(n_pairs_color)
 
@@ -320,6 +350,9 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_10_link
           axis.line = element_blank(),
           axis.title = element_text(size = 8),
           axis.text = element_text(size = 8),
+          legend.background = element_blank(),
+          legend.text = element_text(size = 8),
+          legend.title = element_text(size = 8),
           panel.background = element_blank(),
           panel.border = element_blank(),
           panel.grid = element_line(size = 0.5),
@@ -341,7 +374,7 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_10_link
          width = 4.75, height = 1.5*2.25, useDingbats = FALSE)
 
   rm(phasing_variants_grouped, plot_data, p, q, q_with_legend,
-     n_pb, n_pb_0.75, n_pb_1_sm, n_pb_1.0, pb_1_sm, sm_mb, tot_len, tot_sm,
+     n_phase_sets, n_phase_sets_1.0, n_phase_sets_0.75,
      min_log2, max_log2, my_breaks)
 }
 
@@ -399,11 +432,33 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_10_link
                           "my_color_25", "my_shape")),
               by = c("variant_key" = "Variant", "sample")) %>%
     mutate(variant_name = str_c(gene, protein, sep = " ")) %>%
-    mutate(phased_by_SH = case_when(pct_ALT_on_H1 <= H1_proportion ~ "H2",
-                                    pct_ALT_on_H2 <= H1_proportion ~ "H1",
+    filter(enough_coverage) %>%
+    mutate(phased_by_SH = case_when(phased == "Phased" & phased_by == "Both (agree)" & phased_by_linked_alleles == "H1" ~ "H1",
+                                    phased == "Phased" & phased_by == "LA" & phased_by_linked_alleles == "H1" ~ "H1",
+                                    phased == "Phased" & phased_by == "BC" & phased_by_barcodes == "H1" ~ "H1",
+                                    phased == "Phased" & phased_by == "Both (agree)" & phased_by_linked_alleles == "H2" ~ "H2",
+                                    phased == "Phased" & phased_by == "LA" & phased_by_linked_alleles == "H2" ~ "H2",
+                                    phased == "Phased" & phased_by == "BC" & phased_by_barcodes == "H2" ~ "H2",
+                                    phased_by == "Both (conflict)" ~ "NP",
                                     TRUE ~ "NP")) %>%
     replace_na(list(Genotype = "NA")) %>%
-    filter(gene %in% important_mutations_tbl$gene)
+    filter(gene %in% important_mutations_tbl$gene) %>%
+    mutate(plot_category = case_when(phased_by_SH == "NP" & Genotype == "0/1" ~ "Not phased",
+                                     phased_by_SH == "NP" & Genotype == "1|0" ~ "Not phased",
+                                     phased_by_SH == "NP" & Genotype == "0|1" ~ "Not phased",
+                                     phased_by_SH == "NP" & Genotype == "NA" ~ "Not phased",
+                                     phased_by_SH == "H1" & Genotype == "0/1" ~ "Phase added",
+                                     phased_by_SH == "H1" & Genotype == "1|0" ~ "Phase consistent",
+                                     phased_by_SH == "H1" & Genotype == "0|1" ~ "Phase inconsistent",
+                                     phased_by_SH == "H1" & Genotype == "NA" ~ "Phased non-call",
+                                     phased_by_SH == "H2" & Genotype == "0/1" ~ "Phase added",
+                                     phased_by_SH == "H2" & Genotype == "1|0" ~ "Phase inconsistent",
+                                     phased_by_SH == "H2" & Genotype == "0|1" ~ "Phase consistent",
+                                     phased_by_SH == "H2" & Genotype == "NA" ~ "Phased non-call")) %>%
+    mutate(plot_category = factor(plot_category,
+                                  levels = c("Phase added", "Phase consistent",
+                                             "Phase inconsistent", "Phased non-call",
+                                             "Not phased"), ordered = TRUE))
 
   correlation_value <- round(as.numeric(cor.test(plot_df$vaf, plot_df$barcode_vaf)$estimate), 2)
 
@@ -432,9 +487,8 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_10_link
            height = 3.5, width = 3.5, useDingbats = FALSE)
 
   p <- ggplot(plot_df, aes(y = variant_name, x = display_name)) +
-    geom_point(aes(shape = Genotype, color = phased_by_SH)) +
-    scale_shape_manual(values = c(16,17,3), drop = FALSE) +
-    scale_color_brewer(palette = "Set2") +
+    geom_point(aes(shape = plot_category), fill = "black", size = 3, stroke = 0.75) +
+    scale_shape_manual(values = c(9, 23, 13, 5, 4), drop = FALSE) +
     labs(shape = "GT", color = "Hap") +
     theme_bw() +
     theme(axis.ticks = element_blank(),
@@ -461,9 +515,8 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_10_link
 
   manuscript_numbers[["03_somatic"]][["ATR_pct_ALT_on_H1"]] <- plot_df %>% filter(gene == "ATR") %>% select(pct_ALT_on_H1, pct_ALT_on_H2)
 
-  rm(plot_df, correlation_value, max_vaf, H1_proportion)
+  rm(drivers, plot_df, correlation_value, tumor_vafs, normal_vafs, p)
 
 }
-
 
 rm(main, supp)

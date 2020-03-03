@@ -85,7 +85,7 @@ manuscript_numbers[["01_overview"]] <- list()
   plot_df <- lr_summary_tbl %>%
     bind_rows(lr_summary_1000G_tbl) %>%
     gather(data_columns, key = "category", value = "result") %>%
-    select(-c(vcf_column, cnv_maf_status, longranger_version)) %>%
+    #select(-c(vcf_column, cnv_maf_status, longranger_version)) %>%
     mutate(normal_sample = case_when(timepoint == "Normal" ~ "Normal",
                                      TRUE ~ "Tumor")) %>%
     left_join(multiplier_tbl, by = "category")

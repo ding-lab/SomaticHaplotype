@@ -107,19 +107,19 @@ manuscript_numbers[["04_alleles"]] <- list()
     filter(distance_between_variants >= 100) %>%
     pull(n_overlapping_barcodes) %>% max() %>% plyr::round_any(10, f = ceiling)
 
-  variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>%
+  p <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>%
     filter(distance_between_variants <= median_molecule_length) %>%
     filter(distance_between_variants >= 100) %>%
     mutate(overlap_category = case_when(n_overlapping_barcodes == 0 ~ "Zero",
-                                        n_overlapping_barcodes <= 10 ~ "< 10",
-                                        n_overlapping_barcodes <= 20 ~ "< 20",
-                                        n_overlapping_barcodes <= max_overlapping_bx ~ str_c("< ", as.character(max_overlapping_bx)))) %>%
+                                        n_overlapping_barcodes <= 10 ~ "<= 10",
+                                        n_overlapping_barcodes <= 20 ~ "<= 20",
+                                        n_overlapping_barcodes <= max_overlapping_bx ~ str_c("<= ", as.character(max_overlapping_bx)))) %>%
     mutate(overlap_category = fct_rev(factor(overlap_category,
-                                             levels = c("Zero", "< 10", "< 20", str_c("< ", as.character(max_overlapping_bx))),
+                                             levels = c("Zero", "<= 10", "<= 20", str_c("<= ", as.character(max_overlapping_bx))),
                                              ordered = TRUE))) %>%
     ggplot(aes(x = distance_between_variants/1000)) +
     geom_histogram(aes(fill = overlap_category),
-                   boundary = 0, binwidth = 1000/500, show.legend = FALSE) +
+                   boundary = 0, binwidth = 1000/500) +
     scale_fill_viridis(discrete = TRUE, option = "C") +
     labs(x = "Distance Between Somatic Mutations (Kb)",
          y = "Pairs of Somatic Mutations",
@@ -138,21 +138,24 @@ manuscript_numbers[["04_alleles"]] <- list()
           legend.background = element_blank(),
           strip.background = element_blank(),
           strip.text = element_text(size = 8),
-          plot.margin = unit(c(0,0,0,0), "lines")) +
-    ggsave(str_c(main, "overlapping_barcodes.pdf"),
+          plot.margin = unit(c(0,0,0,0), "lines"))
+
+    ggsave(str_c(main, "overlapping_barcodes.with_legend.pdf"), p,
          width = 2, height = 2, useDingbats = FALSE)
+    ggsave(str_c(main, "overlapping_barcodes.without_legend.pdf"), p + guides(fill = FALSE),
+           width = 2, height = 2, useDingbats = FALSE)
 
   variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>%
     filter(distance_between_variants < 100) %>%
     mutate(overlap_category = case_when(n_overlapping_barcodes == 0 ~ "Zero",
-                                        n_overlapping_barcodes <= 10 ~ "< 10",
-                                        n_overlapping_barcodes <= 20 ~ "< 20",
-                                        n_overlapping_barcodes <= 50 ~ "< 50",
-                                        n_overlapping_barcodes <= 100 ~ "< 100",
-                                        n_overlapping_barcodes > 100 ~ "100+")) %>%
+                                        n_overlapping_barcodes <= 10 ~ "<= 10",
+                                        n_overlapping_barcodes <= 20 ~ "<= 20",
+                                        n_overlapping_barcodes <= 50 ~ "<= 50",
+                                        n_overlapping_barcodes <= 100 ~ "<= 100",
+                                        n_overlapping_barcodes > 100 ~ "> 100")) %>%
     mutate(overlap_category = fct_rev(factor(overlap_category,
-                                             levels = c("Zero", "< 10", "< 20",
-                                                        "< 50", "< 100", "100+"),
+                                             levels = c("Zero", "<= 10", "<= 20",
+                                                        "<= 50", "<= 100", "> 100"),
                                              ordered = TRUE))) %>%
     ggplot(aes(x = distance_between_variants)) +
     geom_histogram(aes(fill = overlap_category),
@@ -250,12 +253,14 @@ manuscript_numbers[["04_alleles"]] <- list()
               aes(label = str_c(round(value, 1), "%")),
               vjust = 1, nudge_y = -0.5,
               color = "white",
-              size = 2) +
+              size = 6/ggplot2:::.pt,
+              fontface = "bold") +
     geom_text(data = plot_df %>% filter(level2 == "No"),
               aes(label = str_c(round(value, 1), "%"), y = 100),
               vjust = 1, nudge_y = -0.5,
               color = "white",
-              size = 2) +
+              size = 6/ggplot2:::.pt,
+              fontface = "bold") +
     geom_segment(x = 1 + bar_width/2, y = p_within_length, xend = 2 - bar_width/2, yend = 100,
                  lty = 2, color = "#bdbdbd", lwd = 0.5) +
     geom_segment(x = 1 + bar_width/2, y = 0, xend = 2 - bar_width/2, yend = 0,
@@ -423,12 +428,16 @@ manuscript_numbers[["04_alleles"]] <- list()
     }
 
     variants_more_than_1 <- bcv_filtered %>%
+      select(Barcode, Variant) %>%
+      unique() %>%
       group_by(Variant) %>%
       summarize(count = n()) %>%
       filter(count > 1) %>%
       mutate(Variant_rank = seq(1:n()))
 
     barcodes_more_than_1 <- bcv_filtered %>%
+      select(Barcode, Variant) %>%
+      unique() %>%
       filter(Variant %in% variants_more_than_1$Variant) %>%
       group_by(Barcode) %>%
       summarize(count = n()) %>%
@@ -510,19 +519,19 @@ manuscript_numbers[["04_alleles"]] <- list()
 
   pv <- phasing_variants_mapq20_tbl
   vp <- variant_pairs_mapq20_tbl %>%
-    filter(cnv_over_range > -.25,
-           cnv_over_range < .2,
+    filter(#cnv_over_range > -.25,
+           #cnv_over_range < .2) ,
            cnv_over_range == cnv_position1,
            cnv_over_range == cnv_position2)
 
   perfect_alt_on_H1 <- pv %>%
     filter(barcode_ALT_H1 >= 2 | barcode_ALT_H2 >= 2) %>%
-    filter(pct_ALT_on_H1 >= 1) %>%
+    filter(pct_ALT_on_H1 >= 0.91) %>%
     select(Variant, sample) %>% unique() %>% mutate(combo = str_c(Variant, sample))
 
   perfect_alt_on_H2 <- pv %>%
     filter(barcode_ALT_H1 >= 2 | barcode_ALT_H2 >= 2) %>%
-    filter(pct_ALT_on_H1 <= 0) %>%
+    filter(pct_ALT_on_H1 <= 0.09) %>%
     select(Variant, sample) %>% unique() %>% mutate(combo = str_c(Variant, sample))
 
   phased_pairs <- vp %>%
@@ -673,59 +682,59 @@ manuscript_numbers[["04_alleles"]][["27522_NRAS_VAFs"]] <- driver_mutations_vaf_
 # plot interesting allele pairs
 {
   plot_allele_pairs <- function(sample_id, gene, variant1, variant2, protein1, protein2, barcodes_variants){
-  barcodes_variants[[sample_id]] %>%
-    filter(Somatic_Variant %in% c(variant1, variant2),
-           Variant %in% c(variant1, variant2)) %>%
-    group_by(Barcode) %>%
-    summarize(V1_0 = sum(Variant == variant1 & Allele == 0),
-              V1_1 = sum(Variant == variant1 & Allele == 1),
-              V2_0 = sum(Variant == variant2 & Allele == 0),
-              V2_1 = sum(Variant == variant2 & Allele == 1)) %>%
-    mutate(V1_allele = case_when(V1_0 == 1 & V1_1 == 0 ~ "REF",
-                                 V1_0 == 0 & V1_1 == 1 ~ "ALT",
-                                 TRUE ~ "NC"),
-           V2_allele = case_when(V2_0 == 1 & V2_1 == 0 ~ "REF",
-                                 V2_0 == 0 & V2_1 == 1 ~ "ALT",
-                                 TRUE ~ "NC")) %>%
-    group_by(V1_allele, V2_allele) %>%
-    summarize(count = n()) %>%
-    ungroup() %>%
-    arrange(desc(count)) %>%
-    mutate(allele_pair = str_c(V1_allele, V2_allele, sep = "/")) %>%
-    mutate(allele_pair = str_c(allele_pair, " (", count, ")")) %>%
-    mutate(V1_allele = factor(V1_allele, levels = c("REF", "ALT", "NC"), ordered = TRUE),
-           V2_allele = factor(V2_allele, levels = c("REF", "ALT", "NC"), ordered = TRUE)) %>%
-    gather(V1_allele, V2_allele, key = "variant", value = "allele") %>%
-    mutate(allele = factor(allele, levels = c("REF", "ALT", "NC"), ordered = TRUE)) %>%
-    ggplot(aes(x = variant, y = fct_reorder(allele_pair, count))) +
-    geom_point(aes(shape = allele), color = "#000000", fill = "#FFFFFF",
-               size = 3, show.legend = FALSE) +
-    scale_shape_manual(values = c(21, 25, 4)) +
-    scale_x_discrete(labels = c(protein1, protein2)) +
-    scale_y_discrete(expand = c(0.04, 0.04)) +
-    labs(x = gene, y = NULL) +
-    theme_bw() +
-    theme(panel.grid.major.y = element_line(size = 2),
-          panel.grid.minor = element_blank(),
-          panel.grid.major.x = element_blank(),
-          panel.border = element_blank(),
-          panel.background = element_blank(),
-          axis.ticks.y = element_blank(),
-          axis.title.y = element_blank(),
-          axis.text.y = element_text(size = 8),
-          axis.line.y = element_blank(),
-          axis.ticks.x = element_blank(),
-          axis.line.x = element_blank(),
-          axis.text.x = element_text(size = 6),
-          axis.title.x = element_text(size = 8),
-          strip.background = element_blank(),
-          strip.text = element_text(size = 8),
-          plot.margin = unit(c(0,0,0,0), "lines"),
-          legend.background = element_blank(),
-          legend.text = element_text(size = 6)) +
-    ggsave(str_c(main, "allele_pairs.", sample_id, ".", gene, ".pdf"),
-           width = 1.5, height = 1.75, useDingbats = FALSE)
-}
+    barcodes_variants[[sample_id]] %>%
+      filter(Somatic_Variant %in% c(variant1, variant2),
+             Variant %in% c(variant1, variant2)) %>%
+      group_by(Barcode) %>%
+      summarize(V1_0 = any(Variant == variant1 & Allele == 0),
+                V1_1 = any(Variant == variant1 & Allele == 1),
+                V2_0 = any(Variant == variant2 & Allele == 0),
+                V2_1 = any(Variant == variant2 & Allele == 1)) %>%
+      mutate(V1_allele = case_when(V1_0 == 1 & V1_1 == 0 ~ "REF",
+                                   V1_0 == 0 & V1_1 == 1 ~ "ALT",
+                                   TRUE ~ "NC"),
+             V2_allele = case_when(V2_0 == 1 & V2_1 == 0 ~ "REF",
+                                   V2_0 == 0 & V2_1 == 1 ~ "ALT",
+                                   TRUE ~ "NC")) %>%
+      group_by(V1_allele, V2_allele) %>%
+      summarize(count = n()) %>%
+      ungroup() %>%
+      arrange(desc(count)) %>%
+      mutate(allele_pair = str_c(V1_allele, V2_allele, sep = "/")) %>%
+      mutate(allele_pair = str_c(allele_pair, " (", count, ")")) %>%
+      mutate(V1_allele = factor(V1_allele, levels = c("REF", "ALT", "NC"), ordered = TRUE),
+             V2_allele = factor(V2_allele, levels = c("REF", "ALT", "NC"), ordered = TRUE)) %>%
+      gather(V1_allele, V2_allele, key = "variant", value = "allele") %>%
+      mutate(allele = factor(allele, levels = c("REF", "ALT", "NC"), ordered = TRUE)) %>%
+      ggplot(aes(x = variant, y = fct_reorder(allele_pair, count))) +
+      geom_point(aes(shape = allele), color = "#000000", fill = "#FFFFFF",
+                 size = 3, show.legend = FALSE) +
+      scale_shape_manual(values = c(21, 25, 4)) +
+      scale_x_discrete(labels = c(protein1, protein2)) +
+      scale_y_discrete(expand = c(0.04, 0.04)) +
+      labs(x = gene, y = NULL) +
+      theme_bw() +
+      theme(panel.grid.major.y = element_line(size = 2),
+            panel.grid.minor = element_blank(),
+            panel.grid.major.x = element_blank(),
+            panel.border = element_blank(),
+            panel.background = element_blank(),
+            axis.ticks.y = element_blank(),
+            axis.title.y = element_blank(),
+            axis.text.y = element_text(size = 8),
+            axis.line.y = element_blank(),
+            axis.ticks.x = element_blank(),
+            axis.line.x = element_blank(),
+            axis.text.x = element_text(size = 6),
+            axis.title.x = element_text(size = 8),
+            strip.background = element_blank(),
+            strip.text = element_text(size = 8),
+            plot.margin = unit(c(0,0,0,0), "lines"),
+            legend.background = element_blank(),
+            legend.text = element_text(size = 6)) +
+      ggsave(str_c(main, "allele_pairs.", sample_id, ".", gene, ".pdf"),
+             width = 1.5, height = 1.75, useDingbats = FALSE)
+  }
 
   plot_allele_pairs(sample_id = "27522_1",
                     variant1 = "chr1:114713909:G:T",
@@ -735,20 +744,20 @@ manuscript_numbers[["04_alleles"]][["27522_NRAS_VAFs"]] <- driver_mutations_vaf_
                     protein2 = "G13R",
                     barcodes_variants = barcodes_variants_driver_mapq20_tbl)
 
-  plot_allele_pairs(sample_id = "27522_3",
-                    variant1 = "chr6:145194306:G:C",
-                    variant2 = "chr6:145195351:G:T",
-                    gene = "chr6",
-                    protein1 = "G>C",
-                    protein2 = "G>T",
-                    barcodes_variants = barcodes_variants_mapq20_tbl)
+  plot_allele_pairs(sample_id = "57075_3",
+                    variant1 = "chr21:34792263:A:C",
+                    variant2 = "chr21:34792313:T:G",
+                    gene = "RUNX1",
+                    protein1 = "S439A",
+                    protein2 = "E422A",
+                    barcodes_variants = barcodes_variants_driver_mapq20_tbl)
 
 
 
 }
 
 # 27522_1 NRAS G13 Q61 figure
-{
+if (FALSE) {
   bcv <- read.delim("~/Desktop/mmy_paper/27522_1.NRAS/27522_1.NRAS.barcodes_variants.tsv")
 
   # good_barcodes <- tribble(~Barcode, ~barcode_rank, ~best_haplotype,
