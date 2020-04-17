@@ -33,7 +33,7 @@ manuscript_numbers[["04_alleles"]] <- list()
   cnv_neutral_mutation_sites %>%
     left_join(phasing_variants_mapq20_tbl,
               by = c("sample", "Variant")) %>%
-    group_by(sample, my_color_100, Variant) %>%
+    group_by(sample, display_name, my_color_100, Variant) %>%
     summarize(phased_barcode_coverage = sum(barcode_REF_H1, barcode_REF_H2,
                                             barcode_ALT_H1, barcode_ALT_H2),
               phased_alt_barcode_coverage = sum(barcode_ALT_H1, barcode_ALT_H2)) %>%
@@ -46,7 +46,7 @@ manuscript_numbers[["04_alleles"]] <- list()
     geom_hline(yintercept = 1, lty = 2) +
     geom_point(aes(color = my_color_100), shape = 16, alpha = 0.25) +
     scale_color_identity() +
-    facet_wrap(~sample, ncol = 1) +
+    facet_wrap(~ display_name, ncol = 1) +
     labs(x = "Phased Barcodes Covering Mutation Site (log2)",
          y = "Phased Barcodes Covering Mutation Site and Supporting Mutant Allele (non-transformed)") +
     theme_bw() +
@@ -525,13 +525,11 @@ manuscript_numbers[["04_alleles"]] <- list()
            cnv_over_range == cnv_position2)
 
   perfect_alt_on_H1 <- pv %>%
-    filter(barcode_ALT_H1 >= 2 | barcode_ALT_H2 >= 2) %>%
-    filter(pct_ALT_on_H1 >= 0.91) %>%
+    filter(phased == "Phased" & (phased_by_linked_alleles == "H1" | phased_by_barcodes == "H1" )) %>%
     select(Variant, sample) %>% unique() %>% mutate(combo = str_c(Variant, sample))
 
   perfect_alt_on_H2 <- pv %>%
-    filter(barcode_ALT_H1 >= 2 | barcode_ALT_H2 >= 2) %>%
-    filter(pct_ALT_on_H1 <= 0.09) %>%
+    filter(phased == "Phased" & (phased_by_linked_alleles == "H2" | phased_by_barcodes == "H2" )) %>%
     select(Variant, sample) %>% unique() %>% mutate(combo = str_c(Variant, sample))
 
   phased_pairs <- vp %>%
@@ -599,15 +597,13 @@ manuscript_numbers[["04_alleles"]] <- list()
     vp <- variant_pairs_driver_mapq20_tbl
 
     perfect_alt_on_H1 <- pv %>%
-      filter(barcode_ALT_H1 >= 2 | barcode_ALT_H2 >= 2) %>%
-      filter(pct_ALT_on_H1 >= .91) %>%
+      filter(phased == "Phased" & (phased_by_linked_alleles == "H1" | phased_by_barcodes == "H1" )) %>%
       select(Variant, sample) %>%
       unique() %>%
       mutate(combo = str_c(Variant, sample))
 
     perfect_alt_on_H2 <- pv %>%
-      filter(barcode_ALT_H1 >= 2 | barcode_ALT_H2 >= 2) %>%
-      filter(pct_ALT_on_H1 <= 0.09) %>%
+      filter(phased == "Phased" & (phased_by_linked_alleles == "H2" | phased_by_barcodes == "H2" )) %>%
       select(Variant, sample) %>%
       unique() %>%
       mutate(combo = str_c(Variant, sample))
@@ -679,6 +675,9 @@ manuscript_numbers[["04_alleles"]] <- list()
 manuscript_numbers[["04_alleles"]][["27522_NRAS_allele_combinations"]] <- variant_pairs_driver_mapq20_tbl %>% filter(sample == "27522_1", Variant1 == "chr1:114713909:G:T", Variant2 == "chr1:114716124:C:G") %>% select(starts_with("n_bx_overlap"))
 manuscript_numbers[["04_alleles"]][["27522_NRAS_VAFs"]] <- driver_mutations_vaf_tbl %>% filter(patient == "27522", gene == "NRAS") %>% select(sample, gene, vaf, protein)
 
+manuscript_numbers[["04_alleles"]][["37692_RUNX1_allele_combinations"]] <- variant_pairs_driver_mapq20_tbl %>% filter(sample == "37692_2", Variant1 == "chr21:34792263:A:C", Variant2 == "chr21:34792313:T:G") %>% select(starts_with("n_bx_overlap"))
+manuscript_numbers[["04_alleles"]][["57075_RUNX1_VAFs"]] <- driver_mutations_vaf_tbl %>% filter(patient == "37692", gene == "RUNX1") %>% select(sample, gene, vaf, protein)
+
 # plot interesting allele pairs
 {
   plot_allele_pairs <- function(sample_id, gene, variant1, variant2, protein1, protein2, barcodes_variants){
@@ -744,212 +743,176 @@ manuscript_numbers[["04_alleles"]][["27522_NRAS_VAFs"]] <- driver_mutations_vaf_
                     protein2 = "G13R",
                     barcodes_variants = barcodes_variants_driver_mapq20_tbl)
 
-  plot_allele_pairs(sample_id = "57075_3",
-                    variant1 = "chr21:34792263:A:C",
-                    variant2 = "chr21:34792313:T:G",
-                    gene = "RUNX1",
-                    protein1 = "S439A",
-                    protein2 = "E422A",
+  plot_allele_pairs(sample_id = "27522_3",
+                    variant1 = "chr17:81511522:T:A",
+                    variant2 = "chr17:81511954:C:A",
+                    gene = "ACTG1",
+                    protein1 = "G156G",
+                    protein2 = "L104L",
                     barcodes_variants = barcodes_variants_driver_mapq20_tbl)
 
-
-
 }
 
-# 27522_1 NRAS G13 Q61 figure
+# 27522 fish plot
 if (FALSE) {
-  bcv <- read.delim("~/Desktop/mmy_paper/27522_1.NRAS/27522_1.NRAS.barcodes_variants.tsv")
+  # Fish plot PMID {27821060}
+  # Sciclone PMID {25102416}
 
-  # good_barcodes <- tribble(~Barcode, ~barcode_rank, ~best_haplotype,
-  #                          "TGTAGTGAGCTGCCCA-1", 1, "Not Phased",
-  #                          "GAATGAATCTGAGAGG-1", 2, "Haplotype 1",
-  #                          "CTGTGCTAGGAAGCCT-1", 3, "Not Phased",
-  #                          "CCCGGAACATGGAGAC-1", 4, "Haplotype 2",
-  #                          "TCAGGATCAATAGCAA-1", 5, "Haplotype 2",
-  #                          "TATCGAGGTATCAGTC-1", 6, "Haplotype 2",
-  #                          "GGGCATCGTTAGAGCG-1", 7, "Haplotype 2",
-  #                          "CCTACGTTCTGGGCAC-1", 8, "Haplotype 1",
-  #                          "GGAACCCTCCGCTGGA-1", 9, "Haplotype 2",
-  #                          "GTAGCATCACCAACAT-1", 10, "Haplotype 1")
+  timepoints = c(0, 10, 15, 110, 210, 310)
+  timepoint_labels = c("", "", "Primary", "Remission", "Relapse 1", "Relapse 2")
+  frac.table <-
+    matrix(c( 100, 100, 100,   0, 100, 100, # Cluster 1 t(4;14)
+              90,  90,  90,   0,  90,  90, # Cluster 2 DIS3, KMT2D
+              0,  55,  55,   0,  80,  80, # Cluster 3 NRAS G13
+              0,   0,   5,   0,  55,  55, # Cluster 4 TP53
+              0,   0,  15,   0,  15,  15, # Cluster 5 ---
+              0,  25,  25,   0,   0,   0, # Cluster 6 NRAS Q61
+              0,   0,   0,   0, 0.1,  11),# Cluster 7 ---
+           nrow = 7,
+           ncol = 6,
+           byrow = TRUE)
 
-  good_barcodes <- tribble(~Barcode, ~barcode_rank, ~best_haplotype,
 
-                           "CCCGGAACATGGAGAC-1", 1, "Haplotype 2",
-                           "TCAGGATCAATAGCAA-1", 2, "Haplotype 2",
-                           "TATCGAGGTATCAGTC-1", 3, "Haplotype 2",
-                           "GGGCATCGTTAGAGCG-1", 4, "Haplotype 2",
-                           "GGAACCCTCCGCTGGA-1", 5, "Haplotype 2",
-                           "TGTAGTGAGCTGCCCA-1", 6, "Not Phased",
-                           "CTGTGCTAGGAAGCCT-1", 7, "Not Phased",
-                           "GAATGAATCTGAGAGG-1", 8, "Haplotype 1",
-                           "CCTACGTTCTGGGCAC-1", 9, "Haplotype 1",
-                           "GTAGCATCACCAACAT-1", 10, "Haplotype 1")
+  #provide a vector listing each clone's parent
+  #(0 indicates no parent)
+  parents = c(0, 1, 2, 3, 3, 2, 4)
 
-  good_variants <- tribble(~Variant, ~variant_rank,
-                           "chr1:114625476:T:C", 1,
-                           "chr1:114637384:A:G", 2,
-                           "chr1:114671205:G:A", 3,
-                           "chr1:114676462:T:A", 4,
-                           "chr1:114684872:G:A", 5,
-                           "chr1:114686258:T:G", 6,
-                           "chr1:114690425:C:T", 7,
-                           "chr1:114692389:C:A", 8,
-                           "chr1:114713909:G:T", 9,
-                           "chr1:114716124:C:G", 10)
+  #create a fish object
+  colors_to_use <- c("#D3D3D3", "#DC4C46", "#00A591", "#984EA3", "#E69F00",
+                     "#0072B2", "#D55E00", "#77d500", "#F781BF")[1:nrow(frac.table)]
+  fish = createFishObject(frac.table,
+                                 parents,
+                                 timepoints = timepoints,
+                                 fix.missing.clones = TRUE,
+                                 col = colors_to_use)
 
-  n_variants <- good_variants %>% nrow()
-  n_barcodes <- good_barcodes %>% nrow()
+  #calculate the layout of the drawing
+  fish = layoutClones(fish)
 
-  horizontal_lines <- bcv %>%
-    filter(Barcode %in% good_barcodes$Barcode,
-           Variant %in% good_variants$Variant) %>%
-    left_join(good_barcodes, by = "Barcode") %>%
-    left_join(good_variants, by = "Variant") %>%
-    group_by(Barcode, best_haplotype) %>%
-    summarize(x_min = min(variant_rank), x_max = max(variant_rank),
-              y_min = min(barcode_rank), y_max = max(barcode_rank)) %>%
-    select(Barcode, x_min, x_max, y_min, y_max, best_haplotype) %>%
-    ungroup()
+  #draw the plot, using the splining method (recommended)
+  #and providing both timepoints to label and a plot title
+  size_factor = 500
+  #png(str_c(main, "27522.fishplot.png"),
+  #    width = 5.25*size_factor,
+  #    height = 1.5*size_factor,
+  #    units = "px",
+  #    bg = "transparent")
+  pdf(str_c(main, "27522.fishplot.pdf"), width = 5*2, height = 1.5*2)
+  fishPlot(fish,
+           vlines = c(10, 110, 210, 310),
+           col.vline = "black",
+           shape = "spline",
+           bg.type = "solid",
+           bg.col = "white",
+           border = 1)
+  dev.off()
 
-  plot_data <- bcv %>%
-    filter(Barcode %in% good_barcodes$Barcode,
-           Variant %in% good_variants$Variant) %>%
-    droplevels() %>%
-    complete(Barcode, Variant) %>%
-    left_join(good_barcodes, by = "Barcode") %>%
-    left_join(horizontal_lines, by = "Barcode") %>%
-    left_join(good_variants, by = "Variant") %>%
-    mutate(allele_color = case_when(is.na(Allele) ~ "Missing Information",
-                                    Allele == 0 ~ "Reference Allele",
-                                    Allele == 1 ~ "Alternate Allele")) %>%
-    mutate(allele_color = factor(allele_color,
-                                 levels = c("Reference Allele",
-                                            "Alternate Allele",
-                                            "Missing Information"),
-                                 ordered = TRUE)) %>%
-    mutate(allele_size = case_when(variant_rank < x_min | variant_rank > x_max ~ 1,
-                                   is.na(Allele) ~ 1.5,
-                                   TRUE ~ 3)) %>%
-    select(Barcode, Variant, barcode_rank, variant_rank, allele_color, allele_size)
-
-  plot_data <- add_row(plot_data, Barcode = "Consensus H1", Variant = good_variants$Variant, barcode_rank = -1, variant_rank = good_variants$variant_rank, allele_color = c("Alternate Allele", "Alternate Allele", "Reference Allele", "Alternate Allele", "Alternate Allele", "Alternate Allele", "Alternate Allele", "Alternate Allele", "Reference Allele", "Reference Allele"), allele_size = 3)
-
-  plot_data <- add_row(plot_data, Barcode = "Consensus H2 - No Mutation", Variant = good_variants$Variant, barcode_rank = -2, variant_rank = good_variants$variant_rank, allele_color = c("Reference Allele", "Reference Allele", "Alternate Allele", "Reference Allele", "Reference Allele", "Reference Allele", "Reference Allele", "Reference Allele", "Reference Allele", "Reference Allele"), allele_size = 3)
-
-  plot_data <- add_row(plot_data, Barcode = "Consensus H2 - Q61 Mutation", Variant = good_variants$Variant, barcode_rank = -2.5, variant_rank = good_variants$variant_rank, allele_color = c("Reference Allele", "Reference Allele", "Alternate Allele", "Reference Allele", "Reference Allele", "Reference Allele", "Reference Allele", "Reference Allele", "Alternate Allele", "Reference Allele"), allele_size = 3)
-
-  plot_data <- add_row(plot_data, Barcode = "Consensus H2 - G13 Mutation", Variant = good_variants$Variant, barcode_rank = -3, variant_rank = good_variants$variant_rank, allele_color = c("Reference Allele", "Reference Allele", "Alternate Allele", "Reference Allele", "Reference Allele", "Reference Allele", "Reference Allele", "Reference Allele", "Reference Allele", "Alternate Allele"), allele_size = 3)
-
-  horizontal_lines <- add_row(horizontal_lines, Barcode = "Consensus H1", x_min = 1, x_max = 10, y_min = -1, y_max = -1, best_haplotype = "Haplotype 1")
-  horizontal_lines <- add_row(horizontal_lines, Barcode = "Consensus H2 - No Mutation", x_min = 1, x_max = 10, y_min = -2, y_max = -2, best_haplotype = "Haplotype 2")
-  horizontal_lines <- add_row(horizontal_lines, Barcode = "Consensus H2 - Q61 Mutation", x_min = 1, x_max = 10, y_min = -2.5, y_max = -2.5, best_haplotype = "Haplotype 2")
-  horizontal_lines <- add_row(horizontal_lines, Barcode = "Consensus H2 - G13 Mutation", x_min = 1, x_max = 10, y_min = -3, y_max = -3, best_haplotype = "Haplotype 2")
-
-  p <- ggplot() +
-    theme_bw() +
-    geom_rect(aes(xmin = 0.5, xmax = 12, ymin = 7.5, ymax = 10.5),
-              alpha = 0.25, color = NA, fill = "#4292c6") +
-    geom_rect(aes(xmin = 0.5, xmax = 12, ymin = 0.5, ymax = 5.5),
-              alpha = 0.25, color = NA, fill = "#ef3b2c") +
-    geom_vline(xintercept = seq(1:n_variants), linetype = 1, color = "#f0f0f0", size = 0.5) +
-    geom_segment(data = horizontal_lines, aes(y = y_min, yend = y_max, x = x_min, xend = x_max), color = "white", size = 2.5) +
-    geom_point(data = plot_data %>% filter(allele_size > 1), aes(x = variant_rank, y = barcode_rank, size = allele_size, fill = allele_color), color = "white", shape = 21, stroke = 1.25) +
-    geom_segment(data = horizontal_lines, aes(y = y_min, yend = y_max, x = x_min, xend = x_max, color = best_haplotype), size = 1) +
-    geom_point(data = plot_data, aes(x = variant_rank, y = barcode_rank, size = allele_size, fill = allele_color), shape = 21, stroke = 0) +
-    coord_equal(ratio = 1) +
-    scale_x_continuous(breaks = seq(1, n_variants + 1),
-                       labels = c(good_variants$Variant, "N barcodes observed consistent\nwith this NRAS mutation pattern"),
-                       expand = c(0, 3)) +
-    scale_y_continuous(breaks = seq(-4, n_barcodes + 1),
-                       labels = c("Consensus H2 - NRAS G13 Mutation", "Consensus H2 - NRAS Q61 Mutation", "Consensus H2 - No NRAS Mutation", "Consensus H1 - No NRAS Mutation", "", good_barcodes$Barcode, "")) +
-    theme(axis.text.x = element_text(angle = 270, hjust = 1, vjust = 0.5)) +
-
-    theme(axis.line = element_line(colour = "black"),
-          panel.grid.major = element_blank(),
-          panel.grid.minor = element_blank(),
-          panel.border = element_blank(),
-          panel.background = element_blank(),
-          axis.ticks.y = element_blank(),
-          axis.title.y = element_blank(),
-          axis.line.y = element_blank(),
-          axis.ticks.x = element_blank(),
-          axis.title.x = element_blank(),
-          axis.line.x = element_blank(),
-          axis.text.x = element_text(hjust = 0)) +
-
-    scale_color_manual(values = c("#4292c6", "#ef3b2c", "#bdbdbd")) +
-    scale_fill_manual(values = c("#762a83", "#c2a5cf", "#bdbdbd")) +
-    labs(color = "Haplotype", fill = "Allele") +
-    guides(size = FALSE) +
-    annotate("text", x = 11, y = 10, label = 9) +
-    annotate("text", x = 11, y = 9, label = 10) +
-    annotate("text", x = 11, y = 8, label = 1) +
-    annotate("text", x = 11, y = 7, label = 1) +
-    annotate("text", x = 11, y = 6, label = 1) +
-    annotate("text", x = 11, y = 5, label = 15) +
-    annotate("text", x = 11, y = 4, label = 4) +
-    annotate("text", x = 11, y = 3, label = 6) +
-    annotate("text", x = 11, y = 2, label = 11) +
-    annotate("text", x = 11, y = 1, label = 1) +
-    annotate("text", x = 10.3, y = -1, label = "No NRAS mutation", hjust = 0,
-             color = "#bdbdbd", fontface = "italic") +
-    annotate("text", x = 10.3, y = -2, label = "No NRAS mutation", hjust = 0,
-             color = "#bdbdbd", fontface = "italic") +
-    annotate("text", x = 10.3, y = -2.5, label = "NRAS Q61 mutation", hjust = 0,
-             color = "#bdbdbd", fontface = "italic") +
-    annotate("text", x = 10.3, y = -3, label = "NRAS G13 mutation", hjust = 0,
-             color = "#bdbdbd", fontface = "italic") +
-
-    geom_hline(yintercept = 0, lty = 2) +
-    geom_label(aes(x = 0.5, y = 0, label = "Consensus Haplotypes"), hjust = 0,
-               fontface = "bold") +
-    geom_label(aes(x = 0.5, y = 11, label = "Observed Patterns of Linked-Reads"),
-               hjust = 0, fontface = "bold") +
-
-    geom_text(aes(x = 12, y = 3, label = "Haplotype 2"),
-              color = "#ef3b2c", angle = -90, vjust = 1, nudge_x = -0.1) +
-    geom_text(aes(x = 12, y = 9, label = "Haplotype 1"),
-              color = "#4292c6", angle = -90, vjust = 1, nudge_x = -0.1) +
-
-    geom_label(aes(x = 9.5, y = -0.5, label = "Consensus H1"),
-               color = "white", fill = "#4292c6", label.padding = unit(0.2, "lines")) +
-    geom_label(aes(x = 9.5, y = -1.5, label = "Consensus H2"),
-               color = "white", fill = "#ef3b2c", label.padding = unit(0.2, "lines"))
-
-  q <- p + theme(axis.text = element_blank()) + guides(fill = FALSE, color = FALSE)
-
-  #ggsave("main_figures/nras_haplotype.pdf", p, width = 10, height = 10, useDingbats = FALSE)
-  #ggsave("main_figures/nras_haplotype.no_legend_or_labels.pdf", q, width = 7, height = 10, useDingbats = FALSE)
-
-  ggsave("~/Desktop/nras_haplotype.3.pdf", p, width = 10, height = 10, useDingbats = FALSE)
-  ggsave("~/Desktop/nras_haplotype.no_legend_or_labels.3.pdf", q, width = 7, height = 10, useDingbats = FALSE)
-
-  # r <- good_variants %>%
-  #   separate(Variant, into = c("chr", "pos", "ref", "alt"), sep = ":") %>%
-  #   ggplot(aes(x = as.numeric(pos), y = 0)) +
-  #   geom_segment(x = 114704469, xend = 114716894, y = 0, yend = 0, color = "#c6dbef", lwd = 10) +
-  #   geom_hline(yintercept = 0, color = "#c6dbef") +
-  #   annotate("text", x = (114704469 + 114716894)/2, y = 0.125, label = "NRAS", vjust = 0) +
-  #   geom_point() +
-  #   theme_bw() +
-  #   theme(axis.line = element_line(colour = "black"),
-  #         panel.grid.major = element_blank(),
-  #         panel.grid.minor = element_blank(),
-  #         panel.border = element_blank(),
-  #         panel.background = element_blank(),
-  #         axis.text.y = element_blank(),
-  #         axis.ticks.y = element_blank(),
-  #         axis.title.y = element_blank(),
-  #         axis.line.y = element_blank(),
-  #         axis.line.x = element_blank()) +
-  #   scale_x_continuous(position = "top",
-  #                      breaks = seq(114600000, 114725000, 25000),
-  #                      labels = c("114,600,000", "114,625,000", "114,650,000", "114,675,000", "114,700,000", "114,725,000"),
-  #                      limits = c(114600000, 114725000)) +
-  #   scale_y_continuous(limits = c(-0.1, 0.2)) +
-  #   labs(x = "Chromosome 1 Position")
-  # ggsave("main_figures/nras_positions.pdf", r, width = 7, height = 1, useDingbats = FALSE)
-
+  rm(timepoint_labels, frac.table, parents, colors_to_use, fish, size_factor)
 }
+
+# 27522 NRAS fish plot
+if (TRUE) {
+  # Fish plot PMID {27821060}
+  # Sciclone PMID {25102416}
+
+  timepoints = c(0, 10, 15, 110, 210)
+  frac.table <-
+    matrix(c( 100, 100, 100,   0, 100, # Cluster 1 t(4;14)
+              90,  90,  90,   0,  90, # Cluster 2 DIS3, KMT2D
+              0,  55,  55,   0,  80, # Cluster 3 NRAS G13
+              0,   0,   5,   0,  55, # Cluster 4 TP53
+              0,  25,  25,   0,   0), # Cluster 5 NRAS Q61),
+           nrow = 5,
+           ncol = 5,
+           byrow = TRUE)
+
+
+  #provide a vector listing each clone's parent
+  #(0 indicates no parent)
+  parents = c(0, 1, 2, 3, 2)
+
+  #create a fish object
+  colors_to_use <- c("#edf8fb", "#b3cde3", "#8c96c6", "#8856a7", "#810f7c")
+  fish = createFishObject(frac.table,
+                          parents,
+                          timepoints = timepoints,
+                          fix.missing.clones = TRUE,
+                          col = colors_to_use)
+
+  #calculate the layout of the drawing
+  fish = layoutClones(fish)
+
+  #draw the plot, using the splining method (recommended)
+  #and providing both timepoints to label and a plot title
+  pdf(str_c(main, "27522.NRAS.fishplot.pdf"), width = 5*2, height = 1.5*2)
+  fishPlot(fish,
+           vlines = c(10, 110, 210, 310),
+           col.vline = "black",
+           shape = "spline",
+           bg.type = "solid",
+           bg.col = "white",
+           border = 1)
+  dev.off()
+
+  rm(frac.table, parents, colors_to_use, fish, timepoints)
+}
+
+# 27522 ACTG1 fish plot
+if (TRUE) {
+  # Fish plot PMID {27821060}
+  # Sciclone PMID {25102416}
+
+  timepoints = c(0, 10, 55, 110)
+  frac.table <-
+    matrix(c( 0, 30, 80, 100,
+              0, 20, 60,  90, # Cluster 1 t(4;14)
+              0,  5, 40,  60, # Cluster 2 ACTG1 G156G
+              0,  0,  0.1,  30), # Cluster 3 ACTG1 L104L
+           nrow = 4,
+           ncol = 4,
+           byrow = TRUE)
+
+
+  #provide a vector listing each clone's parent
+  #(0 indicates no parent)
+  parents = c(0, 1, 2, 3)
+
+  #create a fish object
+  colors_to_use <- c("#ffffb2", "#fecc5c", "#fd8d3c", "#e31a1c")
+  fish = createFishObject(frac.table,
+                          parents,
+                          timepoints = timepoints,
+                          fix.missing.clones = TRUE,
+                          col = colors_to_use)
+
+  #calculate the layout of the drawing
+  fish = layoutClones(fish)
+
+  #draw the plot, using the splining method (recommended)
+  #and providing both timepoints to label and a plot title
+  pdf(str_c(main, "27522.ACTG1.fishplot.pdf"), width = 5*2, height = 1.5*2)
+  fishPlot(fish,
+           vlines = c(5, 55, 110),
+           col.vline = "black",
+           shape = "spline",
+           bg.type = "solid",
+           bg.col = "white",
+           border = 1)
+  dev.off()
+
+  rm(frac.table, parents, colors_to_use, fish, timepoints)
+}
+
+manuscript_numbers[["04_alleles"]][["27522_ACTG1_VAF"]] <- driver_mutations_vaf_tbl %>% filter(gene == "ACTG1", patient == "27522", pos %in% c(81511522, 81511954))
+manuscript_numbers[["04_alleles"]][["27522_ACTG1_CNV_ratio"]] <- cnv_tbl %>% filter(sample == "27522_3", chrom == "chr17", start < 81511522, end > 81511954) %>% pull(log2.copyRatio)
+manuscript_numbers[["04_alleles"]][["27522_ACTG1_CNV_raw"]] <- 2*(2^manuscript_numbers[["04_alleles"]][["27522_ACTG1_CNV_ratio"]])
+
+manuscript_numbers[["04_alleles"]][["27522_NRAS_VAF"]] <- driver_mutations_vaf_tbl %>% filter(gene == "NRAS", patient == "27522", pos %in% c(114713909, 114716124))
+manuscript_numbers[["04_alleles"]][["27522_NRAS_CNV_ratio"]] <- cnv_tbl %>% filter(sample == "27522_3", chrom == "chr1", start < 114713909, end > 114716124) %>% pull(log2.copyRatio)
+manuscript_numbers[["04_alleles"]][["27522_NRAS_CNV_raw"]] <- 2*(2^manuscript_numbers[["04_alleles"]][["27522_NRAS_CNV_ratio"]])
+
+manuscript_numbers[["04_alleles"]][["27522_TP53_VAF"]] <- driver_mutations_vaf_tbl %>% filter(gene == "TP53", patient == "27522", pos == 7674220)
+manuscript_numbers[["04_alleles"]][["27522_TP53_CNV_ratio"]] <- cnv_tbl %>% filter(sample == "27522_3", chrom == "chr17", start < 7674220, end > 7674220) %>% pull(log2.copyRatio)
+manuscript_numbers[["04_alleles"]][["27522_TP53_CNV_raw"]] <- 2*(2^manuscript_numbers[["04_alleles"]][["27522_TP53_CNV_ratio"]])
 
 rm(plot_barcode_variants, main, supp)

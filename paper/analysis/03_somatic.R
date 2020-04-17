@@ -5,8 +5,6 @@
 # Mutation pairs per phase set
 ################################################################################
 
-phase_proportion <- 0.91
-
 main = "figures/03_somatic_phasing/main/"
 supp = "figures/03_somatic_phasing/supplementary/"
 
@@ -81,7 +79,7 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
   manuscript_numbers[["03_somatic"]][["precision_at_phase_proportion"]] <- prec[which(proportions == phase_proportion)]
   manuscript_numbers[["03_somatic"]][["recall_at_phase_proportion"]] <- rec[which(proportions == phase_proportion)]
   manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_phased"]] <- phasing_variants_mapq20_tbl %>% filter(phased == "Phased") %>% nrow()
-  manuscript_numbers[["03_somatic"]][["pct_somatic_mutations_with_enough_coverage_phased"]] <- 100*manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_phased"]]/manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage"]]
+  manuscript_numbers[["03_somatic"]][["pct_somatic_mutations_with_enough_coverage_phased"]] <- 100*manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_phased"]]/manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_coverage"]]
 
   manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_0/1"]] <- phasing_variants_mapq20_tbl %>% filter(enough_coverage, Genotype == "0/1") %>% nrow()
   manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_0/1_phased"]] <- phasing_variants_mapq20_tbl %>% filter(Genotype == "0/1", phased == "Phased") %>% nrow()
@@ -90,11 +88,14 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
   # compare with barcode method
   manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_phased_table"]] <- phasing_variants_mapq20_tbl %>% select(phased_by_linked_alleles, phased_by_barcodes) %>% table()
 
-  manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_phased_proportion"]] <- manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_phased_table"]]/manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_coverage"]]
+  manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_both_phased"]] <- sum(manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_phased_table"]][1:2, 1:2])
+  manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_both_phased_concordant"]] <- sum(diag(manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_phased_table"]])[1:2])
+  manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_both_phased_concordant_pct"]] <- 100*manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_both_phased_concordant"]]/manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_both_phased"]]
 
-  manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_phased_concordant"]] <- diag(manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_10_linked_alleles_phased_linked_alleles_or_barcodes_table"]])
+  manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_added_by_bc"]] <- sum(manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_phased_table"]][3:4,1:2])
+  manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_added_by_la"]] <- sum(manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_phased_table"]][1:2,3:4])
 
-  manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_10_linked_alleles_phased_linked_alleles_or_barcodes_table_concordant_proportion"]] <- diag(manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_10_linked_alleles_phased_linked_alleles_or_barcodes_table"]])/manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_10_linked_alleles"]]
+
 
   rm(proportions, tp, tn, fp, fn, prec, rec, i)
 }
@@ -300,7 +301,7 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
   manuscript_numbers[["03_somatic"]][["pct_phase_sets_1kb_1_somatic_mutation"]] <- 100*manuscript_numbers[["03_somatic"]][["n_phase_sets_1kb_1_somatic_mutations"]]/manuscript_numbers[["03_somatic"]][["n_phase_sets_1kb"]]
 
   plot_data <- phasing_variants_grouped %>%
-    filter(Phase_Set_Length >= 1e3, n_phased > 1) %>%
+    filter(Phase_Set_Length >= 1e3, n_pairs_phased >= 1) %>%
     mutate(n_pairs_color = case_when(n_pairs_phased == 1 ~ "1 pair",
                                      n_pairs_phased <= 3 ~ "<= 3",
                                      n_pairs_phased <= 10 ~ "<= 10",

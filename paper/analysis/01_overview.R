@@ -84,7 +84,7 @@ manuscript_numbers[["01_overview"]] <- list()
 
   plot_df <- lr_summary_tbl %>%
     bind_rows(lr_summary_1000G_tbl) %>%
-    gather(data_columns, key = "category", value = "result") %>%
+    gather(all_of(data_columns), key = "category", value = "result") %>%
     #select(-c(vcf_column, cnv_maf_status, longranger_version)) %>%
     mutate(normal_sample = case_when(timepoint == "Normal" ~ "Normal",
                                      TRUE ~ "Tumor")) %>%
@@ -155,7 +155,7 @@ manuscript_numbers[["01_overview"]] <- list()
   plot_df <- lr_summary_tbl %>%
     bind_rows(lr_summary_1000G_tbl) %>%
     select(patient, sample, timepoint, n50_linked_reads_per_molecule, n50_phase_block, molecule_length_mean, my_color_100, my_shape) %>%
-    gather(highlight_columns, key = "category", value = "result") %>%
+    gather(all_of(highlight_columns), key = "category", value = "result") %>%
     mutate(normal_sample = case_when(timepoint == "Normal" ~ "Normal",
                                      TRUE ~ "Tumor")) %>%
     left_join(multiplier_tbl, by = "category") %>%

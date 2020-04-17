@@ -46,6 +46,7 @@ manuscript_numbers[["02_phase_sets"]] <- list()
   manuscript_numbers[["02_phase_sets"]][["phase_set_length_sd_min"]] <- phase_set_summary_tbl %>% filter(timepoint != "Normal") %>% group_by(chromosome) %>% summarize(median_ps_length = median(N50_broad/1e6), sd_ps_length = sd(N50_broad/1e6)) %>% arrange(sd_ps_length) %>% head(1)
   manuscript_numbers[["02_phase_sets"]][["phase_set_length_sd_max"]] <- phase_set_summary_tbl %>% filter(timepoint != "Normal") %>% group_by(chromosome) %>% summarize(median_ps_length = median(N50_broad/1e6), sd_ps_length = sd(N50_broad/1e6)) %>% arrange(sd_ps_length) %>% tail(1)
   manuscript_numbers[["02_phase_sets"]][["chr21_phase_sets_gt20Mb"]] <- phase_set_summary_tbl %>% filter(timepoint != "Normal") %>% filter(chromosome == "chr21", N50_broad > 20*1e6) %>% nrow()
+  manuscript_numbers[["02_phase_sets"]][["chr21_phase_sets_gt20Mb_59114"]] <- phase_set_summary_tbl %>% filter(timepoint != "Normal") %>% filter(chromosome == "chr21", N50_broad > 20*1e6, patient == "59114") %>% nrow()
   manuscript_numbers[["02_phase_sets"]][["25183_qc_measures"]] <- lr_summary_tbl %>% filter(timepoint != "Normal") %>% select(sample, molecule_length_mean, mapped_reads) %>% arrange(molecule_length_mean) %>% tail(1)
 }
 
@@ -148,8 +149,8 @@ manuscript_numbers[["02_phase_sets"]] <- list()
     ggsave(str_c(main, "phase_set_genome_coverage.pdf"),
            useDingbats = FALSE, width = 7.25, height = 1.75)
 
-  manuscript_numbers[["02_phase_sets"]][["total_genome_coverage"]] <- plot_df %>% pull(total_length) %>% sum()/1e9
-  manuscript_numbers[["02_phase_sets"]][["average_genome_coverage"]] <- plot_df %>% pull(total_length) %>% sum()/(23*1e9)
+  manuscript_numbers[["02_phase_sets"]][["total_genome_coverage_Gb"]] <- plot_df %>% pull(total_length) %>% sum()/1e9
+  manuscript_numbers[["02_phase_sets"]][["average_genome_coverage_Gb"]] <- plot_df %>% pull(total_length) %>% sum()/(23*1e9)
   manuscript_numbers[["02_phase_sets"]][["length_group_most_ps"]] <- plot_df %>% group_by(length_factor) %>% summarize(count = count, total = sum(plot_df$count), count_pct = 100*count/total) %>% arrange(count_pct) %>% tail(1)
   manuscript_numbers[["02_phase_sets"]][["0-1_Mb_percentage_of_coverage"]] <- plot_df %>% group_by(length_factor) %>% summarize(total_length = total_length/1e9, total_length_all = sum(plot_df$total_length)/1e9, total_length_pct = 100*total_length/total_length_all) %>% filter(length_factor == "0-1")
   manuscript_numbers[["02_phase_sets"]][["1-2_Mb_percentage_of_coverage"]] <- plot_df %>% group_by(length_factor) %>% summarize(count = count, total_length = total_length/1e9, total_length_all = sum(plot_df$total_length)/1e9, total_length_pct = 100*total_length/total_length_all) %>% filter(length_factor == "1-2")
@@ -226,7 +227,7 @@ manuscript_numbers[["02_phase_sets"]] <- list()
     expand_limits(x = 0) +
     scale_color_identity() +
     labs(x = "Phase Set Length (Mb)", y = "Number of Phased Heterozygotes (thousands)") +
-    facet_wrap( ~ sample, ncol = 4) +
+    facet_wrap( ~ display_name, ncol = 4) +
     theme_bw() +
     theme(panel.background = element_blank(),
           axis.title = element_text(size = 8),

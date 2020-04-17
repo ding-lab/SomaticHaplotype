@@ -21,8 +21,7 @@ segment_overlap_tbl %>%
 positions_list <- segment_overlap_tbl %>%
   filter(Chromosome == "chr18", IBD_segment_index == 8) %>%
   pull(Overlapping_variant_positions) %>%
-  str_split(pattern =  ",") %>%
-  as.numeric()
+  str_split(pattern =  ",")
 H1_allele_list <- segment_overlap_tbl %>%
   filter(Chromosome == "chr18", IBD_segment_index == 8) %>%
   pull(Phase_set_H1_alleles) %>%
@@ -56,7 +55,7 @@ ps <- segment_overlap_tbl %>%
                                     Phase_set_end_position > x_limits[2] ~ median(c(x_limits[2], Phase_set_start_position)),
                                     TRUE ~ median(c(Phase_set_start_position, Phase_set_end_position))))
 
-tibble(my_row = c(rep("Matching\nAllele", n_alleles_ps1), rep("Matching\nAllele", n_alleles_ps2)),
+tibble(my_row = c(rep("Phase Sets", n_alleles_ps1), rep("Phase Sets", n_alleles_ps2)),
        position = c(as.numeric(positions_list[[1]]), as.numeric(positions_list[[4]])),
        matches_h1 = c(IBD_allele_list[[1]] == H1_allele_list[[1]],
                       IBD_allele_list[[4]] == H1_allele_list[[4]]),
@@ -80,7 +79,7 @@ tibble(my_row = c(rep("Matching\nAllele", n_alleles_ps1), rep("Matching\nAllele"
              nudge_y = .5, size = 8/ggplot2:::.pt) +
   coord_cartesian(xlim = x_limits/1e6) +
   scale_colour_manual(values = c("#ae8dc1", "#7fbf7b")) +
-  labs(x = "chr18 Position (Mb)", y = NULL) +
+  labs(x = "chr18 Position (Mb)", y = NULL, color = "Matching Allele Haplotype") +
   theme_bw() +
   theme(axis.ticks = element_blank(),
         axis.title = element_text(size = 8),

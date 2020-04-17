@@ -8,6 +8,7 @@ phase_proportion <- 0.91
 library(tidyverse)
 library(viridis)
 library(ggrepel)
+library(fishplot)
 
 # Load previous input data?
 # Processed input data tables are saved in a date-stamped .Rdata object. This is
@@ -17,7 +18,7 @@ library(ggrepel)
 # numbers used in manuscript
 manuscript_numbers <- list()
 
-last_updated <- "2020-03-03"
+last_updated <- "2020-03-16"
 input_data_path_str <- str_c("data/collected_input_objects.", last_updated, ".RData")
 if (file.exists(input_data_path_str)) {
   load(input_data_path_str)
@@ -1203,6 +1204,22 @@ if (file.exists(input_data_path_str)) {
     mutate(Chromosome = factor(Chromosome,
                                levels = str_c("chr", seq(1:22)),
                                ordered = TRUE))
+
+  sv_barcodes_tbl <- list()
+  #for (sample_id in c("27522_1", "27522_3", "77570")) {
+  for (sample_id in c("27522_1", "77570")) {
+    sv_barcodes_tbl[[sample_id]] <- read_tsv(str_c("data/SVs/", sample_id, ".sv_reads.tsv"),
+                                             col_types = "ccicicdd") %>%
+      mutate(chrom = factor(chrom,
+                            levels = str_c("chr", seq(1:22)),
+                            ordered = TRUE)) %>%
+      mutate(read_haplotype = factor(read_haplotype,
+                                     values = c(0,1,2),
+                                     ordered = TRUE)) %>%
+      mutate(supports_trans = factor(supports_trans,
+                                     values = c(0,1),
+                                     ordered = TRUE))
+  }
 
   # clean up
 
