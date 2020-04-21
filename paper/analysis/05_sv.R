@@ -9,10 +9,50 @@ supp = "figures/05_sv/supplementary/"
 dir.create(main, recursive = TRUE, showWarnings = FALSE)
 dir.create(supp, recursive = TRUE, showWarnings = FALSE)
 
+manuscript_numbers[["05_sv"]] <- list()
+
+# overview stats using high confidence SVs from Manta with sorted WGS
+if (TRUE) {
+  by_sample_sv <- sv_haplotypes_tbl %>%
+    group_by(sample, sorted) %>%
+    summarize(count_total = n(),
+              count_0 = sum(total_barcodes == 0),
+              count_1 = sum(total_barcodes == 1),
+              count_gte_2 = sum(total_barcodes >= 2),
+              count_consistent = sum(total_barcodes >= 2 & haplotypes_consistent)) %>%
+    mutate(pct_gte_2 = 100*count_gte_2/count_total,
+           pct_consistent = case_when(pct_gte_2 > 0 ~ 100*count_consistent/count_gte_2))
+
+  summary_sv <- sv_haplotypes_tbl %>%
+    summarize(count_total = n(),
+              count_0 = sum(total_barcodes == 0),
+              count_1 = sum(total_barcodes == 1),
+              count_gte_2 = sum(total_barcodes >= 2),
+              count_consistent = sum(total_barcodes >= 2 & haplotypes_consistent)) %>%
+    mutate(pct_gte_2 = 100*count_gte_2/count_total,
+           pct_consistent = case_when(pct_gte_2 > 0 ~ 100*count_consistent/count_gte_2),
+           sample = "All samples",
+           sorted = NA) %>%
+    bind_rows(by_sample_sv) %>%
+    select(sample, sorted, everything())
+
+  manuscript_numbers[["05_sv"]][["summary_of_SV_events"]] <- summary_sv
+  rm(by_sample_sv, summary_sv)
+}
+
 # plot barcodes
 if (TRUE) {
 
-  large_barcode_plot <- function(barcodes_tbl, sample_id, breakpoint_pair, display_name, translocation_name, filename, my_height, my_width, gemtools_support_only = TRUE, min_max = TRUE){
+  large_barcode_plot <- function(barcodes_tbl, sample_id,
+                                 breakpoint_pair,
+                                 display_name,
+                                 translocation_name,
+                                 filename,
+                                 my_height, my_width,
+                                 gemtools_support_only = FALSE,
+                                 min_max = TRUE,
+                                 downsample = 1,
+                                 translocation_only = FALSE){
 
     breakpoints_list <- str_split(str_split(breakpoint_pair,
                                             pattern = ",",
@@ -21,6 +61,11 @@ if (TRUE) {
 
     bc_tbl <- barcodes_tbl[[sample_id]] %>%
       filter(breakpoints %in% breakpoint_pair)
+
+    if (downsample < 1 & downsample > 0) {
+      number_of_rows <- bc_tbl %>% nrow()
+      bc_tbl <- bc_tbl %>% filter(as.logical(rbernoulli(number_of_rows, p = downsample)))
+    }
 
     consistent_barcodes <- bc_tbl %>%
       filter(read_haplotype %in% c(1, 2)) %>%
@@ -59,7 +104,6 @@ if (TRUE) {
       filter(read_haplotype != 0) %>%
       group_by(barcode) %>%
       summarize(dominant_haplotype = median(as.numeric(read_haplotype) - 1))
-      #summarize(dominant_haplotype = median(as.numeric(read_haplotype)))
 
     barcodes_both_sides <- bc_tbl %>%
       filter(!(barcode %in% barcodes_both_chrom)) %>%
@@ -86,15 +130,25 @@ if (TRUE) {
                                          TRUE ~ "No Translocation")) %>%
       filter(read_position >= min & read_position <= max) %>%
       mutate(relative_to_breakpoint = read_position - position) %>%
-      arrange(dominant_haplotype, read_position) #%>%
-      #mutate(barcode = factor(barcode, barcode))
+      arrange(chrom, desc(read_position))
+
+    barcode_order <- plot_df %>% pull(barcode) %>% unique()
+
+    plot_df <- plot_df %>%
+      mutate(barcode = factor(barcode, levels = barcode_order, ordered = TRUE))
+
+    if (translocation_only) {
+      plot_df <- plot_df %>%
+        filter(both_chrom_name != "No Translocation")
+    }
 
     p <- ggplot(plot_df, aes(x = read_position/1e6, y = barcode)) +
-      geom_segment(aes(xend = (read_position + 1000)/1e6,
-                       yend = barcode,
-                       color = read_haplotype),
-                 show.legend = FALSE) +
-      scale_color_manual(values = c("#bdbdbd", "#ae8dc1", "#7fbf7b"))
+      #geom_segment(aes(xend = (read_position + 1000)/1e6,
+      #                 yend = barcode,
+      #                 color = read_haplotype),
+      #             show.legend = FALSE) +
+      geom_point(aes(color = read_haplotype), size = 0.5, shape = 16, alpha = 1, show.legend = FALSE) +
+      scale_color_manual(values = c("#bdbdbd", "#ae8dc1", "#7fbf7b"), drop = FALSE)
 
     for (i in 1:length(breakpoints_list)) {
       p <- p + geom_vline(data = plot_df %>% filter(chrom == breakpoints_list[[i]][1]),
@@ -122,12 +176,139 @@ if (TRUE) {
            width = my_width, height = my_height, useDingbats = FALSE)
   }
 
-  large_barcode_plot(sv_barcodes_tbl, "27522_1", "chr14:105858088,chr4:1871962", "27522 (P)", "t(4;14)", "27522_1.t414.new", 3.25, 5)
+  large_barcode_plot_translocation_only <- function(barcodes_tbl, sample_id,
+                                                    breakpoint_pair,
+                                                    display_name,
+                                                    translocation_name,
+                                                    filename,
+                                                    my_height, my_width,
+                                                    downsample = 1,
+                                                    keep_bc = NULL,
+                                                    min_max = FALSE,
+                                                    min_chr = 2){
 
-  #large_barcode_plot(sv_barcodes_tbl, "27522_1", c("chr17:76201083,chr6:37194888", "chr4:152580898,chr6:37208806"), "27522 (P)", "t(4;6) + t(6;17)", "27522_1.t4617", 3.25, 7.25, gemtools_support_only = FALSE, min_max = FALSE )
+    breakpoints_list <- str_split(str_split(breakpoint_pair,
+                                            pattern = ",",
+                                            simplify = TRUE),
+                                  pattern = ":") %>% unique()
 
-  large_barcode_plot(sv_barcodes_tbl, "77570", c("chr11:69404963,chr14:105741942", "chr11:69404963,chr14:106269142"), "77570 (P)", "t(11;14)", "77570.t1114", 7, 10)
+    if (downsample < 1 & downsample > 0) {
+      number_of_rows <- barcodes_tbl[[sample_id]] %>% nrow()
+      bc_tbl <- barcodes_tbl[[sample_id]] %>%
+        filter(as.logical(rbernoulli(number_of_rows, p = downsample))) %>%
+        filter(breakpoints %in% breakpoint_pair)
+    } else {
+      bc_tbl <- barcodes_tbl[[sample_id]] %>%
+        filter(breakpoints %in% breakpoint_pair) %>%
+        filter(barcode %in% keep_bc)
+    }
 
+    if (is.null(keep_bc)) {
+      consistent_barcodes <- bc_tbl %>%
+        filter(read_haplotype %in% c(1, 2)) %>%
+        group_by(chrom, barcode) %>%
+        summarize(n_haps = length(unique(read_haplotype))) %>%
+        filter(n_haps == 1) %>%
+        pull(barcode) %>%
+        unique()
+    } else {
+      consistent_barcodes <- keep_bc
+    }
+
+    if (min_max) {
+      min_max_read_positions <- bc_tbl %>%
+        filter(supports_trans == 1,
+               read_haplotype %in% c(1, 2),
+               barcode %in% consistent_barcodes) %>%
+        group_by(breakpoints, chrom, position) %>%
+        summarize(min = min(read_position), max = max(read_position))
+    } else {
+      min_max_read_positions <- bc_tbl %>%
+        group_by(breakpoints, chrom, position) %>%
+        summarize(min = 0, max = Inf)
+    }
+
+    if (is.null(keep_bc)) {
+      barcodes_both_chrom <- bc_tbl %>%
+        left_join(min_max_read_positions,
+                  by = c("breakpoints", "chrom", "position")) %>%
+        filter(read_position >= min, read_position <= max) %>%
+        filter(barcode %in% consistent_barcodes) %>%
+        group_by(barcode) %>%
+        summarize(both_chrom = length(unique(chrom)) == min_chr,
+                  gemtools_bc = any(supports_trans == 1)) %>%
+        filter(both_chrom == TRUE) %>% # | gemtools_bc == TRUE) %>%
+        pull(barcode) %>% unique()
+    } else {
+      barcodes_both_chrom <- keep_bc
+    }
+
+    plot_df <- bc_tbl %>%
+      filter(barcode %in% barcodes_both_chrom) %>%
+      #filter(barcode %in% consistent_barcodes) %>%
+      left_join(min_max_read_positions,
+                by = c("breakpoints", "chrom", "position")) %>%
+      filter(read_position >= min, read_position <= max) %>%
+      mutate(both_chrom_name = str_c("Translocation ", translocation_name)) %>%
+      arrange(chrom, desc(read_position))
+
+    barcode_order <- plot_df %>% pull(barcode) %>% unique()
+
+    plot_df <- plot_df %>%
+      mutate(barcode = factor(barcode, levels = barcode_order, ordered = TRUE))
+
+    p <- ggplot(plot_df, aes(x = read_position/1e6, y = barcode)) +
+      geom_point(aes(color = read_haplotype), size = 0.5, shape = 16, alpha = 1, show.legend = FALSE) +
+      scale_color_manual(values = c("#bdbdbd", "#ae8dc1", "#7fbf7b"), drop = FALSE)
+
+    for (i in 1:length(breakpoints_list)) {
+      p <- p + geom_vline(data = plot_df %>% filter(chrom == breakpoints_list[[i]][1]),
+                          aes_string(xintercept = as.numeric(breakpoints_list[[i]][2])/1e6),
+                          lty = 2)
+    }
+
+    p <- p +
+      facet_grid(both_chrom_name ~ chrom, scales = "free") +
+      labs(x = "Read Mapping Position (Mb)", y = "Barcode (one per row)") +
+      theme_bw() +
+      theme(axis.text.y = element_blank(),
+            axis.ticks.y = element_blank(),
+            axis.title = element_text(size = 8),
+            axis.text.x = element_text(size = 8),
+            panel.background = element_blank(),
+            panel.grid = element_line(size = 0.5),
+            panel.grid.major.y = element_blank(),
+            panel.grid.minor = element_blank(),
+            strip.background = element_blank(),
+            strip.placement = "right",
+            strip.text = element_text(size = 8))
+
+    ggsave(str_c(main, filename, ".pdf"), p,
+           width = my_width, height = my_height, useDingbats = FALSE)
+  }
+
+  set.seed(1)
+  large_barcode_plot_translocation_only(sv_barcodes_tbl, "27522_1", "chr14:105858088,chr4:1871962", "27522 (P)", "t(4;14)", "27522_1.t414", 3.5, 5.25, downsample = 0.1, min_max = TRUE)
+
+  keep_t4617_bc <- sv_barcodes_tbl[["27522_1"]] %>%
+    filter(breakpoints %in% c("chr17:76201083,chr6:37194888", "chr4:152580898,chr6:37208806")) %>%
+    select(breakpoints, chrom, barcode) %>%
+    unique() %>%
+    group_by(barcode) %>%
+    summarize(n_chrom = length(unique(chrom))) %>%
+    filter(n_chrom == 3) %>%
+    pull(barcode) %>%
+    unique()
+  set.seed(1)
+  large_barcode_plot_translocation_only(sv_barcodes_tbl, "27522_1", c("chr17:76201083,chr6:37194888", "chr4:152580898,chr6:37208806"), "27522 (P)", "t(4;6) + t(6;17)", "27522_1.t4617", 3, 7.25, keep_bc = keep_t4617_bc, min_chr = 3)
+  rm(keep_t4617_bc)
+  set.seed(1)
+  large_barcode_plot_translocation_only(sv_barcodes_tbl, "27522_1", c("chr17:76201083,chr6:37194888"), "27522 (P)", "t(6;17)", "27522_1.t617", 3, 7.25, downsample = 0.1, min_max = TRUE)
+  set.seed(1)
+  large_barcode_plot_translocation_only(sv_barcodes_tbl, "27522_1", c("chr4:152580898,chr6:37208806"), "27522 (P)", "t(4;6)", "27522_1.t46", 3, 7.25, downsample = 0.1, min_max = TRUE)
+
+  set.seed(1)
+  large_barcode_plot_translocation_only(sv_barcodes_tbl, "77570", c("chr11:69404963,chr14:105741942", "chr11:69404963,chr14:106269142"), "77570 (P)", "t(11;14)", "77570.t1114", 3.5, 5.25, downsample = 0.1, min_max = TRUE)
 
 }
 
@@ -165,8 +346,8 @@ if (TRUE) {
           panel.border = element_blank(),
           panel.grid = element_line(size = 0.5),
           panel.grid.minor.y = element_blank(),
-          plot.margin = unit(c(0,0,0,0), "lines")) +
-    ggsave(str_c(supp, "barwick_translocations.pdf"), width = 2, height = 2, useDingbats = FALSE)
+          plot.margin = unit(c(0,0,0,0), "lines")) #+
+    #ggsave(str_c(supp, "barwick_translocations.pdf"), width = 2, height = 2, useDingbats = FALSE)
 
   rm(mmrf_tbl, max_label, max_pct, max_t)
 }
@@ -211,8 +392,8 @@ if (TRUE) {
           #panel.border = element_blank(),
           panel.grid = element_line(size = 0.5),
           panel.grid.minor.y = element_blank(),
-          plot.margin = unit(c(0,0,0,0), "lines")) +
-    ggsave(str_c(supp, "sample_translocations.pdf"), width = 5, height = 2, useDingbats = FALSE)
+          plot.margin = unit(c(0,0,0,0), "lines")) #+
+    #ggsave(str_c(supp, "sample_translocations.pdf"), width = 5, height = 2, useDingbats = FALSE)
 
   rm(barcodes_tbl)
 
