@@ -18,7 +18,7 @@ library(fishplot)
 # numbers used in manuscript
 manuscript_numbers <- list()
 
-last_updated <- "2020-03-16"
+last_updated <- "2020-04-18"
 input_data_path_str <- str_c("data/collected_input_objects.", last_updated, ".RData")
 if (file.exists(input_data_path_str)) {
   load(input_data_path_str)
@@ -1214,12 +1214,34 @@ if (file.exists(input_data_path_str)) {
                             levels = str_c("chr", seq(1:22)),
                             ordered = TRUE)) %>%
       mutate(read_haplotype = factor(read_haplotype,
-                                     values = c(0,1,2),
+                                     levels = c(0,1,2),
                                      ordered = TRUE)) %>%
       mutate(supports_trans = factor(supports_trans,
-                                     values = c(0,1),
+                                     levels = c(0,1),
                                      ordered = TRUE))
   }
+
+  sv_haplotypes_tbl <- NULL
+
+  sv_haplotypes_tbl <- read_tsv("data/SVs/Manta_translocation_11samples_highconfidence_v033120/haplotype_support.tsv",
+                                col_names = c("sample",
+                                              "first_chromosome", "first_position",
+                                              "second_chromosome", "second_position",
+                                              "phase_set_pairs",
+                                              "barcode_support_00_11_12_21_22",
+                                              "total_barcodes",
+                                              "haplotypes_consistent"),
+                                col_types = "cciciccil") %>%
+    mutate(sample = case_when(sample == "27522_4" ~ "27522_3", # WGS timepoint 27522_4 matches closest to lrWGS timepoint 27522_3
+                              TRUE ~ sample)) %>%
+    mutate(first_chromosome = factor(first_chromosome,
+                                     levels = str_c("chr", seq(1:22)),
+                                     ordered = TRUE),
+           second_chromosome = factor(second_chromosome,
+                                      levels = str_c("chr", seq(1:22)),
+                                      ordered = TRUE)) %>%
+    left_join(patient_sample_names_tbl, by = "sample")
+
 
   # clean up
 
