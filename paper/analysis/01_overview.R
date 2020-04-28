@@ -58,6 +58,25 @@ manuscript_numbers[["01_overview"]] <- list()
   manuscript_numbers[["01_overview"]][["n_tumor_wgs_sorted"]] <- patient_sample_names_tbl %>% filter(timepoint != "Normal") %>% filter(cnv_maf_status) %>% pull(sample) %>% unique() %>% length()
   manuscript_numbers[["01_overview"]][["n_normal_samples"]] <- patient_sample_names_tbl %>% filter(timepoint == "Normal") %>% pull(sample) %>% unique() %>% length()
 
+  # Data available table
+  write_tsv(patient_sample_names_tbl %>%
+              mutate(sv_status = case_when(sample %in% sv_haplotypes_tbl$sample ~ TRUE,
+                                           TRUE ~ FALSE)) %>%
+              select(patient, sample, timepoint, display_name, my_color_100,
+                     sorted, cnv_maf_status, sv_status, display_name) %>%
+              rename(Patient = patient,
+                     Sample = sample,
+                     Disease_Stage = timepoint,
+                     Display_Name = display_name,
+                     Sample_Plot_Color = my_color_100,
+                     CD138_Sorted = sorted,
+                     WGS_CNV_and_Somatic_Mutation_Calls_Available = cnv_maf_status,
+                     WGS_SV_Calls_Available = sv_status) %>%
+              mutate(Notes = case_when(Sample == "27522_3" ~ "Timepoint 4 (second relapse collection) used as WGS match",
+                                       Sample == "77570" ~ "SV calls based on lrWGS sample",
+                                       TRUE ~ ".")),
+            str_c(supp, "data_available.tsv"))
+
   rm(plot_df)
 }
 
@@ -121,6 +140,14 @@ manuscript_numbers[["01_overview"]] <- list()
            height = 7.5,
            width = 7.5,
            useDingbats = FALSE)
+
+  # write summary stats to table
+  write_tsv(lr_summary_tbl %>%
+              bind_rows(lr_summary_1000G_tbl) %>%
+              select(-c("sample_n", "vcf_column",
+                        "cnv_maf_status", "display_name"),
+                     -starts_with("my")),
+            str_c(supp, "qc_metrics.tsv"))
 
   rm(plot_df, data_columns, data_multiplier, data_multiplier_label, multiplier_tbl)
 }
