@@ -55,7 +55,7 @@ manuscript_numbers[["02_phase_sets"]] <- list()
 {
   phase_set_summary_tbl %>%
     filter(timepoint != "Normal") %>%
-    ggplot(aes(x = display_name, y = N50_broad/1e6)) +
+    ggplot(aes(x = fct_reorder(display_name, mean_depth), y = N50_broad/1e6)) +
     geom_violin(draw_quantiles = 0.5) +
     geom_jitter(aes(color = my_color_100),
                 height = 0, width = 0.25, shape = 16, show.legend = FALSE) +
@@ -76,6 +76,48 @@ manuscript_numbers[["02_phase_sets"]] <- list()
     ggsave(str_c(main, "phase_set_by_sample.pdf"),
            useDingbats = FALSE, width = 7.25, height = 1.5)
 }
+
+# coverage of phase sets
+# no relationship between phase set length and coverage if coverage above ~30
+if (FALSE) {
+  get_coverage <- function(my_coverage_tbl, my_sample, my_chromosome, my_start, my_end){
+    my_coverage_tbl %>%
+      filter(sample == my_sample,
+             chromosome == my_chromosome,
+             ((my_start <= start & start <= my_end & my_end <= stop) |
+                (start <= my_start & my_end <= stop) |
+                (start <= my_start & my_start <= stop & my_end >= stop) |
+                (my_start <= start & stop <= my_end))) %>%
+      mutate(length_overlap = case_when(my_start <= start & start <= my_end & my_end <= stop ~ as.double(my_end - start),
+                                        start <= my_start & my_end <= stop ~ as.double(my_end - my_start),
+                                        start <= my_start & my_start <= stop & my_end >= stop ~ as.double(stop - my_start),
+                                        TRUE ~ as.double(stop - start))) %>%
+      summarize(sum_of_coverage = sum(coverage*length_overlap),
+                total_overlap = sum(length_overlap),
+                average_coverage = sum_of_coverage/total_overlap) %>%
+      pull(average_coverage) %>%
+      return()
+  }
+
+  coverage_of_phase_sets <- phase_sets_tbl %>%
+    filter(chr == "chr1",
+           length_variants >= 250000) %>%
+    select(ps_id, sample, chr, start, end, sample,
+           length_variants, my_color_100) %>%
+    rowwise() %>%
+    mutate(cov = get_coverage(coverage_tbl, sample, chr, start, end))
+
+  ggplot(coverage_of_phase_sets,
+         aes(y = length_variants, x = cov, color = my_color_100)) +
+    geom_point(show.legend = FALSE) +
+    facet_wrap(~sample) +
+    scale_color_identity()
+
+  rm(coverage_of_phase_sets)
+
+}
+
+
 
 # Phase set length by deletion
 {
