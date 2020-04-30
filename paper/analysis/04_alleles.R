@@ -363,7 +363,7 @@ manuscript_numbers[["04_alleles"]] <- list()
               size = 2) +
     scale_fill_manual(values = c("#80cdc1", "#01665e", "#bdbdbd")) +
     scale_y_continuous(breaks = c(seq(1,5), 5.5),
-                       labels = c("ALT/ALT", "ALT/REF", "REF/ALT", "REF/REF", "", "Total"),
+                       labels = c("ALT-ALT", "ALT-REF", "REF-ALT", "REF-REF", "", "Total"),
                        position = "left") +
     scale_x_discrete(expand = c(0,0), position = "bottom") +
     labs(x = "Combinations of Linked Somatic Mutations", y = NULL) +
@@ -699,7 +699,7 @@ manuscript_numbers[["04_alleles"]][["57075_RUNX1_VAFs"]] <- driver_mutations_vaf
       summarize(count = n()) %>%
       ungroup() %>%
       arrange(desc(count)) %>%
-      mutate(allele_pair = str_c(V1_allele, V2_allele, sep = "/")) %>%
+      mutate(allele_pair = str_c(V1_allele, V2_allele, sep = "-")) %>%
       mutate(allele_pair = str_c(allele_pair, " (", count, ")")) %>%
       mutate(V1_allele = factor(V1_allele, levels = c("REF", "ALT", "NC"), ordered = TRUE),
              V2_allele = factor(V2_allele, levels = c("REF", "ALT", "NC"), ordered = TRUE)) %>%
