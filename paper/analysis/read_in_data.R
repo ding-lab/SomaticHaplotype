@@ -18,7 +18,7 @@ library(fishplot)
 # numbers used in manuscript
 manuscript_numbers <- list()
 
-last_updated <- "2020-04-18"
+last_updated <- "2020-05-06"
 input_data_path_str <- str_c("data/collected_input_objects.", last_updated, ".RData")
 if (file.exists(input_data_path_str)) {
   load(input_data_path_str)
@@ -1232,6 +1232,7 @@ if (file.exists(input_data_path_str)) {
                                               "total_barcodes",
                                               "haplotypes_consistent"),
                                 col_types = "cciciccil") %>%
+    filter(!(sample %in% c("27522_1", "77570"))) %>% # these samples have Manta calls based on sorted/unsorted lrWGS sample, not sorted WGS
     mutate(sample = case_when(sample == "27522_4" ~ "27522_3", # WGS timepoint 27522_4 matches closest to lrWGS timepoint 27522_3
                               TRUE ~ sample)) %>%
     mutate(first_chromosome = factor(first_chromosome,
