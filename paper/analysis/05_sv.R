@@ -395,6 +395,8 @@ if (TRUE) {
           plot.margin = unit(c(0,0,0,0), "lines")) #+
     #ggsave(str_c(supp, "sample_translocations.pdf"), width = 5, height = 2, useDingbats = FALSE)
 
-  rm(barcodes_tbl)
+  rm(barcodes_tbl, large_barcode_plot, large_barcode_plot_translocation_only)
 
 }
+
+rm(main, supp)

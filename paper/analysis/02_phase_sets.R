@@ -55,7 +55,7 @@ manuscript_numbers[["02_phase_sets"]] <- list()
 {
   phase_set_summary_tbl %>%
     filter(timepoint != "Normal") %>%
-    ggplot(aes(x = fct_reorder(display_name, mean_depth), y = N50_broad/1e6)) +
+    ggplot(aes(x = fct_reorder(display_name, sample_n), y = N50_broad/1e6)) +
     geom_violin(draw_quantiles = 0.5) +
     geom_jitter(aes(color = my_color_100),
                 height = 0, width = 0.25, shape = 16, show.legend = FALSE) +

@@ -55,7 +55,7 @@ manuscript_numbers[["01_overview"]] <- list()
   manuscript_numbers[["01_overview"]][["n_patients"]] <- patient_sample_names_tbl %>% pull(patient) %>% unique() %>% length()
   manuscript_numbers[["01_overview"]][["n_tumor_samples"]] <- patient_sample_names_tbl %>% filter(timepoint != "Normal") %>% pull(sample) %>% unique() %>% length()
   manuscript_numbers[["01_overview"]][["n_tumor_samples_sorted"]] <- patient_sample_names_tbl %>% filter(timepoint != "Normal") %>% filter(sorted) %>% pull(sample) %>% unique() %>% length()
-  manuscript_numbers[["01_overview"]][["n_tumor_wgs_sorted"]] <- patient_sample_names_tbl %>% filter(timepoint != "Normal") %>% filter(cnv_maf_status) %>% pull(sample) %>% unique() %>% length()
+  manuscript_numbers[["01_overview"]][["n_tumor_wgs_sorted_with_cnv_maf"]] <- patient_sample_names_tbl %>% filter(timepoint != "Normal") %>% filter(cnv_maf_status) %>% pull(sample) %>% unique() %>% length()
   manuscript_numbers[["01_overview"]][["n_normal_samples"]] <- patient_sample_names_tbl %>% filter(timepoint == "Normal") %>% pull(sample) %>% unique() %>% length()
 
   # Data available table

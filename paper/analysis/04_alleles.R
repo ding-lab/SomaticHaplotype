@@ -145,6 +145,8 @@ manuscript_numbers[["04_alleles"]] <- list()
     ggsave(str_c(main, "overlapping_barcodes.without_legend.pdf"), p + guides(fill = FALSE),
            width = 2, height = 2, useDingbats = FALSE)
 
+    rm(p)
+
   variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>%
     filter(distance_between_variants < 100) %>%
     mutate(overlap_category = case_when(n_overlapping_barcodes == 0 ~ "Zero",
@@ -549,6 +551,8 @@ manuscript_numbers[["04_alleles"]] <- list()
               (combo1 %in% perfect_alt_on_H1$combo & combo2 %in% perfect_alt_on_H2$combo) |
               (combo1 %in% perfect_alt_on_H2$combo & combo2 %in% perfect_alt_on_H1$combo))
 
+  rm(pv, vp)
+
   for (i in 1:nrow(phased_pairs)) {
 
     this_mutation_pattern <- phased_pairs$mutation_pattern[i]
@@ -589,6 +593,14 @@ manuscript_numbers[["04_alleles"]] <- list()
                           output_dir =  str_c(supp, "phased_pairs/", this_mutation_pattern, "/"),
                           mutation_pattern = this_mutation_pattern,
                           output_filename = this_output_filename)
+
+    rm(this_gene1, this_protein1, this_position1,
+       this_gene2, this_protein2, this_position2,
+       this_output_filename,
+       this_mutation_pattern,
+       this_var1, this_var2,
+       this_variants_of_interest,
+       this_sample)
 
   }
 
@@ -668,6 +680,15 @@ manuscript_numbers[["04_alleles"]] <- list()
                             output_filename = this_output_filename)
 
     }
+
+    rm(vp, pv, perfect_alt_on_H1, perfect_alt_on_H2, phased_pairs,
+       this_gene1, this_protein1, this_position1,
+       this_gene2, this_protein2, this_position2,
+       this_output_filename,
+       this_mutation_pattern,
+       this_var1, this_var2,
+       this_variants_of_interest,
+       this_sample)
   }
 
 }
@@ -753,65 +774,9 @@ manuscript_numbers[["04_alleles"]][["57075_RUNX1_VAFs"]] <- driver_mutations_vaf
 
 }
 
-# 27522 fish plot
-if (FALSE) {
-  # Fish plot PMID {27821060}
-  # Sciclone PMID {25102416}
-
-  timepoints = c(0, 10, 15, 110, 210, 310)
-  timepoint_labels = c("", "", "Primary", "Remission", "Relapse 1", "Relapse 2")
-  frac.table <-
-    matrix(c( 100, 100, 100,   0, 100, 100, # Cluster 1 t(4;14)
-              90,  90,  90,   0,  90,  90, # Cluster 2 DIS3, KMT2D
-              0,  55,  55,   0,  80,  80, # Cluster 3 NRAS G13
-              0,   0,   5,   0,  55,  55, # Cluster 4 TP53
-              0,   0,  15,   0,  15,  15, # Cluster 5 ---
-              0,  25,  25,   0,   0,   0, # Cluster 6 NRAS Q61
-              0,   0,   0,   0, 0.1,  11),# Cluster 7 ---
-           nrow = 7,
-           ncol = 6,
-           byrow = TRUE)
-
-
-  #provide a vector listing each clone's parent
-  #(0 indicates no parent)
-  parents = c(0, 1, 2, 3, 3, 2, 4)
-
-  #create a fish object
-  colors_to_use <- c("#D3D3D3", "#DC4C46", "#00A591", "#984EA3", "#E69F00",
-                     "#0072B2", "#D55E00", "#77d500", "#F781BF")[1:nrow(frac.table)]
-  fish = createFishObject(frac.table,
-                                 parents,
-                                 timepoints = timepoints,
-                                 fix.missing.clones = TRUE,
-                                 col = colors_to_use)
-
-  #calculate the layout of the drawing
-  fish = layoutClones(fish)
-
-  #draw the plot, using the splining method (recommended)
-  #and providing both timepoints to label and a plot title
-  size_factor = 500
-  #png(str_c(main, "27522.fishplot.png"),
-  #    width = 5.25*size_factor,
-  #    height = 1.5*size_factor,
-  #    units = "px",
-  #    bg = "transparent")
-  pdf(str_c(main, "27522.fishplot.pdf"), width = 5*2, height = 1.5*2)
-  fishPlot(fish,
-           vlines = c(10, 110, 210, 310),
-           col.vline = "black",
-           shape = "spline",
-           bg.type = "solid",
-           bg.col = "white",
-           border = 1)
-  dev.off()
-
-  rm(timepoint_labels, frac.table, parents, colors_to_use, fish, size_factor)
-}
-
 # 27522 NRAS fish plot
 if (TRUE) {
+  graphics.off()
   # Fish plot PMID {27821060}
   # Sciclone PMID {25102416}
 
@@ -825,7 +790,6 @@ if (TRUE) {
            nrow = 5,
            ncol = 5,
            byrow = TRUE)
-
 
   #provide a vector listing each clone's parent
   #(0 indicates no parent)
@@ -859,6 +823,7 @@ if (TRUE) {
 
 # 27522 ACTG1 fish plot
 if (TRUE) {
+  graphics.off()
   # Fish plot PMID {27821060}
   # Sciclone PMID {25102416}
 
@@ -915,4 +880,4 @@ manuscript_numbers[["04_alleles"]][["27522_TP53_VAF"]] <- driver_mutations_vaf_t
 manuscript_numbers[["04_alleles"]][["27522_TP53_CNV_ratio"]] <- cnv_tbl %>% filter(sample == "27522_3", chrom == "chr17", start < 7674220, end > 7674220) %>% pull(log2.copyRatio)
 manuscript_numbers[["04_alleles"]][["27522_TP53_CNV_raw"]] <- 2*(2^manuscript_numbers[["04_alleles"]][["27522_TP53_CNV_ratio"]])
 
-rm(plot_barcode_variants, main, supp)
+rm(i, plot_barcode_variants, plot_allele_pairs, main, supp)
