@@ -9,14 +9,10 @@ supp = "figures/07_ancestry/supplementary/"
 dir.create(main, recursive = TRUE, showWarnings = FALSE)
 dir.create(supp, recursive = TRUE, showWarnings = FALSE)
 
-segment_overlap_tbl %>%
-  filter(IBD_or_HBD == "IBD") %>%
-  group_by(Sample1_ID, Sample1_haplotype,
-           Sample2_ID, Sample2_haplotype,
-           IBD_start_position, IBD_end_position) %>%
-  summarize(count = n(),
-            ps = str_c(Phase_set_key, collapse = ", ")) %>%
-  View()
+manuscript_numbers[["07_ancestry"]] <- list()
+
+manuscript_numbers[["07_ancestry"]][["shared_event_between_NA12878_NA10851"]] <- segment_overlap_tbl %>%
+  filter(Sample2_ID == "NA10851")
 
 positions_list <- segment_overlap_tbl %>%
   filter(Chromosome == "chr18", IBD_segment_index == 8) %>%
@@ -44,7 +40,7 @@ x_limits <- c(min(as.numeric(positions_list[[1]])),
 ibd <- segment_overlap_tbl %>%
   filter(Chromosome == "chr18", IBD_segment_index == 8) %>%
   select(IBD_start_position, IBD_end_position) %>%
-  mutate(my_row = "IBD segment") %>% unique()
+  mutate(my_row = "IBD Segment") %>% unique()
 
 ps <- segment_overlap_tbl %>%
   filter(Chromosome == "chr18", IBD_segment_index == 8) %>%
@@ -74,7 +70,7 @@ tibble(my_row = c(rep("Phase Sets", n_alleles_ps1), rep("Phase Sets", n_alleles_
   geom_segment(aes(x = IBD_start_position/1e6, xend = IBD_end_position/1e6,
                    y = my_row, yend = my_row)) +
   geom_jitter(aes(color = match_category), width = 0, height = 0.1, shape = 16, alpha = 0.25) +
-  geom_jitter(aes(y = "IBD segment"), width = 0, height = 0.1, shape = 16, alpha = 0.25) +
+  geom_jitter(aes(y = "IBD Segment"), width = 0, height = 0.1, shape = 16, alpha = 0.25) +
   geom_label(aes(x = label_position/1e6, y = "Phase Sets", label = Phase_set_key),
              nudge_y = .5, size = 8/ggplot2:::.pt) +
   coord_cartesian(xlim = x_limits/1e6) +
@@ -97,3 +93,6 @@ tibble(my_row = c(rep("Phase Sets", n_alleles_ps1), rep("Phase Sets", n_alleles_
         legend.box.margin = margin(-10,-10,-10,-10)) +
   ggsave(str_c(main, "ibd_overlap.pdf"),
          width = 7.25, height = 1.5, useDingbats = FALSE)
+
+rm(main, supp, positions_list, H1_allele_list, H2_allele_list, IBD_allele_list,
+  n_alleles_ps1, n_alleles_ps2, x_limits, ibd, ps)

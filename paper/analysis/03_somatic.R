@@ -14,8 +14,10 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
 
 manuscript_numbers[["03_somatic"]] <- list()
 
-manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_maf"]] <- maf_tbl %>% nrow()
-manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_maf_per_sample"]] <- maf_tbl %>% nrow()/6
+manuscript_numbers[["03_somatic"]][["reads_overlapping_mutation_site_assigned_haplotype_proportion"]] <- phasing_variants_mapq20_tbl %>% summarize(a = sum(barcode_REF_H1), b = sum(barcode_REF_H2), c = sum(barcode_ALT_H1), d = sum(barcode_ALT_H2), abcd = a + b + c + d, e = sum(just_barcode_not_phased), abcde = abcd + e, overall = abcd/abcde) %>% pull(overall)
+
+manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_maf"]] <- maf_tbl %>% filter(Variant_Type == "SNP") %>% nrow()
+manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_maf_per_sample"]] <- manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_maf"]]/6
 manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping"]] <- phasing_variants_mapq20_tbl %>% nrow()
 manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_per_sample"]] <- phasing_variants_mapq20_tbl %>% nrow()/6
 manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_coverage"]] <- phasing_variants_mapq20_tbl %>% filter(enough_coverage) %>% nrow()
@@ -313,6 +315,7 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
     arrange(n_pairs_color)
 
   n_phase_sets <- plot_data %>% nrow()
+  manuscript_numbers[["03_somatic"]][["n_phase_sets_gt_1kb_1_pair_by_n_pairs"]] <- plot_data %>% pull(n_pairs_color) %>% table()/n_phase_sets
   n_phase_sets_1.0 <- plot_data %>% filter(proportion_variants_phased == 1) %>% nrow()
   n_phase_sets_0.75 <- plot_data %>% filter(proportion_variants_phased >= 0.75) %>% nrow()
   manuscript_numbers[["03_somatic"]][["n_phase_sets_gt_1kb_1_pair"]] <- n_phase_sets
