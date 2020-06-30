@@ -523,4 +523,66 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
 
 }
 
+# Can we correct for copy number using linked alleles
+
+for (this_sample in cnv_tbl %>% pull(sample) %>% unique()) {
+  print(this_sample)
+  # Somatic variants phased with CNV data
+  x <- phasing_variants_driver_mapq20_tbl %>%
+    filter(phased_by_linked_alleles %in% c("H1", "H2"),
+           cnv_maf_status == TRUE) %>%
+    select(Variant, Chromosome, Position, Reference, Alternate,
+           Phase_Set, sample, phased_by_linked_alleles) %>%
+    filter(sample == this_sample)
+
+  # Multiplication factors
+  y <- barcodes_variants_driver_mapq20_tbl[[this_sample]] %>%
+    filter(Phased_Heterozygote == "True",
+           Variant != Somatic_Variant) %>%
+    group_by(Somatic_Variant, Variant) %>%
+    summarize(n_H1 = sum(Haplotype == "H1"),
+              n_H2 = sum(Haplotype == "H2"),
+              n_total = n_H1 + n_H2,
+              mult_H1 = 0.5*n_total/n_H1,
+              mult_H2 = 0.5*n_total/n_H2) %>%
+    filter(n_H1 >= 5, n_H2 >= 5) %>%
+    ungroup() %>% group_by(Somatic_Variant) %>%
+    summarize(total_variants = n(),
+              mult_H1_mean = mean(mult_H1), mult_H1_sd = sd(mult_H1),
+              mult_H2_mean = mean(mult_H2), mult_H2_sd = sd(mult_H2)) %>%
+    filter(total_variants >= 10)
+
+  get_cnv_for_position <- function(cnv, my_chr, my_pos, my_sample){
+    return_value <- cnv %>%
+      filter(sample == my_sample,
+             chrom == my_chr,
+             start <= my_pos,
+             end >= my_pos) %>%
+      pull(log2.copyRatio)
+
+    if (length(return_value) == 0) {
+      return_value <- NA
+    }
+    return(return_value)
+
+  }
+
+  x %>%
+    left_join(y, by = c("Variant" = "Somatic_Variant")) %>%
+    filter(!is.na(total_variants)) %>%
+    rowwise() %>%
+    mutate(log2.copyRatio = get_cnv_for_position(cnv_tbl,
+                                                 my_chr = Chromosome,
+                                                 my_pos = Position,
+                                                 my_sample = sample)) %>%
+    ungroup() %>%
+    View()
+
+}
+
 rm(main, supp)
+
+
+
+
+

@@ -18,7 +18,7 @@ library(fishplot)
 # numbers used in manuscript
 manuscript_numbers <- list()
 
-last_updated <- "2020-05-06"
+last_updated <- "2020-06-30"
 input_data_path_str <- str_c("data/collected_input_objects.", last_updated, ".RData")
 if (file.exists(input_data_path_str)) {
   load(input_data_path_str)
@@ -1243,6 +1243,26 @@ if (file.exists(input_data_path_str)) {
                                       ordered = TRUE)) %>%
     left_join(patient_sample_names_tbl, by = "sample")
 
+  # allele specific copy number variation
+
+  ascnv_tbl <- list() # use a list to keep samples separate
+
+  for (sample_id in patient_sample_names_tbl %>%
+       filter(cnv_maf_status) %>% pull(sample)) {
+    ascnv_tbl[[sample_id]] <- NULL
+    ascnv_tbl[[sample_id]] <- read_tsv(str_c(
+      str_c("data/allele_specific_cnv/cnvs_overlapping_phase_sets_with_AD",
+            sample_id, "tsv", sep = ".")),
+      col_types = "ciicdciiiiciccciii",
+      na = ".")
+
+
+    ascnv_tbl[[sample_id]] <- ascnv_tbl[[sample_id]] %>%
+      left_join(patient_sample_names_tbl, by = "sample") %>%
+      mutate(chrom = factor(chrom,
+                            levels = str_c("chr", seq(1:22)),
+                            ordered = TRUE))
+  }
 
   # clean up
 
