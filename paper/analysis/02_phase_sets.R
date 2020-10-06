@@ -380,6 +380,20 @@ manuscript_numbers[["02_phase_sets"]][["HLA_stats"]] <- phase_sets_tbl %>%
   filter((start <= 28510120 & 28510120 <= end & end <= 33480577) |
            (28510120 <= start & end <= 33480577) |
            (28510120 <= start & start <= 33480577 & end >= 33480577) |
-           (start <= 28510120 & 33480577 <= end)) %>% filter(length_variants >= 1e3) %>% rowwise() %>% mutate(coverage = min(end, 33480577) - max(start, 28510120)) %>% ungroup() %>% group_by(sample) %>% summarize(total_coverage = sum(coverage)/(33480577 - 28510120), total = n()) %>% ungroup() %>% summarize(total_coverage_median = median(total_coverage), total_coverage_min = min(total_coverage), total_coverage_max = max(total_coverage), n_phase_sets_median = median(total), n_phase_sets_min = min(total), n_phase_sets_max = max(total))
+           (start <= 28510120 & 33480577 <= end)) %>%
+  filter(length_variants >= 1e3) %>%
+  rowwise() %>%
+  mutate(coverage = min(end, 33480577) - max(start, 28510120)) %>%
+  ungroup() %>%
+  group_by(sample) %>%
+  summarize(total_coverage = sum(coverage)/(33480577 - 28510120),
+            total = n()) %>%
+  ungroup() %>%
+  summarize(total_coverage_median = median(total_coverage),
+            total_coverage_min = min(total_coverage),
+            total_coverage_max = max(total_coverage),
+            n_phase_sets_median = median(total),
+            n_phase_sets_min = min(total),
+            n_phase_sets_max = max(total))
 
 rm(main, supp)
