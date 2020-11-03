@@ -17,6 +17,7 @@ conda install -n SomaticHaplotype -c conda-forge python-igraph
 
 # install samtools and bcftools for ancestry data variant calling  
 # https://samtools.github.io/bcftools/
+conda install -n SomaticHaplotype -c bioconda samtools=1.9
 conda install -n SomaticHaplotype -c bioconda bcftools
 
 # if you will use Beagle/IBD tools, then install a compatible Java version 8 distribution
