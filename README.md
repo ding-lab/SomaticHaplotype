@@ -87,13 +87,13 @@ optional arguments:
 
 ## Test data
 
-Download test data files (test_data.tar.gz) from doi.org/10.6084/m9.figshare.12295883 (size: 1.3 Gb). Untar them using the command
+Download test data files (test_data.tar.gz) from doi.org/10.6084/m9.figshare.12295883 (size: 1.3 Gb) and untar using this command.
 
 ```
 tar xvf test_data.tar.gz
 ```
 
-The following script runs `SomaticHaplotype.py` on data in `test_data` and creates output `test_output`.
+The following script runs `SomaticHaplotype.py` on data in `test_data/` and creates output in `test_output/`.
 ```
 bash run_SomaticHaplotype_on_test_data.sh
 ```
