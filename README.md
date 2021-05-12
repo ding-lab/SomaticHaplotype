@@ -73,6 +73,17 @@ optional arguments:
   --version          show program's version number and exit
   ```
   
+## Input requirements
+
+| module | arguments |
+| ------ | --------- |
+| phaseset | `--bam`, `--vcf`, `--vcf_id`, `--range`|
+| summarize | `--ps1` |
+| extend | `--sum`, `--ps1`, `--ps2`, `--range` |
+| somatic | `--ps1`, `--range`, `--maf` xor `--variant`, `--sum` |
+| ancestry | `--ps1`, `--vcf`, `--vcf_id`, `--range`, `--ibd`, `--hbd`, `--dem` |
+
+
 
 ## Test data
 
