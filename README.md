@@ -85,7 +85,7 @@ optional arguments:
 
 ## Test data
 
-Download test data files (test_data.tar.gz) from doi.org/10.6084/m9.figshare.12295883 (size: 1.3 Gb) and untar using this command.
+Download test data files (test_data.tar.gz) from [figshare](doi.org/10.6084/m9.figshare.12295883) (size: 1.3 Gb) and untar using this command.
 
 ```
 tar xvf test_data.tar.gz
