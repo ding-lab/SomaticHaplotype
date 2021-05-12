@@ -28,8 +28,6 @@ bash external_downloads/set_up_SomaticHaplotype_environment.sh
 
 ```python SomaticHaplotype.py [module] [output directory] [output prefix]```
 
-or
-
 ```
 python SomaticHaplotype.py --help
 
