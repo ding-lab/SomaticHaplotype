@@ -1268,7 +1268,7 @@ if (file.exists(input_data_path_str)) {
   #     mutate(chrom = factor(chrom,
   #                           levels = str_c("chr", seq(1:22)),
   #                           ordered = TRUE))
-  }
+  # }
 
   # clean up
 
@@ -1281,11 +1281,11 @@ if (file.exists(input_data_path_str)) {
   sink(str_c("session_info/session_info.", last_updated, ".txt"))
   print(devtools::session_info())
   sink()
-
+  
   # save current objects to load next time
   save(list = ls(pattern = "_tbl"), file = str_c(input_data_path_str), envir = .GlobalEnv)
   rm(last_updated, input_data_path_str)
-
+  
 }
 
 # Steven Foltz (envest) January/February 2020
