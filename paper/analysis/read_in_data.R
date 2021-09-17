@@ -18,7 +18,7 @@ library(fishplot)
 # numbers used in manuscript
 manuscript_numbers <- list()
 
-last_updated <- "2020-06-30"
+last_updated <- "2021-09-17"
 input_data_path_str <- str_c("data/collected_input_objects.", last_updated, ".RData")
 if (file.exists(input_data_path_str)) {
   load(input_data_path_str)
@@ -1127,6 +1127,11 @@ if (file.exists(input_data_path_str)) {
       mutate(chromosome = factor(chromosome,
                                  levels = str_c("chr", seq(1:22)),
                                  ordered = TRUE))
+
+    # genotypes called by other tools (HapCUT2 and WhatsHap)
+
+    gt_other_tools_tbl <- read_tsv("data/somatic/gt_other_tools.tsv",
+                                   col_types = "ccicc")
   }
 
   # IBD segment ancestry
