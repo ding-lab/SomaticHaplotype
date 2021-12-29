@@ -582,7 +582,50 @@ for (this_sample in cnv_tbl %>% pull(sample) %>% unique()) {
 
 rm(main, supp)
 
+# added October 2021
+tool_comparison_df <- phasing_variants_mapq20_tbl %>%
+  filter(enough_coverage) %>%
+  select(sample, Chromosome, Position,
+         phased, Genotype) %>%
+  rename("Genotype_LR" = "Genotype") %>%
+  left_join(gt_other_tools_tbl,
+            by = c("sample", "Chromosome", "Position")) %>%
+  drop_na() %>%
+  mutate(Genotype_LR  = case_when(str_detect(Genotype_LR, "\\|") ~ "Phased",
+                                  TRUE ~ "Not phased"),
+         whatshap_gt = case_when(str_detect(whatshap_gt, "\\|") ~ "Phased",
+                                 TRUE ~ "Not phased"),
+         hapcut2_gt = case_when(str_detect(hapcut2_gt, "\\|") ~ "Phased",
+                                TRUE ~ "Not phased"),
+         phased = case_when(phased == "Phased" ~ "Phased",
+                            TRUE ~ "Not phased"))
 
+tool_comparison_df %>% select(phased) %>% table()
+tool_comparison_df %>% select(phased) %>% table()/nrow(tool_comparison_df)
 
+tool_comparison_df %>% select(Genotype_LR) %>% table()
+tool_comparison_df %>% select(Genotype_LR) %>% table()/nrow(tool_comparison_df)
 
+tool_comparison_df %>% select(whatshap_gt) %>% table()
+tool_comparison_df %>% select(whatshap_gt) %>% table()/nrow(tool_comparison_df)
 
+tool_comparison_df %>% select(hapcut2_gt) %>% table()
+tool_comparison_df %>% select(hapcut2_gt) %>% table()/nrow(tool_comparison_df)
+
+tool_comparison_df %>%
+  select(phased, Genotype_LR) %>%
+  group_by(Genotype_LR) %>%
+  summarize(n = n(),
+            phased_SH = mean(phased == "Phased"))
+
+tool_comparison_df %>%
+  select(phased, whatshap_gt) %>%
+  group_by(whatshap_gt) %>%
+  summarize(n = n(),
+            phased_SH = mean(phased == "Phased"))
+
+tool_comparison_df %>%
+  select(phased, hapcut2_gt) %>%
+  group_by(hapcut2_gt) %>%
+  summarize(n = n(),
+            phased_SH = mean(phased == "Phased"))
