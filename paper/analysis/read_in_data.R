@@ -18,7 +18,7 @@ library(fishplot)
 # numbers used in manuscript
 manuscript_numbers <- list()
 
-last_updated <- "2021-09-17"
+last_updated <- "2021-09-21"
 input_data_path_str <- str_c("data/collected_input_objects.", last_updated, ".RData")
 if (file.exists(input_data_path_str)) {
   load(input_data_path_str)
@@ -1131,7 +1131,12 @@ if (file.exists(input_data_path_str)) {
     # genotypes called by other tools (HapCUT2 and WhatsHap)
 
     gt_other_tools_tbl <- read_tsv("data/somatic/gt_other_tools.tsv",
-                                   col_types = "ccicc")
+                                   col_types = "ccicc") %>%
+      rename("Chromosome" = "chromosome",
+             "Position" = "position") %>%
+      mutate(Chromosome = factor(Chromosome,
+                                 levels = str_c("chr", seq(1:22)),
+                                 ordered = TRUE))
   }
 
   # IBD segment ancestry
@@ -1281,11 +1286,11 @@ if (file.exists(input_data_path_str)) {
   sink(str_c("session_info/session_info.", last_updated, ".txt"))
   print(devtools::session_info())
   sink()
-  
+
   # save current objects to load next time
   save(list = ls(pattern = "_tbl"), file = str_c(input_data_path_str), envir = .GlobalEnv)
   rm(last_updated, input_data_path_str)
-  
+
 }
 
 # Steven Foltz (envest) January/February 2020
