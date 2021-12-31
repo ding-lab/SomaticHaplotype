@@ -197,11 +197,11 @@ class Variant:
   def extract_variant_phase_block_from_VCF_record(self, record, sample_id):
     # extract the phase block from a pyVCF record
     chrom = record.CHROM
-    try: # check if PB exists. otherwise say PB = 0
-      record.genotype(sample_id).data.PB 
+    try: # check if PS exists. otherwise say PS = 0
+      record.genotype(sample_id).data.PS 
     except:
       return(str(chrom) + ":" + "0")
-    pb = record.genotype(sample_id).data.PB
+    pb = record.genotype(sample_id).data.PS
     pbid = str(chrom) + ":" + str(pb)
     return(pbid)
 
