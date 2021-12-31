@@ -1,5 +1,5 @@
 ################################################################################
-# Extend phase blocks
+# Extend phase sets
 ################################################################################
 
 main = "figures/06_extend/main/"
@@ -11,8 +11,8 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
 
 manuscript_numbers[["06_extend"]] <- list()
 
-extend_ps_no_skin <- extend_phase_blocks_tbl %>%
-  filter(!is.na(cluster_base_phase_block)) %>%
+extend_ps_no_skin <- extend_phase_sets_tbl %>%
+  filter(!is.na(cluster_base_phase_set)) %>%
   filter(!str_detect(sample, "skin"), !str_detect(extended_by, "skin"))
 extend_stats_no_skin <- extend_stats_tbl %>%
   filter(!str_detect(sample, "skin"), !str_detect(extended_by, "skin"))
@@ -133,7 +133,7 @@ extend_stats_no_skin <- extend_stats_tbl %>%
                fill = recommendation)) +
     geom_histogram(boundary = 0, binwidth = 0.25) +
     geom_vline(xintercept = log10(10^5), lty = 2) +
-    labs(x = "Phase Block Overlap Length (bp, log10)", y = NULL) +
+    labs(x = "Phase Set Overlap Length (bp, log10)", y = NULL) +
     scale_fill_viridis_d(option = "C") +
     scale_y_continuous(expand = c(0.02,0.02)) +
     scale_x_continuous(expand = c(0.02,0.02)) +
@@ -185,14 +185,14 @@ extend_stats_no_skin <- extend_stats_tbl %>%
 
   manuscript_numbers[["06_extend"]][["n_extend_patients"]] <- plot_df %>% pull(patient) %>% unique() %>% length()
   manuscript_numbers[["06_extend"]][["n_extend_sample_pairs"]] <- plot_df %>% select(sample, extended_by) %>% unique() %>% nrow()
-  manuscript_numbers[["06_extend"]][["n_overlapping_phase_blocks"]] <- plot_df %>% nrow()
+  manuscript_numbers[["06_extend"]][["n_overlapping_phase_sets"]] <- plot_df %>% nrow()
   manuscript_numbers[["06_extend"]][["n_recommendations"]] <- plot_df %>% select(recommendation) %>% table()
-  manuscript_numbers[["06_extend"]][["pct_recommendations"]] <- 100*manuscript_numbers[["06_extend"]][["n_recommendations"]]/manuscript_numbers[["06_extend"]][["n_overlapping_phase_blocks"]]
+  manuscript_numbers[["06_extend"]][["pct_recommendations"]] <- 100*manuscript_numbers[["06_extend"]][["n_recommendations"]]/manuscript_numbers[["06_extend"]][["n_overlapping_phase_sets"]]
 
   rm(plot_df)
 }
 
-# example of extended phase blocks
+# example of extended phase sets
 {
 
   rm_no_rec <- extend_stats_no_skin %>%
@@ -240,7 +240,7 @@ extend_stats_no_skin <- extend_stats_tbl %>%
                  lwd = 4,
                  show.legend = FALSE) +
     labs(x = "Genomic Length and Relative Position (Mb)",
-         y = "Groups of Extendable Phase Blocks") +
+         y = "Groups of Extendable Phase Sets") +
     scale_color_viridis_d(option = "C", drop = F) +
     theme_bw() +
     theme(axis.ticks.x = element_blank(),
@@ -280,7 +280,7 @@ extend_stats_no_skin <- extend_stats_tbl %>%
     geom_violin(data = plot_df_dist_after, aes(x = "Extended",
                                                y = log10(length_after)), draw_quantiles = 0.5) +
     expand_limits(y = c(0)) +
-    labs(y = "Phase Block Length (bp, log10)", x = NULL) +
+    labs(y = "Phase Set Length (bp, log10)", x = NULL) +
     theme_bw() +
     theme(axis.ticks.x = element_blank(),
           axis.ticks.y = element_blank(),
