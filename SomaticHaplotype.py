@@ -1,12 +1,12 @@
 import argparse
 import sys
 
-class PhaseSet:
-  def __init__(self, ps_id, chromosome, start_bp, end_bp):
+class PhaseBlock:
+  def __init__(self, pb_id, chromosome, start_bp, end_bp):
     self._chr = chromosome
     self._end = int(end_bp)
     self._firstVariantPosition = None
-    self._key = chromosome + ":" + ps_id
+    self._key = chromosome + ":" + pb_id
     self._lastVariantPosition = None
     self._molecules_H1 = {}
     self._molecules_H2 = {}
@@ -15,7 +15,7 @@ class PhaseSet:
     self._n_support_H2 = 0
     self._n_variants_H1 = 0
     self._n_variants_H2 = 0
-    self._psid = ps_id
+    self._pbid = pb_id
     self._start = int(start_bp)
     self._variants = {}
 
@@ -84,7 +84,7 @@ class PhaseSet:
   def update_Start(self, new_start_bp):
     self._start = int(new_start_bp)
 
-  # Functions to return values about the PhaseSet
+  # Functions to return values about the PhaseBlock
 
   def return_Chromosome(self):
     return(self._chr)
@@ -132,8 +132,8 @@ class PhaseSet:
   def return_nVariantsH2(self):
     return(self._n_variants_H2)
 
-  def return_PhaseSetID(self):
-    return(self._psid)
+  def return_PhaseBlockID(self):
+    return(self._pbid)
 
   def return_Start(self):
     return(self._start)
@@ -142,7 +142,7 @@ class PhaseSet:
     return(self._variants)
 
   def __str__(self):
-    print_result = self._psid + "\t" + self._chr + ":" + str(self._start) + "-" + str(self._end)
+    print_result = self._pbid + "\t" + self._chr + ":" + str(self._start) + "-" + str(self._end)
     return(print_result)
 
 class Variant:
@@ -158,7 +158,7 @@ class Variant:
     self._is_snp = record.is_snp
     self._molecules = self.extract_molecules_from_VCF_record(record, sample_id)
     self._position = record.POS
-    self._psid = self.extract_variant_phase_set_from_VCF_record(record, sample_id)
+    self._pbid = self.extract_variant_phase_block_from_VCF_record(record, sample_id)
     self._ref = record.REF 
     self._sampleid = sample_id
     self._start = record.start
@@ -194,16 +194,16 @@ class Variant:
           molecule_dictionary[allele][molecule] = quality_list
     return(molecule_dictionary)
 
-  def extract_variant_phase_set_from_VCF_record(self, record, sample_id):
-    # extract the phase set from a pyVCF record
+  def extract_variant_phase_block_from_VCF_record(self, record, sample_id):
+    # extract the phase block from a pyVCF record
     chrom = record.CHROM
-    try: # check if PS exists. otherwise say PS = 0
-      record.genotype(sample_id).data.PS 
+    try: # check if PB exists. otherwise say PB = 0
+      record.genotype(sample_id).data.PB 
     except:
       return(str(chrom) + ":" + "0")
-    ps = record.genotype(sample_id).data.PS
-    psid = str(chrom) + ":" + str(ps)
-    return(psid)
+    pb = record.genotype(sample_id).data.PB
+    pbid = str(chrom) + ":" + str(pb)
+    return(pbid)
 
   # Functions to return values about the Variant
 
@@ -237,8 +237,8 @@ class Variant:
   def return_Molecules(self):
     return(self._molecules)
 
-  def return_PhaseSetID(self):
-    return(self._psid)
+  def return_PhaseBlockID(self):
+    return(self._pbid)
 
   def return_Position(self):
     return(self._position)
@@ -257,8 +257,8 @@ class Variant:
     variant_key = ':'.join( [ str(x) for x in key_list ] )
     return(variant_key)
 
-  def return_VariantPhaseSet(self):
-    return(self._psid)
+  def return_VariantPhaseBlock(self):
+    return(self._pbid)
 
   def __str__(self):
     print_result = self.return_VariantKey()
@@ -269,7 +269,7 @@ def parse_input_arguments():
   parser = argparse.ArgumentParser()
 
   # Required positional arguments
-  parser.add_argument("module", help = "Module the program should run. Could be one of phaseset, summarize, extend, somatic, or ancestry.")
+  parser.add_argument("module", help = "Module the program should run. Could be one of phaseblock, summarize, extend, somatic, or ancestry.")
   parser.add_argument("output_directory", help = "Absolute or relative path to output directory")
   parser.add_argument("output_prefix", help = "Prefix for file names in output directory. Warning: existing files in output_directory with same prefix will be overwritten.")
 
@@ -278,8 +278,8 @@ def parse_input_arguments():
   parser.add_argument('--vcf', action = 'store', help = "Path to VCF file")
   parser.add_argument('--vcf_id', action = 'store', help = "Sample ID from VCF file")
   parser.add_argument('--range', action = 'store', help = "Genomic range chr:start-stop, chr, chr:start, chr:-stop")
-  parser.add_argument('--ps1', action = 'store', help = "Path to first phase set file")
-  parser.add_argument('--ps2', action = 'store', help = "Path to second phase set file")
+  parser.add_argument('--pb1', action = 'store', help = "Path to first phase block file")
+  parser.add_argument('--pb2', action = 'store', help = "Path to second phase block file")
   parser.add_argument('--sum', action = 'store', help = "Path to existing summary file")
   parser.add_argument('--maf', action = 'store', help = "Path to sample-specific somatic MAF (assumes all variants are associated with single sample)")
   parser.add_argument('--sombx', action = 'store', help = "Path to file containing barcodes supporting somatic MAF variants extracted from BAM")
@@ -297,39 +297,39 @@ def parse_input_arguments():
 def main():
   args = parse_input_arguments()
   
-  acceptable_modules = ["phaseset", "summarize", "visualize", "extend", "somatic", "ancestry"]
+  acceptable_modules = ["phaseblock", "summarize", "visualize", "extend", "somatic", "ancestry"]
   if args.module in acceptable_modules:
     no_error = True
     error_message = []
 
-    if args.module == "phaseset":
+    if args.module == "phaseblock":
       if args.bam is None:
         no_error = False
-        error_message.append("The phaseset module requires a --bam.")
+        error_message.append("The phaseblock module requires a --bam.")
       if args.vcf is None:
         no_error = False
-        error_message.append("The phaseset module requires a --vcf.")
+        error_message.append("The phaseblock module requires a --vcf.")
       if args.vcf_id is None:
         no_error = False
-        error_message.append("The phaseset module requires a --vcf_id.")
+        error_message.append("The phaseblock module requires a --vcf_id.")
       if args.range is None:
         no_error = False
-        error_message.append("The phaseset module requires a --range.")
+        error_message.append("The phaseblock module requires a --range.")
       if no_error:
-        import phaseset
-        x = phaseset.main(args)
+        import phaseblock
+        x = phaseblock.main(args)
       else:
         sys.exit("\n".join(error_message))
     elif args.module == "extend":
       if args.sum is None:
         no_error = False
         error_message.append("The extend module requires a --sum.")
-      if args.ps1 is None:
+      if args.pb1 is None:
         no_error = False
-        error_message.append("The extend module requires a --ps1.")
-      if args.ps2 is None:
+        error_message.append("The extend module requires a --pb1.")
+      if args.pb2 is None:
         no_error = False
-        error_message.append("The extend module requires a --ps2.")
+        error_message.append("The extend module requires a --pb2.")
       if args.range is None:
         no_error = False
         error_message.append("The extend module requires a --range.")
@@ -339,18 +339,18 @@ def main():
       else:
         sys.exit("\n".join(error_message))
     elif args.module == "summarize":
-      if args.ps1 is None:
+      if args.pb1 is None:
         no_error = False
-        error_message.append("The summarize module requires a --ps1 (phase set file).")
+        error_message.append("The summarize module requires a --pb1 (phase block file).")
       if no_error:
         import summarize
         x = summarize.main(args)
       else:
         sys.exit("\n".join(error_message))
     elif args.module == "somatic":
-      if args.ps1 is None:
+      if args.pb1 is None:
         no_error = False
-        error_message.append("The somatic module requires a --ps1 (phase set file).")
+        error_message.append("The somatic module requires a --pb1 (phase block file).")
       if args.range is None:
         no_error = False
         error_message.append("The somatic module requires a --range (genomic range).")
@@ -362,16 +362,16 @@ def main():
         error_message.append("The somatic module can only have a --maf (MAF) or --variant (variant IDs), not both.")
       if args.sum is None:
         no_error = False
-        error_message.append("The somatic module requires a --sum (phase set summary file).")
+        error_message.append("The somatic module requires a --sum (phase block summary file).")
       if no_error:
         import somatic
         x = somatic.main(args)
       else:
         sys.exit("\n".join(error_message))
     elif args.module == "ancestry":
-      if args.ps1 is None:
+      if args.pb1 is None:
         no_error = False
-        error_message.append("The ancestry module requires a --ps1.")
+        error_message.append("The ancestry module requires a --pb1.")
       if args.vcf is None:
         no_error = False
         error_message.append("The ancestry module requires a --vcf.")

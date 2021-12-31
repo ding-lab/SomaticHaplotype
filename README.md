@@ -32,13 +32,13 @@ bash external_downloads/set_up_SomaticHaplotype_environment.sh
 python SomaticHaplotype.py --help
 
 usage: SomaticHaplotype.py [-h] [--bam BAM] [--vcf VCF] [--vcf_id VCF_ID]
-                           [--range RANGE] [--ps1 PS1] [--ps2 PS2] [--sum SUM]
+                           [--range RANGE] [--pb1 Pb1] [--pb2 PB2] [--sum SUM]
                            [--maf MAF] [--sombx SOMBX] [--variant VARIANT]
                            [--ibd IBD] [--hbd HBD] [--dem DEM] [--version]
                            module output_directory output_prefix
 
 positional arguments:
-  module             Module the program should run. Could be one of phaseset,
+  module             Module the program should run. Could be one of phaseblock,
                      summarize, extend, somatic, or ancestry.
   output_directory   Absolute or relative path to output directory
   output_prefix      Prefix for file names in output directory. Warning:
@@ -51,8 +51,8 @@ optional arguments:
   --vcf VCF          Path to VCF file
   --vcf_id VCF_ID    Sample ID from VCF file
   --range RANGE      Genomic range chr:start-stop, chr, chr:start, chr:-stop
-  --ps1 PS1          Path to first phase set file
-  --ps2 PS2          Path to second phase set file
+  --pb1 PB1          Path to first phase block file
+  --pb2 PB2          Path to second phase block file
   --sum SUM          Path to existing summary file
   --maf MAF          Path to sample-specific somatic MAF (assumes all variants
                      are associated with single sample)
@@ -75,11 +75,11 @@ optional arguments:
 
 | module | arguments |
 | ------ | --------- |
-| phaseset | `--bam`, `--vcf`, `--vcf_id`, `--range`|
-| summarize | `--ps1` |
-| extend | `--sum`, `--ps1`, `--ps2`, `--range` |
-| somatic | `--ps1`, `--range`, `--maf` xor `--variant`, `--sum` |
-| ancestry | `--ps1`, `--vcf`, `--vcf_id`, `--range`, `--ibd`, `--hbd`, `--dem` |
+| phaseblock | `--bam`, `--vcf`, `--vcf_id`, `--range`|
+| summarize | `--pb1` |
+| extend | `--sum`, `--pb1`, `--pb2`, `--range` |
+| somatic | `--pb1`, `--range`, `--maf` xor `--variant`, `--sum` |
+| ancestry | `--pb1`, `--vcf`, `--vcf_id`, `--range`, `--ibd`, `--hbd`, `--dem` |
 
 
 

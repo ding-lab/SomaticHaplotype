@@ -20,7 +20,7 @@ def compare_coverage_dictionaries(somatic_variants_dictionary, phasing_dictionar
     if phasing_dictionary[var1] is None:
       continue
 
-    var1_ps = phasing_dictionary[var1][5]
+    var1_pb = phasing_dictionary[var1][5]
     var1_bx_allele0 = []
     var1_bx_allele1 = []
     for bx_key1 in somatic_variants_dictionary[var1].keys():
@@ -44,9 +44,9 @@ def compare_coverage_dictionaries(somatic_variants_dictionary, phasing_dictionar
         continue
 
       this_pair = var1 + "-" + var2
-      var2_ps = phasing_dictionary[var2][5]
+      var2_pb = phasing_dictionary[var2][5]
       
-      if var1_ps != var2_ps:
+      if var1_pb != var2_pb:
         continue
       
       var2_bx_allele0 = []
@@ -96,14 +96,14 @@ def compare_coverage_dictionaries(somatic_variants_dictionary, phasing_dictionar
       else:
         bx_overlap_11_csv = ",".join(bx_overlap_11)
 
-      pair_list = [var1, var2, var1_ps, 
+      pair_list = [var1, var2, var1_pb, 
       bx_overlap_00_csv, bx_overlap_01_csv, bx_overlap_10_csv, bx_overlap_11_csv,
       n_bx_overlap_00, n_bx_overlap_01, n_bx_overlap_10, n_bx_overlap_11]
       pairs_dictionary[this_pair] = pair_list
       
   return(pairs_dictionary)
 
-def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_dictionary, somatic_barcodes_dictionary_by_haplotype, phase_set_of_variant):
+def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_block_dictionary, somatic_barcodes_dictionary_by_haplotype, phase_block_of_variant):
 
   if variant_key in vcf_variants_dictionary and len(vcf_variants_dictionary[variant_key]) > 1:
     sys.exit("Variant " + variant_key + " has more than one VCF record.")
@@ -124,7 +124,7 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
 
   bx_supporting_variants = list(set(bx_supporting_variants1 + bx_supporting_variants2))
 
-  variants_covered_in_vcf = return_variants_covered_by_barcodes(bx_supporting_variants, phase_set_of_variant, vcf_variants_dictionary)
+  variants_covered_in_vcf = return_variants_covered_by_barcodes(bx_supporting_variants, phase_block_of_variant, vcf_variants_dictionary)
 
   if variant_key in vcf_variants_dictionary:
     variant_phased_by_longranger = vcf_variants_dictionary[variant_key][0].return_IsPhasedHeterozygote()
@@ -165,7 +165,7 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
 
       if allele_supported_by_barcode != "No Coverage":
         coverage_dictionary[this_coverage_key].extend([
-          phase_set_of_variant,
+          phase_block_of_variant,
           allele_supported_by_barcode,
           haplotype_supported_by_barcode, 
           var.return_IsPhasedHeterozygote(),
@@ -191,7 +191,7 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
 
       if allele_supported_by_barcode != "No Coverage":
         coverage_dictionary[bx + "--" + variant_key].extend([
-          phase_set_of_variant, 
+          phase_block_of_variant, 
           allele_supported_by_barcode, 
           haplotype_supported_by_barcode, 
           variant_phased_by_longranger, 
@@ -244,22 +244,22 @@ def create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_d
     pct_barcode_ALT_on_H2 = 'NA'
 
   chrom, pos, ref, alt = variant_key.split(":")
-  ps_length = phase_set_dictionary[phase_set_of_variant][6]
-  variant_phasing = [variant_key, chrom, pos, ref, alt, phase_set_of_variant, ps_length, variant_phased_by_longranger, variant_GT, 
+  pb_length = phase_block_dictionary[phase_block_of_variant][6]
+  variant_phasing = [variant_key, chrom, pos, ref, alt, phase_block_of_variant, pb_length, variant_phased_by_longranger, variant_GT, 
   pct_REF_on_H1, pct_REF_on_H2, pct_ALT_on_H1, pct_ALT_on_H2, n_REF_H1, n_REF_H2, n_ALT_H1, n_ALT_H2, n_not_phased,
   pct_barcode_REF_on_H1, pct_barcode_REF_on_H2, pct_barcode_ALT_on_H1, pct_barcode_ALT_on_H2, just_barcode_REF_H1, just_barcode_REF_H2, just_barcode_ALT_H1, just_barcode_ALT_H2, just_barcode_not_phased]
   
   return([coverage_dictionary, variant_phasing])
 
-def create_phase_set_dictionary(phase_set_filepath):
-  ps_file = open(phase_set_filepath, 'r')
-  ps_file.readline() # for the header
-  ps_dict = {}
-  for line in ps_file:
-    ps_id, chrom, start, end, length_reads, first_variant_pos, last_variant_pos, length_variants, n_variants_H1, n_variants_H2, n_variants_total = line.strip().split()
-    ps_dict[ps_id] = [chrom, start, end, length_reads, first_variant_pos, last_variant_pos, length_variants, n_variants_H1, n_variants_H2, n_variants_total]
-  ps_file.close()
-  return(ps_dict)
+def create_phase_block_dictionary(phase_block_filepath):
+  pb_file = open(phase_block_filepath, 'r')
+  pb_file.readline() # for the header
+  pb_dict = {}
+  for line in pb_file:
+    pb_id, chrom, start, end, length_reads, first_variant_pos, last_variant_pos, length_variants, n_variants_H1, n_variants_H2, n_variants_total = line.strip().split()
+    pb_dict[pb_id] = [chrom, start, end, length_reads, first_variant_pos, last_variant_pos, length_variants, n_variants_H1, n_variants_H2, n_variants_total]
+  pb_file.close()
+  return(pb_dict)
 
 def create_somatic_barcodes_dictionary(somatic_barcodes_filepath):
   sombx_file = open(somatic_barcodes_filepath, 'r')
@@ -437,28 +437,28 @@ def return_haplotype_supported_by_barcode(barcode, variant_key, vcf_variants_dic
 
   return(barcode_supports_this_haplotype)
 
-def return_variant_phase_set(base_variant_key, vcf_variants_dictionary, phase_set_dictionary):
+def return_variant_phase_block(base_variant_key, vcf_variants_dictionary, phase_block_dictionary):
   if base_variant_key in vcf_variants_dictionary:
     # if variant was called by longranger and is in longranger VCF
-    this_variant_phase_set = vcf_variants_dictionary[base_variant_key][0].return_PhaseSetID()
-    if this_variant_phase_set not in phase_set_dictionary:
-      # if the variant's phase set wasn't included in the bam
-      this_variant_phase_set = None
+    this_variant_phase_block = vcf_variants_dictionary[base_variant_key][0].return_PhaseBlockID()
+    if this_variant_phase_block not in phase_block_dictionary:
+      # if the variant's phase block wasn't included in the bam
+      this_variant_phase_block = None
   else:
     # if the variant was NOT called by longranger (not in longranger VCF)
-    # see if variant falls within range of any existing phase sets and report that phase set
+    # see if variant falls within range of any existing phase blocks and report that phase block
     chrom, pos, ref, alt = base_variant_key.split(":")
-    this_variant_phase_set = None
-    for ps_id in phase_set_dictionary.keys():
-      if chrom == phase_set_dictionary[ps_id][0] and phase_set_dictionary[ps_id][4] != 'NA' and phase_set_dictionary[ps_id][5] != 'NA':
-        # if same chromosome, and phase set has a start and end position that is not missing
-        if int(pos) >= int(phase_set_dictionary[ps_id][4]) and int(pos) <= int(phase_set_dictionary[ps_id][5]):
+    this_variant_phase_block = None
+    for pb_id in phase_block_dictionary.keys():
+      if chrom == phase_block_dictionary[pb_id][0] and phase_block_dictionary[pb_id][4] != 'NA' and phase_block_dictionary[pb_id][5] != 'NA':
+        # if same chromosome, and phase block has a start and end position that is not missing
+        if int(pos) >= int(phase_block_dictionary[pb_id][4]) and int(pos) <= int(phase_block_dictionary[pb_id][5]):
           # if position of variant falls within chr:start-stop range
-          this_variant_phase_set = ps_id
+          this_variant_phase_block = pb_id
           break # break out of current loop
-  return(this_variant_phase_set)
+  return(this_variant_phase_block)
 
-def return_variants_covered_by_barcodes(barcode_list, variant_phase_set, vcf_variants_dictionary):
+def return_variants_covered_by_barcodes(barcode_list, variant_phase_block, vcf_variants_dictionary):
 
   variant_list = []
 
@@ -468,7 +468,7 @@ def return_variants_covered_by_barcodes(barcode_list, variant_phase_set, vcf_var
       pass
     else:
       this_variant = vcf_variants_dictionary[this_variant_key][0]
-      if this_variant.return_IsSNP() and this_variant.return_PhaseSetID() == variant_phase_set:
+      if this_variant.return_IsSNP() and this_variant.return_PhaseBlockID() == variant_phase_block:
         if this_variant.return_Genotype() in ["1/0", "1|0", "0/1", "0|1", "1/1", "1|1", "0/0", "0|0"]:
           barcodes_allele0 = list(this_variant.return_Molecules()[0].keys())
           barcodes_allele1 = list(this_variant.return_Molecules()[1].keys())
@@ -481,22 +481,22 @@ def return_variants_covered_by_barcodes(barcode_list, variant_phase_set, vcf_var
 
   return(variant_list)
 
-def somatic_variants_per_phase_set(phase_set_dictionary, phasing_dictionary):
-  ps_id_list = list(phase_set_dictionary.keys())
-  for ps_id in ps_id_list:
-    phase_set_dictionary[ps_id].append(0)
+def somatic_variants_per_phase_block(phase_block_dictionary, phasing_dictionary):
+  pb_id_list = list(phase_block_dictionary.keys())
+  for pb_id in pb_id_list:
+    phase_block_dictionary[pb_id].append(0)
 
   for var in phasing_dictionary.keys():
     if phasing_dictionary[var] is not None:
-      this_var_ps_id = phasing_dictionary[var][5]
-      phase_set_dictionary[this_var_ps_id][-1] += 1
+      this_var_pb_id = phasing_dictionary[var][5]
+      phase_block_dictionary[this_var_pb_id][-1] += 1
 
-  return(phase_set_dictionary)
+  return(phase_block_dictionary)
 
 def write_phasing_dictionary(phasing_dictionary, output_file_path):
   
   output_file = open(output_file_path, "w")
-  output_file.write('\t'.join(["Variant", "Chromosome", "Position", "Reference", "Alternate", "Phase_Set", "Phase_Set_Length", "Variant_Phased_by_longranger", "Genotype", 
+  output_file.write('\t'.join(["Variant", "Chromosome", "Position", "Reference", "Alternate", "Phase_Block", "Phase_Block_Length", "Variant_Phased_by_longranger", "Genotype", 
   "pct_REF_on_H1", "pct_REF_on_H2", "pct_ALT_on_H1", "pct_ALT_on_H2", "n_REF_H1", "n_REF_H2", "n_ALT_H1", "n_ALT_H2", "n_not_phased",
   "pct_barcode_REF_on_H1", "pct_barcode_REF_on_H2", "pct_barcode_ALT_on_H1", "pct_barcode_ALT_on_H2", "barcode_REF_H1", "barcode_REF_H2", "barcode_ALT_H1", "barcode_ALT_H2", "just_barcode_not_phased"]) + '\n')
 
@@ -509,7 +509,7 @@ def write_phasing_dictionary(phasing_dictionary, output_file_path):
 def write_somatic_variants_dictionary(somatic_variants_dictionary, output_file_path):
 
   output_file = open(output_file_path, "w")
-  output_file.write('\t'.join(["Barcode", "Variant", "Phase_Set", "Allele", "Haplotype", 
+  output_file.write('\t'.join(["Barcode", "Variant", "Phase_Block", "Allele", "Haplotype", 
     "Phased_Heterozygote", "Chromosome", "Position", "Genotype", "Filter", "Somatic_Variant"]) + '\n')
   for var in somatic_variants_dictionary:
     if somatic_variants_dictionary[var] is not None:
@@ -521,17 +521,17 @@ def write_somatic_variants_dictionary(somatic_variants_dictionary, output_file_p
           output_file.write(print_these_combinations)
   output_file.close()
 
-def write_somatic_variants_per_phase_set(phase_set_dictionary, output_file_path):
+def write_somatic_variants_per_phase_block(phase_block_dictionary, output_file_path):
   output_file = open(output_file_path, 'w')
-  output_file.write('\t'.join(["ps_id", "chrom", "start", "end", "length_reads", "first_variant_pos", "last_variant_pos", "length_variants", "n_variants_H1", "n_variants_H2", "n_variants_total", "n_somatic_variants"]) + '\n')
-  for ps_id in phase_set_dictionary.keys():
-    output_file.write(ps_id + '\t' + '\t'.join([str(x) for x in phase_set_dictionary[ps_id]]) + '\n')
+  output_file.write('\t'.join(["pb_id", "chrom", "start", "end", "length_reads", "first_variant_pos", "last_variant_pos", "length_variants", "n_variants_H1", "n_variants_H2", "n_variants_total", "n_somatic_variants"]) + '\n')
+  for pb_id in phase_block_dictionary.keys():
+    output_file.write(pb_id + '\t' + '\t'.join([str(x) for x in phase_block_dictionary[pb_id]]) + '\n')
   output_file.close()
 
 def write_variant_pairs_dictionary(variant_comparison, output_file_path):
 
   output_file = open(output_file_path, "w")
-  output_file.write('\t'.join(["Variant1", "Variant2", "Phase_Set", "bx_overlap_00", "bx_overlap_01", "bx_overlap_10", "bx_overlap_11", "n_bx_overlap_00", "n_bx_overlap_01", "n_bx_overlap_10", "n_bx_overlap_11"]) + '\n')
+  output_file.write('\t'.join(["Variant1", "Variant2", "Phase_Block", "bx_overlap_00", "bx_overlap_01", "bx_overlap_10", "bx_overlap_11", "n_bx_overlap_00", "n_bx_overlap_01", "n_bx_overlap_10", "n_bx_overlap_11"]) + '\n')
   
   for pair in variant_comparison:
     output_file.write('\t'.join([str(x) for x in variant_comparison[pair]]) + '\n')
@@ -545,9 +545,9 @@ def write_variant_pairs_dictionary(variant_comparison, output_file_path):
 def main(args):
 
   # path to input pickle file
-  pickle_path = args.ps1
+  pickle_path = args.pb1
   with open(pickle_path, 'rb') as pickle_file:
-    bam_phase_set_dictionary = pickle.load(pickle_file)
+    bam_phase_block_dictionary = pickle.load(pickle_file)
     vcf_variants_dictionary = pickle.load(pickle_file)
 
   # parse the genomic range argument
@@ -566,8 +566,8 @@ def main(args):
     except:
       end = None
 
-  # phase set summary dictionary
-  phase_set_dictionary = create_phase_set_dictionary(phase_set_filepath = args.sum)
+  # phase block summary dictionary
+  phase_block_dictionary = create_phase_block_dictionary(phase_block_filepath = args.sum)
 
   # somatic barcodes dictionary
   if args.sombx is not None:
@@ -585,29 +585,29 @@ def main(args):
   # create coverage dictionary for each somatic variant
   phasing_dictionary = {}
   for variant_key in somatic_variants_dictionary.keys():
-    this_ps_id = return_variant_phase_set(variant_key, vcf_variants_dictionary, phase_set_dictionary)
-    if this_ps_id is None: # variant does not fall within an existing phase set
+    this_pb_id = return_variant_phase_block(variant_key, vcf_variants_dictionary, phase_block_dictionary)
+    if this_pb_id is None: # variant does not fall within an existing phase block
       somatic_variants_dictionary[variant_key], phasing_dictionary[variant_key] = [None, None]
-    else: # variant is within the range of an existing phase set
-      somatic_variants_dictionary[variant_key], phasing_dictionary[variant_key] = create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_set_dictionary, somatic_barcodes_dictionary_by_haplotype, this_ps_id)
+    else: # variant is within the range of an existing phase block
+      somatic_variants_dictionary[variant_key], phasing_dictionary[variant_key] = create_coverage_dictionary(variant_key, vcf_variants_dictionary, phase_block_dictionary, somatic_barcodes_dictionary_by_haplotype, this_pb_id)
 
-  # determine relationship of each pair of variants in same phase set
+  # determine relationship of each pair of variants in same phase block
   # produces 00, 01, 10, 11 shared barcode patterns for pairs of variants
   variant_comparison = compare_coverage_dictionaries(somatic_variants_dictionary, phasing_dictionary)
 
-  # somatic variants per phase set
-  phase_set_dictionary_with_n_somatic = somatic_variants_per_phase_set(phase_set_dictionary, phasing_dictionary)
+  # somatic variants per phase block
+  phase_block_dictionary_with_n_somatic = somatic_variants_per_phase_block(phase_block_dictionary, phasing_dictionary)
 
   # write output and close files
   os.makedirs(args.output_directory, exist_ok = True)
   output_file_path_somatic_variants_dictionary = os.path.join(args.output_directory, args.output_prefix + ".barcodes_variants.tsv")
   output_file_path_phasing_dictionary = os.path.join(args.output_directory, args.output_prefix + ".phasing_variants.tsv")
   output_file_path_variant_pairs = os.path.join(args.output_directory, args.output_prefix + ".variant_pairs.tsv")
-  output_file_path_somatic_per_phase_set = os.path.join(args.output_directory, args.output_prefix + ".somatic_per_phase_set.tsv")
+  output_file_path_somatic_per_phase_block = os.path.join(args.output_directory, args.output_prefix + ".somatic_per_phase_block.tsv")
   write_somatic_variants_dictionary(somatic_variants_dictionary, output_file_path_somatic_variants_dictionary)
   write_phasing_dictionary(phasing_dictionary, output_file_path_phasing_dictionary)
   write_variant_pairs_dictionary(variant_comparison, output_file_path_variant_pairs)
-  write_somatic_variants_per_phase_set(phase_set_dictionary_with_n_somatic, output_file_path_somatic_per_phase_set)
+  write_somatic_variants_per_phase_block(phase_block_dictionary_with_n_somatic, output_file_path_somatic_per_phase_block)
   
   # write results to output file here
   
