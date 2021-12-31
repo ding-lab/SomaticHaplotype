@@ -14,7 +14,7 @@ def extract_read_info(read):
   # Also report the position of the read and read quality metrics
   if read.is_duplicate or read.is_qcfail or read.is_secondary or not read.is_proper_pair:
     return("read is bad quality")
-  elif read.has_tag("PB"): # read is part of phase block
+  elif read.has_tag("PS"): # read is part of phase block
     tags_dict = {x:y for (x,y) in read.get_tags()}
     if "MI" not in tags_dict:
       tags_dict["MI"] = None
@@ -43,7 +43,7 @@ def extract_phase_blocks_from_bam(bam_filename, chr = None, start_bp = None, end
       phase_block_dict["n_reads_phased"] += 1
       phase_block_dict["n_reads_good_quality"] += 1
       
-      pb_id = read.reference_name + ":" + str(read_info["PB"])
+      pb_id = read.reference_name + ":" + str(read_info["PS"])
 
       if pb_id in phase_block_dict["phase_blocks"]:
         
