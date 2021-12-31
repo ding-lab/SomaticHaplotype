@@ -190,7 +190,7 @@ manuscript_numbers[["01_overview"]] <- list()
                              levels = highlight_columns,
                              labels = c("Molecule Length\n(mean, Kb)",
                                         "Linked-reads per\nmolecule (N50)",
-                                        "Phase Set Length\n(N50, Mb)")))
+                                        "Phase Block Length\n(N50, Mb)")))
 
   ggplot(plot_df %>% filter(!str_detect(patient, "NA1")),
          aes(x = normal_sample, y = result*data_multiplier)) +

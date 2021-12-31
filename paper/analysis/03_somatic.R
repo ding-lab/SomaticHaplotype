@@ -1,8 +1,8 @@
 ################################################################################
 # Somatic phasing
 # Concordance with longranger
-# Mutations on phase sets
-# Mutation pairs per phase set
+# Mutations on phase blocks
+# Mutation pairs per phase block
 ################################################################################
 
 main = "figures/03_somatic_phasing/main/"
@@ -190,7 +190,7 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
   chromosome_of_interest <- "chr1"
   min_length = 1e3
 
-  plot_df <- phase_sets_tbl %>%
+  plot_df <- phase_blocks_tbl %>%
     filter(sample == sample_id) %>%
     filter(length_variants > min_length & !is.na(length_variants)) %>%
     filter(chromosome == chromosome_of_interest) %>%
@@ -273,7 +273,7 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
           strip.background = element_blank(),
           strip.text = element_text(size = 8),
           plot.margin = unit(c(0,0,0,0), "lines")) +
-  ggsave(str_c(main, "somatic_mutations_on_phase_sets.pdf"),
+  ggsave(str_c(main, "somatic_mutations_on_phase_blocks.pdf"),
          width = 4.75, height = 1.125, useDingbats = FALSE)
 
   rm(plot_df, plot_df1, plot_df2, plot_df_together, mut_df,
@@ -281,29 +281,29 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
 
 }
 
-# variants per phase set
+# variants per phase block
 {
 
   phasing_variants_grouped <- phasing_variants_mapq20_tbl %>%
-    filter(enough_coverage, Phase_Set_Length >= 1e3) %>%
-    group_by(sample, Phase_Set, Phase_Set_Length) %>%
+    filter(enough_coverage, Phase_Block_Length >= 1e3) %>%
+    group_by(sample, Phase_Block, Phase_Block_Length) %>%
     summarize(n_somatic_variants = n(),
               n_phased = sum(phased == "Phased")) %>%
-    mutate(somatic_mutations_per_Mb = 1e6 * n_somatic_variants/Phase_Set_Length,
+    mutate(somatic_mutations_per_Mb = 1e6 * n_somatic_variants/Phase_Block_Length,
            proportion_variants_phased = n_phased / n_somatic_variants,
            n_pairs_phased = choose(n_phased, 2))
 
-  manuscript_numbers[["03_somatic"]][["n_phase_sets_1kb"]] <- phasing_variants_grouped %>% filter(Phase_Set_Length >= 1e3) %>% nrow()
-  manuscript_numbers[["03_somatic"]][["n_phase_sets_1kb_0_somatic_mutation_pairs"]] <- phasing_variants_grouped %>% filter(Phase_Set_Length >= 1e3) %>% filter(n_pairs_phased == 0) %>% nrow()
-  manuscript_numbers[["03_somatic"]][["n_phase_sets_1kb_0_somatic_mutations"]] <- phasing_variants_grouped %>% filter(Phase_Set_Length >= 1e3) %>% filter(n_phased == 0) %>% nrow()
-  manuscript_numbers[["03_somatic"]][["n_phase_sets_1kb_1_somatic_mutations"]] <- phasing_variants_grouped %>% filter(Phase_Set_Length >= 1e3) %>% filter(n_phased == 1) %>% nrow()
+  manuscript_numbers[["03_somatic"]][["n_phase_blocks_1kb"]] <- phasing_variants_grouped %>% filter(Phase_Block_Length >= 1e3) %>% nrow()
+  manuscript_numbers[["03_somatic"]][["n_phase_blocks_1kb_0_somatic_mutation_pairs"]] <- phasing_variants_grouped %>% filter(Phase_Block_Length >= 1e3) %>% filter(n_pairs_phased == 0) %>% nrow()
+  manuscript_numbers[["03_somatic"]][["n_phase_blocks_1kb_0_somatic_mutations"]] <- phasing_variants_grouped %>% filter(Phase_Block_Length >= 1e3) %>% filter(n_phased == 0) %>% nrow()
+  manuscript_numbers[["03_somatic"]][["n_phase_blocks_1kb_1_somatic_mutations"]] <- phasing_variants_grouped %>% filter(Phase_Block_Length >= 1e3) %>% filter(n_phased == 1) %>% nrow()
 
-  manuscript_numbers[["03_somatic"]][["pct_phase_sets_1kb_0_somatic_mutation_pairs"]] <- 100*manuscript_numbers[["03_somatic"]][["n_phase_sets_1kb_0_somatic_mutation_pairs"]]/manuscript_numbers[["03_somatic"]][["n_phase_sets_1kb"]]
-  manuscript_numbers[["03_somatic"]][["pct_phase_sets_1kb_0_somatic_mutations"]] <- 100*manuscript_numbers[["03_somatic"]][["n_phase_sets_1kb_0_somatic_mutations"]]/manuscript_numbers[["03_somatic"]][["n_phase_sets_1kb"]]
-  manuscript_numbers[["03_somatic"]][["pct_phase_sets_1kb_1_somatic_mutation"]] <- 100*manuscript_numbers[["03_somatic"]][["n_phase_sets_1kb_1_somatic_mutations"]]/manuscript_numbers[["03_somatic"]][["n_phase_sets_1kb"]]
+  manuscript_numbers[["03_somatic"]][["pct_phase_blocks_1kb_0_somatic_mutation_pairs"]] <- 100*manuscript_numbers[["03_somatic"]][["n_phase_blocks_1kb_0_somatic_mutation_pairs"]]/manuscript_numbers[["03_somatic"]][["n_phase_blocks_1kb"]]
+  manuscript_numbers[["03_somatic"]][["pct_phase_blocks_1kb_0_somatic_mutations"]] <- 100*manuscript_numbers[["03_somatic"]][["n_phase_blocks_1kb_0_somatic_mutations"]]/manuscript_numbers[["03_somatic"]][["n_phase_blocks_1kb"]]
+  manuscript_numbers[["03_somatic"]][["pct_phase_blocks_1kb_1_somatic_mutation"]] <- 100*manuscript_numbers[["03_somatic"]][["n_phase_blocks_1kb_1_somatic_mutations"]]/manuscript_numbers[["03_somatic"]][["n_phase_blocks_1kb"]]
 
   plot_data <- phasing_variants_grouped %>%
-    filter(Phase_Set_Length >= 1e3, n_pairs_phased >= 1) %>%
+    filter(Phase_Block_Length >= 1e3, n_pairs_phased >= 1) %>%
     mutate(n_pairs_color = case_when(n_pairs_phased == 1 ~ "1 pair",
                                      n_pairs_phased <= 3 ~ "<= 3",
                                      n_pairs_phased <= 10 ~ "<= 10",
@@ -314,16 +314,16 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
                                   ordered = TRUE)) %>%
     arrange(n_pairs_color)
 
-  n_phase_sets <- plot_data %>% nrow()
-  manuscript_numbers[["03_somatic"]][["n_phase_sets_gt_1kb_1_pair_by_n_pairs"]] <- plot_data %>% pull(n_pairs_color) %>% table()/n_phase_sets
-  n_phase_sets_1.0 <- plot_data %>% filter(proportion_variants_phased == 1) %>% nrow()
-  n_phase_sets_0.75 <- plot_data %>% filter(proportion_variants_phased >= 0.75) %>% nrow()
-  manuscript_numbers[["03_somatic"]][["n_phase_sets_gt_1kb_1_pair"]] <- n_phase_sets
-  manuscript_numbers[["03_somatic"]][["n_phase_sets_gt_1kb_1_pair_all_phased"]] <- n_phase_sets_1.0
-  manuscript_numbers[["03_somatic"]][["n_phase_sets_gt_1kb_1_pair_0.75_phased"]] <- n_phase_sets_0.75
-  manuscript_numbers[["03_somatic"]][["pct_phase_sets_all_variants_phased"]] <- 100*n_phase_sets_1.0/n_phase_sets
-  manuscript_numbers[["03_somatic"]][["pct_phase_sets_all_variants_phased"]] <- 100*n_phase_sets_1.0/n_phase_sets
-  manuscript_numbers[["03_somatic"]][["pct_phase_sets_0.75_variants_phased"]] <- 100*n_phase_sets_0.75/n_phase_sets
+  n_phase_blocks <- plot_data %>% nrow()
+  manuscript_numbers[["03_somatic"]][["n_phase_blocks_gt_1kb_1_pair_by_n_pairs"]] <- plot_data %>% pull(n_pairs_color) %>% table()/n_phase_blocks
+  n_phase_blocks_1.0 <- plot_data %>% filter(proportion_variants_phased == 1) %>% nrow()
+  n_phase_blocks_0.75 <- plot_data %>% filter(proportion_variants_phased >= 0.75) %>% nrow()
+  manuscript_numbers[["03_somatic"]][["n_phase_blocks_gt_1kb_1_pair"]] <- n_phase_blocks
+  manuscript_numbers[["03_somatic"]][["n_phase_blocks_gt_1kb_1_pair_all_phased"]] <- n_phase_blocks_1.0
+  manuscript_numbers[["03_somatic"]][["n_phase_blocks_gt_1kb_1_pair_0.75_phased"]] <- n_phase_blocks_0.75
+  manuscript_numbers[["03_somatic"]][["pct_phase_blocks_all_variants_phased"]] <- 100*n_phase_blocks_1.0/n_phase_blocks
+  manuscript_numbers[["03_somatic"]][["pct_phase_blocks_all_variants_phased"]] <- 100*n_phase_blocks_1.0/n_phase_blocks
+  manuscript_numbers[["03_somatic"]][["pct_phase_blocks_0.75_variants_phased"]] <- 100*n_phase_blocks_0.75/n_phase_blocks
 
   min_log2 <- plot_data %>% pull(somatic_mutations_per_Mb) %>%
     log2() %>% min() %>% round(digits = 0)
@@ -378,7 +378,7 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
          width = 4.75, height = 1.5*2.25, useDingbats = FALSE)
 
   rm(phasing_variants_grouped, plot_data, p, q, q_with_legend,
-     n_phase_sets, n_phase_sets_1.0, n_phase_sets_0.75,
+     n_phase_blocks, n_phase_blocks_1.0, n_phase_blocks_0.75,
      min_log2, max_log2, my_breaks)
 }
 
@@ -532,7 +532,7 @@ for (this_sample in cnv_tbl %>% pull(sample) %>% unique()) {
     filter(phased_by_linked_alleles %in% c("H1", "H2"),
            cnv_maf_status == TRUE) %>%
     select(Variant, Chromosome, Position, Reference, Alternate,
-           Phase_Set, sample, phased_by_linked_alleles) %>%
+           Phase_Block, sample, phased_by_linked_alleles) %>%
     filter(sample == this_sample)
 
   # Multiplication factors

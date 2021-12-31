@@ -190,19 +190,19 @@ if (file.exists(input_data_path_str)) {
   lr_summary_1000G_tbl <- bind_cols(normal_samples_tbl,
                                     lr_summary_1000G_tbl)
 
-  # phase set summary
+  # phase block summary
 
-  phase_set_summary_tbl <- NULL
+  phase_block_summary_tbl <- NULL
 
   for (sample_id in patient_sample_names_tbl$sample) {
     for (chromosome in chromosome_tbl$chromosome) {
-      if ( is.null(phase_set_summary_tbl) ) {
-        phase_set_summary_tbl <- read_tsv(str_c("data/summarize/",
+      if ( is.null(phase_block_summary_tbl) ) {
+        phase_block_summary_tbl <- read_tsv(str_c("data/summarize/",
                                                 sample_id,
                                                 "/",
                                                 str_c(sample_id,
                                                       chromosome,
-                                                      "phase_set_summary.tsv",
+                                                      "phase_block_summary.tsv",
                                                       sep = ".")),
                                           col_types = "dddddddddd")  %>%
           mutate(sample = sample_id, chromosome = chromosome)
@@ -212,35 +212,35 @@ if (file.exists(input_data_path_str)) {
                                   "/",
                                   str_c(sample_id,
                                         chromosome,
-                                        "phase_set_summary.tsv",
+                                        "phase_block_summary.tsv",
                                         sep = ".")),
                             col_types = "dddddddddd") %>%
           mutate(sample = sample_id, chromosome = chromosome)
-        phase_set_summary_tbl <- bind_rows(phase_set_summary_tbl, new_row)
+        phase_block_summary_tbl <- bind_rows(phase_block_summary_tbl, new_row)
         rm(new_row)
       }
     }
   }
 
-  phase_set_summary_tbl <- phase_set_summary_tbl %>%
+  phase_block_summary_tbl <- phase_block_summary_tbl %>%
     left_join(patient_sample_names_tbl, by = "sample") %>%
     mutate(chromosome = factor(chromosome,
                                levels = str_c("chr", seq(1:22)),
                                ordered = TRUE))
 
-  # phase sets
+  # phase blocks
 
-  phase_sets_tbl <- NULL
+  phase_blocks_tbl <- NULL
 
   for (sample_id in patient_sample_names_tbl$sample) {
     for (chromosome in chromosome_tbl$chromosome) {
-      if ( is.null(phase_sets_tbl) ) {
-        phase_sets_tbl <- read_tsv(str_c("data/summarize/",
+      if ( is.null(phase_blocks_tbl) ) {
+        phase_blocks_tbl <- read_tsv(str_c("data/summarize/",
                                          sample_id,
                                          "/",
                                          str_c(sample_id,
                                                chromosome,
-                                               "phase_sets.tsv",
+                                               "phase_blocks.tsv",
                                                sep = ".")),
                                    col_types = "cciiiiiiiii")  %>%
           mutate(sample = sample_id, chromosome = chromosome)
@@ -250,17 +250,17 @@ if (file.exists(input_data_path_str)) {
                                   "/",
                                   str_c(sample_id,
                                         chromosome,
-                                        "phase_sets.tsv",
+                                        "phase_blocks.tsv",
                                         sep = ".")),
                             col_types = "cciiiiiiiii") %>%
           mutate(sample = sample_id, chromosome = chromosome)
-        phase_sets_tbl <- bind_rows(phase_sets_tbl, new_row)
+        phase_blocks_tbl <- bind_rows(phase_blocks_tbl, new_row)
         rm(new_row)
       }
     }
   }
 
-  phase_sets_tbl <- phase_sets_tbl %>%
+  phase_blocks_tbl <- phase_blocks_tbl %>%
     left_join(patient_sample_names_tbl, by = "sample") %>%
     mutate(chromosome = factor(chromosome,
                                levels = str_c("chr", seq(1:22)),
@@ -304,26 +304,26 @@ if (file.exists(input_data_path_str)) {
 
   rm(file_path1, file_path2, file_path3, file_path, extended_by)
 
-  # extend phase sets
+  # extend phase blocks
 
-  extend_phase_sets_tbl <- NULL
+  extend_phase_blocks_tbl <- NULL
 
   for (sample_id in patient_sample_names_tbl$sample) {
     for (extended_by in patient_sample_names_tbl$sample) {
       for (chromosome in chromosome_tbl$chromosome) {
         file_path1 <- str_c("data/extend/", sample_id, "/")
         file_path2 <- str_c(sample_id, chromosome, "extended_by_", sep = ".")
-        file_path3 <- str_c(extended_by, "extended_phase_sets.tsv", sep = ".")
+        file_path3 <- str_c(extended_by, "extended_phase_blocks.tsv", sep = ".")
         file_path <- str_c(file_path1, file_path2, file_path3)
         if (file.exists(file_path)) {
-          if ( is.null(extend_phase_sets_tbl) ) {
-            extend_phase_sets_tbl <- read_tsv(file_path,
+          if ( is.null(extend_phase_blocks_tbl) ) {
+            extend_phase_blocks_tbl <- read_tsv(file_path,
                                               col_types = "cciiiiiiiiiicli")  %>%
               mutate(sample = sample_id, extended_by = extended_by)
           } else {
             new_row <- read_tsv(file_path, col_types = "cciiiiiiiiiicli")  %>%
               mutate(sample = sample_id, extended_by = extended_by)
-            extend_phase_sets_tbl <- bind_rows(extend_phase_sets_tbl, new_row)
+            extend_phase_blocks_tbl <- bind_rows(extend_phase_blocks_tbl, new_row)
             rm(new_row)
           }
         }
@@ -331,7 +331,7 @@ if (file.exists(input_data_path_str)) {
     }
   }
 
-  extend_phase_sets_tbl <- extend_phase_sets_tbl %>%
+  extend_phase_blocks_tbl <- extend_phase_blocks_tbl %>%
     left_join(patient_sample_names_tbl, by = "sample") %>%
     mutate(chr = factor(chr,
                         levels = str_c("chr", seq(1:22)),
@@ -551,40 +551,40 @@ if (file.exists(input_data_path_str)) {
                                 phased_by %in% c("BC", "LA", "Both (agree)") ~ "Phased",
                                 TRUE ~ "Not phased"))
 
-    # somatic somatic per phase set
+    # somatic somatic per phase block
 
-    somatic_per_phase_set_mapq20_tbl <- NULL
+    somatic_per_phase_block_mapq20_tbl <- NULL
 
     for (sample_id in patient_sample_names_tbl %>%
          filter(cnv_maf_status) %>% pull(sample)) {
       for (chromosome in chromosome_tbl$chromosome) {
-        if (is.null(somatic_per_phase_set_mapq20_tbl)) {
-          somatic_per_phase_set_mapq20_tbl <- read_tsv(str_c(
+        if (is.null(somatic_per_phase_block_mapq20_tbl)) {
+          somatic_per_phase_block_mapq20_tbl <- read_tsv(str_c(
             str_c("data/somatic/", sample_id, "/"),
             str_c(sample_id, chromosome,
-                  "mapq20.somatic_per_phase_set.tsv", sep = ".")),
+                  "mapq20.somatic_per_phase_block.tsv", sep = ".")),
             col_types = "cciiiiiiiiii") %>%
             mutate(sample = sample_id)
         } else {
           q20 <- read_tsv(str_c(
             str_c("data/somatic/", sample_id, "/"),
             str_c(sample_id, chromosome,
-                  "mapq20.somatic_per_phase_set.tsv", sep = ".")),
+                  "mapq20.somatic_per_phase_block.tsv", sep = ".")),
             col_types = "cciiiiiiiiii") %>%
             mutate(sample = sample_id)
-          somatic_per_phase_set_mapq20_tbl <- bind_rows(somatic_per_phase_set_mapq20_tbl, q20)
+          somatic_per_phase_block_mapq20_tbl <- bind_rows(somatic_per_phase_block_mapq20_tbl, q20)
           rm(q20)
         }
       }
     }
 
-    somatic_per_phase_set_mapq20_tbl <- somatic_per_phase_set_mapq20_tbl %>%
+    somatic_per_phase_block_mapq20_tbl <- somatic_per_phase_block_mapq20_tbl %>%
       left_join(patient_sample_names_tbl, by = "sample") %>%
       mutate(chrom = factor(chrom,
                             levels = str_c("chr", seq(1:22)),
                             ordered = TRUE))
 
-    # somatic somatic per phase set
+    # somatic somatic per phase block
 
     variant_pairs_mapq20_tbl <- NULL
 
@@ -779,41 +779,41 @@ if (file.exists(input_data_path_str)) {
                                   phased_by %in% c("BC", "LA", "Both (agree)") ~ "Phased",
                                   TRUE ~ "Not phased"))
 
-    # (all) somatic somatic per phase set
+    # (all) somatic somatic per phase block
 
-    somatic_per_phase_set_all_mapq20_tbl <- NULL
+    somatic_per_phase_block_all_mapq20_tbl <- NULL
 
     for (sample_id in patient_sample_names_tbl %>%
          filter(timepoint != "Normal") %>% pull(sample)) {
       for (chromosome in unique(important_mutations_tbl$chr)) {
-        if (is.null(somatic_per_phase_set_all_mapq20_tbl)) {
-          somatic_per_phase_set_all_mapq20_tbl <- read_tsv(str_c(
+        if (is.null(somatic_per_phase_block_all_mapq20_tbl)) {
+          somatic_per_phase_block_all_mapq20_tbl <- read_tsv(str_c(
             str_c("data/somatic_all/", sample_id, "/"),
             str_c(sample_id, chromosome,
-                  "mapq20.somatic_per_phase_set.tsv", sep = ".")),
+                  "mapq20.somatic_per_phase_block.tsv", sep = ".")),
             col_types = "cciiiiiiiiii") %>%
             mutate(sample = sample_id)
         } else {
           q20 <- read_tsv(str_c(
             str_c("data/somatic_all/", sample_id, "/"),
             str_c(sample_id, chromosome,
-                  "mapq20.somatic_per_phase_set.tsv", sep = ".")),
+                  "mapq20.somatic_per_phase_block.tsv", sep = ".")),
             col_types = "cciiiiiiiiii") %>%
             mutate(sample = sample_id)
-          somatic_per_phase_set_all_mapq20_tbl <- bind_rows(somatic_per_phase_set_all_mapq20_tbl, q20)
+          somatic_per_phase_block_all_mapq20_tbl <- bind_rows(somatic_per_phase_block_all_mapq20_tbl, q20)
           rm(q20)
         }
       }
     }
 
-    somatic_per_phase_set_all_mapq20_tbl <- somatic_per_phase_set_all_mapq20_tbl %>%
+    somatic_per_phase_block_all_mapq20_tbl <- somatic_per_phase_block_all_mapq20_tbl %>%
       left_join(patient_sample_names_tbl, by = "sample") %>%
       mutate(chrom = factor(chrom,
                             levels = str_c("chr", seq(1:22)),
                             ordered = TRUE))
 
 
-    # (all) somatic somatic per phase set
+    # (all) somatic somatic per phase block
 
     variant_pairs_all_mapq20_tbl <- NULL
 
@@ -1009,41 +1009,41 @@ if (file.exists(input_data_path_str)) {
                                   phased_by %in% c("BC", "LA", "Both (agree)") ~ "Phased",
                                   TRUE ~ "Not phased"))
 
-    # (driver) somatic somatic per phase set
+    # (driver) somatic somatic per phase block
 
-    somatic_per_phase_set_driver_mapq20_tbl <- NULL
+    somatic_per_phase_block_driver_mapq20_tbl <- NULL
 
     for (sample_id in patient_sample_names_tbl %>%
          filter(timepoint != "Normal") %>% pull(sample)) {
       for (chromosome in unique(driver_mutations_tbl$chr)) {
-        if (is.null(somatic_per_phase_set_driver_mapq20_tbl)) {
-          somatic_per_phase_set_driver_mapq20_tbl <- read_tsv(str_c(
+        if (is.null(somatic_per_phase_block_driver_mapq20_tbl)) {
+          somatic_per_phase_block_driver_mapq20_tbl <- read_tsv(str_c(
             str_c("data/somatic_driver/", sample_id, "/"),
             str_c(sample_id, chromosome,
-                  "mapq20.somatic_per_phase_set.tsv", sep = ".")),
+                  "mapq20.somatic_per_phase_block.tsv", sep = ".")),
             col_types = "cciiiiiiiiii") %>%
             mutate(sample = sample_id)
         } else {
           q20 <- read_tsv(str_c(
             str_c("data/somatic_driver/", sample_id, "/"),
             str_c(sample_id, chromosome,
-                  "mapq20.somatic_per_phase_set.tsv", sep = ".")),
+                  "mapq20.somatic_per_phase_block.tsv", sep = ".")),
             col_types = "cciiiiiiiiii") %>%
             mutate(sample = sample_id)
-          somatic_per_phase_set_driver_mapq20_tbl <- bind_rows(somatic_per_phase_set_driver_mapq20_tbl, q20)
+          somatic_per_phase_block_driver_mapq20_tbl <- bind_rows(somatic_per_phase_block_driver_mapq20_tbl, q20)
           rm(q20)
         }
       }
     }
 
-    somatic_per_phase_set_driver_mapq20_tbl <- somatic_per_phase_set_driver_mapq20_tbl %>%
+    somatic_per_phase_block_driver_mapq20_tbl <- somatic_per_phase_block_driver_mapq20_tbl %>%
       left_join(patient_sample_names_tbl, by = "sample") %>%
       filter(chrom %in% str_c("chr", seq(1:22))) %>%
       mutate(chrom = factor(chrom,
                             levels = str_c("chr", seq(1:22)),
                             ordered = TRUE))
 
-    # (driver) somatic somatic per phase set
+    # (driver) somatic somatic per phase block
 
     variant_pairs_driver_mapq20_tbl <- NULL
 
@@ -1237,7 +1237,7 @@ if (file.exists(input_data_path_str)) {
                                 col_names = c("sample",
                                               "first_chromosome", "first_position",
                                               "second_chromosome", "second_position",
-                                              "phase_set_pairs",
+                                              "phase_block_pairs",
                                               "barcode_support_00_11_12_21_22",
                                               "total_barcodes",
                                               "haplotypes_consistent"),
@@ -1262,7 +1262,7 @@ if (file.exists(input_data_path_str)) {
   #      filter(cnv_maf_status) %>% pull(sample)) {
   #   ascnv_tbl[[sample_id]] <- NULL
   #   ascnv_tbl[[sample_id]] <- read_tsv(str_c(
-  #     str_c("data/allele_specific_cnv/cnvs_overlapping_phase_sets_with_AD",
+  #     str_c("data/allele_specific_cnv/cnvs_overlapping_phase_blocks_with_AD",
   #           sample_id, "tsv", sep = ".")),
   #     col_types = "ciicdciiiiciccciii",
   #     na = ".")

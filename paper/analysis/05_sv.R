@@ -376,7 +376,7 @@ if (TRUE) {
     geom_text(aes(x = 0, label = Haplotype), hjust = 0, size = 8/ggplot2:::.pt, position = position_dodge(width = 0.6)) +
     facet_wrap(~strip_label, nrow = 1, scales = "free") +
     scale_fill_manual(values = c("#7fbf7b", "#ae8dc1")) +
-    labs(x = "Number of SV-supporting Barcodes Assigned to Each Haplotype", y = "Phase Sets") +
+    labs(x = "Number of SV-supporting Barcodes Assigned to Each Haplotype", y = "Phase Blocks") +
     theme_bw() +
     theme(axis.ticks.x = element_blank(),
           axis.ticks.y = element_blank(),
