@@ -32,7 +32,7 @@ bash external_downloads/set_up_SomaticHaplotype_environment.sh
 python SomaticHaplotype.py --help
 
 usage: SomaticHaplotype.py [-h] [--bam BAM] [--vcf VCF] [--vcf_id VCF_ID]
-                           [--range RANGE] [--pb1 Pb1] [--pb2 PB2] [--sum SUM]
+                           [--range RANGE] [--pb1 PB1] [--pb2 PB2] [--sum SUM]
                            [--maf MAF] [--sombx SOMBX] [--variant VARIANT]
                            [--ibd IBD] [--hbd HBD] [--dem DEM] [--version]
                            module output_directory output_prefix
@@ -85,7 +85,7 @@ optional arguments:
 
 ## Test data
 
-Download test data files (test_data.tar.gz) from [figshare](doi.org/10.6084/m9.figshare.12295883) (size: 1.3 Gb) and untar using this command.
+Download test data files (test_data.tar.gz) from [figshare](https://figshare.com/articles/dataset/SomaticHaplotype_test_data/12295883) (size: 1.3 Gb) and untar using this command.
 
 ```
 tar xvf test_data.tar.gz
