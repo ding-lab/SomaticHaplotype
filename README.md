@@ -23,7 +23,6 @@ cd SomaticHaplotype
 bash external_downloads/set_up_SomaticHaplotype_environment.sh
 ```
 
-
 ## How to run
 
 ```python SomaticHaplotype.py [module] [output directory] [output prefix]```
@@ -81,8 +80,6 @@ optional arguments:
 | somatic | `--pb1`, `--range`, `--maf` xor `--variant`, `--sum` |
 | ancestry | `--pb1`, `--vcf`, `--vcf_id`, `--range`, `--ibd`, `--hbd`, `--dem` |
 
-
-
 ## Test data
 
 Download test data files (test_data.tar.gz) from [figshare](https://figshare.com/articles/dataset/SomaticHaplotype_test_data/12295883) (size: 1.3 Gb) and untar using this command.
@@ -95,3 +92,6 @@ The following script runs `SomaticHaplotype.py` on data in `test_data/` and crea
 ```
 bash run_SomaticHaplotype_on_test_data.sh
 ```
+## Data availabilty
+
+Controlled access to lrWGS and WGS data are will be available soon. Please contact the authors.
