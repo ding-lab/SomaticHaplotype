@@ -94,4 +94,4 @@ bash run_SomaticHaplotype_on_test_data.sh
 ```
 ## Data availabilty
 
-Controlled access to lrWGS and WGS data are will be available soon. Please contact the authors.
+Controlled access to lrWGS and WGS data will be available soon. Please contact the authors.
