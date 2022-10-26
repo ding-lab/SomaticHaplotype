@@ -172,7 +172,7 @@ if (TRUE) {
             strip.placement = "right",
             strip.text = element_text(size = 8))
 
-    ggsave(str_c(main, filename, ".pdf"), p,
+    ggsave(str_c(supp, filename, ".pdf"), p,
            width = my_width, height = my_height, useDingbats = FALSE)
   }
 
@@ -283,7 +283,7 @@ if (TRUE) {
             strip.placement = "right",
             strip.text = element_text(size = 8))
 
-    ggsave(str_c(main, filename, ".pdf"), p,
+    ggsave(str_c(supp, filename, ".pdf"), p,
            width = my_width, height = my_height, useDingbats = FALSE)
   }
 
