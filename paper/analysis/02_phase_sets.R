@@ -38,7 +38,7 @@ manuscript_numbers[["02_phase_sets"]] <- list()
           strip.background = element_blank(),
           strip.text = element_text(size = 8),
           plot.margin = unit(c(0,0,0,0), "lines")) +
-    ggsave(str_c(main, "phase_set_by_chromosome.pdf"),
+    ggsave(str_c(supp, "phase_set_by_chromosome.pdf"),
            useDingbats = FALSE, width = 7.25, height = 1.5)
 
   manuscript_numbers[["02_phase_sets"]][["median_phase_set_length_chr_min"]] <- phase_set_summary_tbl %>% filter(timepoint != "Normal") %>% group_by(chromosome) %>% summarize(median_ps_length = median(N50_broad/1e6)) %>% arrange(median_ps_length) %>% head(1)
@@ -73,7 +73,7 @@ manuscript_numbers[["02_phase_sets"]] <- list()
           strip.background = element_blank(),
           strip.text = element_text(size = 8),
           plot.margin = unit(c(0,0,0,0), "lines")) +
-    ggsave(str_c(main, "phase_set_by_sample.pdf"),
+    ggsave(str_c(supp, "phase_set_by_sample.pdf"),
            useDingbats = FALSE, width = 7.25, height = 1.5)
 }
 
@@ -145,7 +145,7 @@ if (FALSE) {
           strip.background = element_blank(),
           strip.text = element_text(size = 8),
           plot.margin = unit(c(0,0,0,0), "lines")) +
-    ggsave(str_c(main, "phase_set_deletion.pdf"),
+    ggsave(str_c(supp, "phase_set_deletion.pdf"),
            useDingbats = FALSE, width = 2, height = 1.5)
 
   manuscript_numbers[["02_phase_sets"]][["27522_1_chr13_chr22_phase_set_lengths"]] <- phase_set_summary_tbl %>% filter(sample == "27522_1", chromosome %in% c("chr13", "chr22")) %>% select(sample, N50_broad, chromosome)
@@ -188,7 +188,7 @@ if (FALSE) {
           strip.text = element_text(size = 8),
           plot.margin = unit(c(0,0,0,0), "lines")
     ) +
-    ggsave(str_c(main, "phase_set_genome_coverage.pdf"),
+    ggsave(str_c(supp, "phase_set_genome_coverage.pdf"),
            useDingbats = FALSE, width = 7.25, height = 1.75)
 
   manuscript_numbers[["02_phase_sets"]][["total_genome_coverage_Gb"]] <- plot_df %>% pull(total_length) %>% sum()/1e9
@@ -252,7 +252,7 @@ if (FALSE) {
           strip.background = element_blank(),
           strip.text = element_text(size = 8),
           plot.margin = unit(c(0,0,0,0), "lines")) +
-    ggsave(str_c(main, "chr13_chr22_phase_sets.pdf"),
+    ggsave(str_c(supp, "chr13_chr22_phase_sets.pdf"),
                  height = 2.65, width = 5, useDingbats = FALSE)
 
   rm(phase_sets_tbl_short, phase_sets_tbl_long, plot_df, sample_names, n_samples)
