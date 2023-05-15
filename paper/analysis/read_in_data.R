@@ -12,7 +12,7 @@ library(fishplot)
 
 # Load previous input data?
 # Processed input data tables are saved in a date-stamped .Rdata object. This is
-# a resusable input data object that is re-loaded at the beginning of each session.
+# a reusable input data object that is re-loaded at the beginning of each session.
 # (We do not save the environment to .Rdata at the end of the session.)
 
 # numbers used in manuscript
@@ -169,7 +169,7 @@ if (file.exists(input_data_path_str)) {
   lr_summary_tbl <- bind_cols(patient_sample_names_tbl,
                               lr_summary_tbl)
 
-  # for 1000G sampleps from 10x
+  # for 1000G samples from 10x
 
   lr_summary_1000G_tbl <- NULL
 
