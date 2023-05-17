@@ -157,10 +157,12 @@ if (file.exists(input_data_path_str)) {
     if ( is.null(lr_summary_tbl) ) {
       lr_summary_tbl <- read_csv(str_c("data/10x_longranger_summaries/",
                                        sample_id, "/summary.csv"),
+                                 na=c("", "NA", "NaN"),
                                  col_types = "ccidddidddiiddiidddd-ddddddddii")
     } else {
       new_row <- read_csv(str_c("data/10x_longranger_summaries/",
                                 sample_id, "/summary.csv"),
+                          na=c("", "NA", "NaN"),
                           col_types = "ccidddidddiiddiidddd-ddddddddii")
       lr_summary_tbl <- bind_rows(lr_summary_tbl, new_row)
       rm(new_row)
