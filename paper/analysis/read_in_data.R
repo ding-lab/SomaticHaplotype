@@ -18,7 +18,7 @@ library(fishplot)
 # numbers used in manuscript
 manuscript_numbers <- list()
 
-last_updated <- "2021-09-21"
+last_updated <- "2023-05-17"
 input_data_path_str <- str_c("data/collected_input_objects.", last_updated, ".RData")
 if (file.exists(input_data_path_str)) {
   load(input_data_path_str)
@@ -133,7 +133,8 @@ if (file.exists(input_data_path_str)) {
                                "Scaffold-GenBank-Accn", "Scaffold-RefSeq-Accn",
                                "Assembly-Unit")
 
-  centromere_tbl <- read_tsv("data/centromeres.tsv", comment = "#",
+  centromere_tbl <- read_tsv("data/centromeres.tsv",
+                             skip = 58,
                              col_names = centromere_column_names,
                              col_types = c("cciicccc")) %>%
     filter(`Scaffold-Role` == "CEN",
@@ -1274,6 +1275,13 @@ if (file.exists(input_data_path_str)) {
   #                           levels = str_c("chr", seq(1:22)),
   #                           ordered = TRUE))
   # }
+
+  # tumor purity
+  source("analysis/sciclone.R")
+
+  tumor_purity_tbl <- tumor_purity_estimates_list %>%
+    purrr::map(\(x) tibble(tumor_purity = x)) %>%
+    purrr::list_rbind(names_to = "sample")
 
   # clean up
 
