@@ -9,6 +9,7 @@ library(tidyverse)
 library(viridis)
 library(ggrepel)
 library(fishplot)
+library(sciClone)
 
 # Load previous input data?
 # Processed input data tables are saved in a date-stamped .Rdata object. This is
