@@ -488,8 +488,6 @@ if (dir.exists(input_data_dir)) {
   save(cnv_tbl,
        file = file.path(input_data_dir, "cnv_tbl.RData"))
 
-  rm(cnv_tbl)
-
   # Sorted WGS MAF
 
   maf_tbl <- NULL
@@ -763,8 +761,6 @@ if (dir.exists(input_data_dir)) {
 
       save(sombx_mapq20_tbl,
            file = file.path(input_data_dir, "sombx_mapq20_tbl.RData"))
-
-      rm(sombx_mapq20_tbl)
 
     }
 
@@ -1475,6 +1471,7 @@ if (dir.exists(input_data_dir)) {
   # }
 
   # tumor purity
+  set.seed(1)
   source("analysis/sciclone.R")
 
   tumor_purity_tbl <- tumor_purity_estimates_list %>%
@@ -1484,15 +1481,23 @@ if (dir.exists(input_data_dir)) {
   save(tumor_purity_tbl,
        file = file.path(input_data_dir, "tumor_purity_tbl.RData"))
 
-  rm(tumor_purity_tbl)
+  rm(tumor_purity_tbl,
+     cluster_vaf_per_sample,
+     sciclone_results_list,
+     tumor_purity_estimates_list,
+     vaf_sciclone_list,
+     cnv_sciclone_list)
 
   # clean up
 
-  rm(sample_id)
-  rm(sample_id_lr)
-  rm(chromosome)
-
-  # rm(patient_sample_names_tbl, normal_samples_tbl, chromosome_tbl,
+  rm(sample_id,
+     sample_id_lr,
+     chromosome,
+     patient_sample_names_tbl,
+     normal_samples_tbl,
+     chromosome_tbl,
+     cnv_tbl,
+     sombx_mapq20_tbl)
 
   # save current session info
   dir.create("session_info", recursive = TRUE, showWarnings = FALSE)
