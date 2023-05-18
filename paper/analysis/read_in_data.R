@@ -18,14 +18,23 @@ library(fishplot)
 # numbers used in manuscript
 manuscript_numbers <- list()
 
-last_updated <- "2023-05-17"
-input_data_path_str <- str_c("data/collected_input_objects.", last_updated, ".RData")
-if (file.exists(input_data_path_str)) {
-  load(input_data_path_str)
-  print(str_c("Data tables loaded from .RData file created ", last_updated, "."))
-  rm(last_updated, input_data_path_str)
+last_updated <- "2023-05-18"
+input_data_dir <- file.path("data", last_updated)
+
+if (dir.exists(input_data_dir)) {
+
+  print(str_c("Loading data tables from .RData files created ", last_updated, "."))
+  input_files <- list.files(path = input_data_dir, full.names = TRUE)
+  print(input_files)
+
+  for (filename in input_files) load(filename)
+
+  rm(last_updated, input_data_dir, input_files)
 
 } else {
+
+  # create data table directory
+  dir.create(input_data_dir, recursive = TRUE, showWarnings = FALSE)
 
   # patient and sample names
 
@@ -56,7 +65,6 @@ if (file.exists(input_data_path_str)) {
                                     timepoint == "Normal" ~ str_c(patient, " (N)"))) %>%
     mutate(display_name = factor(display_name, levels = display_name, ordered = TRUE))
 
-
   color_tbl <- patient_sample_names_tbl %>%
     filter(timepoint != "Normal") %>%
     select(sample) %>% arrange(sample) %>%
@@ -75,6 +83,9 @@ if (file.exists(input_data_path_str)) {
 
   patient_sample_names_tbl <- patient_sample_names_tbl %>%
     left_join(color_tbl, by = "sample")
+
+  save(patient_sample_names_tbl,
+       file = file.path(input_data_dir, "patient_sample_names_tbl.RData"))
 
   rm(color_tbl)
 
@@ -107,11 +118,17 @@ if (file.exists(input_data_path_str)) {
            my_color_50 = "#fc9272", my_color_25 = "#fc9272",
            my_shape = c(3,4))
 
+  save(normal_samples_tbl,
+       file = file.path(input_data_dir, "normal_samples_tbl.RData"))
+
   # chromosomes
 
   chromosome_tbl <- tibble(chromosome = factor(str_c("chr", seq(1:22)),
                                                levels = str_c("chr", seq(1:22)),
                                                ordered = TRUE))
+
+  save(chromosome_tbl,
+       file = file.path(input_data_dir, "chromosome_tbl.RData"))
 
   # chromosome lengths
 
@@ -125,6 +142,11 @@ if (file.exists(input_data_path_str)) {
                            levels = str_c("chr", seq(1:22)),
                            ordered = TRUE))
   # cannot use integer for location because .Machine$integer.max = 2147483647
+
+  save(chromosome_length_tbl,
+       file = file.path(input_data_dir, "chromosome_length_tbl.RData"))
+
+  rm(chromosome_length_tbl)
 
   # centromeres
 
@@ -143,11 +165,19 @@ if (file.exists(input_data_path_str)) {
                                levels = str_c("chr", seq(1:22)),
                                ordered = TRUE))
 
-  rm(centromere_column_names)
+  save(centromere_tbl,
+       file = file.path(input_data_dir, "centromere_tbl.RData"))
+
+  rm(centromere_column_names, centromere_tbl)
 
   # protein coding gene annotations
   protein_coding_genes_tbl <- read_tsv("data/gene_annotations.protein_coding.gtf",
                                        col_types = c("ccciicccc"))
+
+  save(protein_coding_genes_tbl,
+       file = file.path(input_data_dir, "protein_coding_genes_tbl.RData"))
+
+  rm(protein_coding_genes_tbl)
 
   # 10x_longranger_summaries
 
@@ -172,6 +202,11 @@ if (file.exists(input_data_path_str)) {
   lr_summary_tbl <- bind_cols(patient_sample_names_tbl,
                               lr_summary_tbl)
 
+  save(lr_summary_tbl,
+       file = file.path(input_data_dir, "lr_summary_tbl.RData"))
+
+  rm(lr_summary_tbl)
+
   # for 1000G samples from 10x
 
   lr_summary_1000G_tbl <- NULL
@@ -192,6 +227,11 @@ if (file.exists(input_data_path_str)) {
 
   lr_summary_1000G_tbl <- bind_cols(normal_samples_tbl,
                                     lr_summary_1000G_tbl)
+
+  save(lr_summary_1000G_tbl,
+       file = file.path(input_data_dir, "lr_summary_1000G_tbl.RData"))
+
+  rm(lr_summary_1000G_tbl)
 
   # phase set summary
 
@@ -231,6 +271,11 @@ if (file.exists(input_data_path_str)) {
                                levels = str_c("chr", seq(1:22)),
                                ordered = TRUE))
 
+  save(phase_set_summary_tbl,
+       file = file.path(input_data_dir, "phase_set_summary_tbl.RData"))
+
+  rm(phase_set_summary_tbl)
+
   # phase sets
 
   phase_sets_tbl <- NULL
@@ -269,6 +314,11 @@ if (file.exists(input_data_path_str)) {
                                levels = str_c("chr", seq(1:22)),
                                ordered = TRUE))
 
+  save(phase_sets_tbl,
+       file = file.path(input_data_dir, "phase_sets_tbl.RData"))
+
+  rm(phase_sets_tbl)
+
   # extend stats
 
   extend_stats_tbl <- NULL
@@ -305,7 +355,10 @@ if (file.exists(input_data_path_str)) {
                                    levels = str_c("chr", seq(1:22)),
                                    ordered = TRUE))
 
-  rm(file_path1, file_path2, file_path3, file_path, extended_by)
+  save(extend_stats_tbl,
+       file = file.path(input_data_dir, "extend_stats_tbl.RData"))
+
+  rm(file_path1, file_path2, file_path3, file_path, extended_by, extend_stats_tbl)
 
   # extend phase sets
 
@@ -340,7 +393,10 @@ if (file.exists(input_data_path_str)) {
                         levels = str_c("chr", seq(1:22)),
                         ordered = TRUE))
 
-  rm(file_path1, file_path2, file_path3, file_path, extended_by)
+  save(extend_phase_sets_tbl,
+       file = file.path(input_data_dir, "extend_phase_sets_tbl.RData"))
+
+  rm(file_path1, file_path2, file_path3, file_path, extended_by, extend_phase_sets_tbl)
 
   # coverage
 
@@ -392,6 +448,11 @@ if (file.exists(input_data_path_str)) {
                                levels = str_c("chr", seq(1:22)),
                                ordered = TRUE))
 
+  save(coverage_tbl,
+       file = file.path(input_data_dir, "coverage_tbl.RData"))
+
+  rm(coverage_tbl)
+
   # Sorted WGS CNV
 
   cnv_tbl <- NULL
@@ -424,6 +485,11 @@ if (file.exists(input_data_path_str)) {
                           levels = str_c("chr", seq(1:22)),
                           ordered = TRUE))
 
+  save(cnv_tbl,
+       file = file.path(input_data_dir, "cnv_tbl.RData"))
+
+  rm(cnv_tbl)
+
   # Sorted WGS MAF
 
   maf_tbl <- NULL
@@ -453,13 +519,16 @@ if (file.exists(input_data_path_str)) {
     }
   }
 
-  rm(maf_col_types)
-
   maf_tbl <- maf_tbl %>%
     left_join(patient_sample_names_tbl, by = "sample") %>%
     mutate(Chromosome = factor(Chromosome,
                                levels = str_c("chr", seq(1:22)),
                                ordered = TRUE))
+
+  save(maf_tbl,
+       file = file.path(input_data_dir, "maf_tbl.RData"))
+
+  rm(maf_col_types, maf_tbl)
 
   # somatic things
   {
@@ -501,6 +570,11 @@ if (file.exists(input_data_path_str)) {
                                      ordered = TRUE))
 
       }
+
+      save(barcodes_variants_mapq20_tbl,
+           file = file.path(input_data_dir, "barcodes_variants_mapq20_tbl.RData"))
+
+      rm(barcodes_variants_mapq20_tbl)
 
       # somatic phasing variants
 
@@ -557,6 +631,11 @@ if (file.exists(input_data_path_str)) {
                                   phased_by %in% c("BC", "LA", "Both (agree)") ~ "Phased",
                                   TRUE ~ "Not phased"))
 
+      save(phasing_variants_mapq20_tbl,
+           file = file.path(input_data_dir, "phasing_variants_mapq20_tbl.RData"))
+
+      rm(phasing_variants_mapq20_tbl)
+
       # somatic somatic per phase set
 
       somatic_per_phase_set_mapq20_tbl <- NULL
@@ -589,6 +668,11 @@ if (file.exists(input_data_path_str)) {
         mutate(chrom = factor(chrom,
                               levels = str_c("chr", seq(1:22)),
                               ordered = TRUE))
+
+      save(somatic_per_phase_set_mapq20_tbl,
+           file = file.path(input_data_dir, "somatic_per_phase_set_mapq20_tbl.RData"))
+
+      rm(somatic_per_phase_set_mapq20_tbl)
 
       # somatic somatic per phase set
 
@@ -641,6 +725,11 @@ if (file.exists(input_data_path_str)) {
                                               n_bx_overlap_11)) %>%
         ungroup()
 
+      save(variant_pairs_mapq20_tbl,
+           file = file.path(input_data_dir, "variant_pairs_mapq20_tbl.RData"))
+
+      rm(variant_pairs_mapq20_tbl)
+
       # somatic somatic barcodes (sombx)
 
       sombx_mapq20_tbl <- NULL
@@ -671,6 +760,12 @@ if (file.exists(input_data_path_str)) {
         mutate(chromosome = factor(chromosome,
                                    levels = str_c("chr", seq(1:22)),
                                    ordered = TRUE))
+
+      save(sombx_mapq20_tbl,
+           file = file.path(input_data_dir, "sombx_mapq20_tbl.RData"))
+
+      rm(sombx_mapq20_tbl)
+
     }
 
     # somatic events (all tumor samples, important genes only)
@@ -686,6 +781,9 @@ if (file.exists(input_data_path_str)) {
                             levels = str_c("chr", seq(1:22)),
                             ordered = TRUE))
 
+      save(important_mutations_tbl,
+           file = file.path(input_data_dir, "important_mutations_tbl.RData"))
+
       important_mutations_vaf_tbl <- read_tsv("data/important_mutations_vaf.txt",
                                               col_types = "cccccicccdc") %>%
         select(-c("timepoint")) %>%
@@ -694,6 +792,11 @@ if (file.exists(input_data_path_str)) {
                             ordered = TRUE)) %>%
         left_join(patient_sample_names_tbl,
                   by = c("sample", "patient"))
+
+      save(important_mutations_vaf_tbl,
+           file = file.path(input_data_dir, "important_mutations_vaf_tbl.RData"))
+
+      rm(important_mutations_vaf_tbl)
 
       barcodes_variants_all_mapq20_tbl <- list() # use a list to keep samples separate
       # because combined files are too big
@@ -729,6 +832,11 @@ if (file.exists(input_data_path_str)) {
                                      ordered = TRUE))
 
       }
+
+      save(barcodes_variants_all_mapq20_tbl,
+           file = file.path(input_data_dir, "barcodes_variants_all_mapq20_tbl.RData"))
+
+      rm(barcodes_variants_all_mapq20_tbl)
 
       # (all) somatic phasing variants
 
@@ -785,6 +893,11 @@ if (file.exists(input_data_path_str)) {
                                   phased_by %in% c("BC", "LA", "Both (agree)") ~ "Phased",
                                   TRUE ~ "Not phased"))
 
+      save(phasing_variants_all_mapq20_tbl,
+           file = file.path(input_data_dir, "phasing_variants_all_mapq20_tbl.RData"))
+
+      rm(phasing_variants_all_mapq20_tbl)
+
       # (all) somatic somatic per phase set
 
       somatic_per_phase_set_all_mapq20_tbl <- NULL
@@ -818,6 +931,10 @@ if (file.exists(input_data_path_str)) {
                               levels = str_c("chr", seq(1:22)),
                               ordered = TRUE))
 
+      save(somatic_per_phase_set_all_mapq20_tbl,
+           file = file.path(input_data_dir, "somatic_per_phase_set_all_mapq20_tbl.RData"))
+
+      rm(somatic_per_phase_set_all_mapq20_tbl)
 
       # (all) somatic somatic per phase set
 
@@ -846,6 +963,8 @@ if (file.exists(input_data_path_str)) {
         }
       }
 
+      rm(important_mutations_tbl)
+
       variant_pairs_all_mapq20_tbl <- variant_pairs_all_mapq20_tbl %>%
         left_join(patient_sample_names_tbl, by = "sample") %>%
         separate(Variant1, into = c("chromosome1", "position1",
@@ -869,6 +988,11 @@ if (file.exists(input_data_path_str)) {
                n_barcodes_with_mutation = sum(n_bx_overlap_01, n_bx_overlap_10,
                                               n_bx_overlap_11)) %>%
         ungroup()
+
+      save(variant_pairs_all_mapq20_tbl,
+           file = file.path(input_data_dir, "variant_pairs_all_mapq20_tbl.RData"))
+
+      rm(variant_pairs_all_mapq20_tbl)
 
       # (all) somatic somatic barcodes (sombx)
 
@@ -900,6 +1024,12 @@ if (file.exists(input_data_path_str)) {
         mutate(chromosome = factor(chromosome,
                                    levels = str_c("chr", seq(1:22)),
                                    ordered = TRUE))
+
+      save(sombx_all_mapq20_tbl,
+           file = file.path(input_data_dir, "sombx_all_mapq20_tbl.RData"))
+
+      rm(sombx_all_mapq20_tbl)
+
     }
 
     # somatic events (all tumor samples, driver_mm genes only)
@@ -916,6 +1046,9 @@ if (file.exists(input_data_path_str)) {
                             levels = str_c("chr", seq(1:22)),
                             ordered = TRUE))
 
+      save(driver_mutations_tbl,
+           file = file.path(input_data_dir, "driver_mutations_tbl.RData"))
+
       driver_mutations_vaf_tbl <- read_tsv("data/driver_mm_mutations_vaf.txt",
                                            col_types = "cccccicccdc") %>%
         select(-c("timepoint")) %>%
@@ -925,6 +1058,11 @@ if (file.exists(input_data_path_str)) {
                             ordered = TRUE)) %>%
         left_join(patient_sample_names_tbl,
                   by = c("sample", "patient"))
+
+      save(driver_mutations_vaf_tbl,
+           file = file.path(input_data_dir, "driver_mutations_vaf_tbl.RData"))
+
+      rm(driver_mutations_vaf_tbl)
 
       barcodes_variants_driver_mapq20_tbl <- list() # use a list to keep samples separate
       # because combined files are too big
@@ -959,6 +1097,11 @@ if (file.exists(input_data_path_str)) {
                                      ordered = TRUE))
 
       }
+
+      save(barcodes_variants_driver_mapq20_tbl,
+           file = file.path(input_data_dir, "barcodes_variants_driver_mapq20_tbl.RData"))
+
+      rm(barcodes_variants_driver_mapq20_tbl)
 
       # (driver) somatic phasing variants
 
@@ -1015,6 +1158,11 @@ if (file.exists(input_data_path_str)) {
                                   phased_by %in% c("BC", "LA", "Both (agree)") ~ "Phased",
                                   TRUE ~ "Not phased"))
 
+      save(phasing_variants_driver_mapq20_tbl,
+           file = file.path(input_data_dir, "phasing_variants_driver_mapq20_tbl.RData"))
+
+      rm(phasing_variants_driver_mapq20_tbl)
+
       # (driver) somatic somatic per phase set
 
       somatic_per_phase_set_driver_mapq20_tbl <- NULL
@@ -1049,6 +1197,11 @@ if (file.exists(input_data_path_str)) {
                               levels = str_c("chr", seq(1:22)),
                               ordered = TRUE))
 
+      save(somatic_per_phase_set_driver_mapq20_tbl,
+           file = file.path(input_data_dir, "somatic_per_phase_set_driver_mapq20_tbl.RData"))
+
+      rm(somatic_per_phase_set_driver_mapq20_tbl)
+
       # (driver) somatic somatic per phase set
 
       variant_pairs_driver_mapq20_tbl <- NULL
@@ -1076,6 +1229,8 @@ if (file.exists(input_data_path_str)) {
         }
       }
 
+      rm(driver_mutations_tbl)
+
       variant_pairs_driver_mapq20_tbl <- variant_pairs_driver_mapq20_tbl %>%
         left_join(patient_sample_names_tbl, by = "sample") %>%
         separate(Variant1, into = c("chromosome1", "position1",
@@ -1101,6 +1256,11 @@ if (file.exists(input_data_path_str)) {
                n_barcodes_with_mutation = sum(n_bx_overlap_01, n_bx_overlap_10,
                                               n_bx_overlap_11)) %>%
         ungroup()
+
+      save(variant_pairs_driver_mapq20_tbl,
+           file = file.path(input_data_dir, "variant_pairs_driver_mapq20_tbl.RData"))
+
+      rm(variant_pairs_driver_mapq20_tbl)
 
       # (driver) somatic somatic barcodes (sombx)
 
@@ -1134,6 +1294,11 @@ if (file.exists(input_data_path_str)) {
                                    levels = str_c("chr", seq(1:22)),
                                    ordered = TRUE))
 
+      save(sombx_driver_mapq20_tbl,
+           file = file.path(input_data_dir, "sombx_driver_mapq20_tbl.RData"))
+
+      rm(sombx_driver_mapq20_tbl)
+
       # genotypes called by other tools (HapCUT2 and WhatsHap)
 
       gt_other_tools_tbl <- read_tsv("data/somatic/gt_other_tools.tsv",
@@ -1143,10 +1308,15 @@ if (file.exists(input_data_path_str)) {
         mutate(Chromosome = factor(Chromosome,
                                    levels = str_c("chr", seq(1:22)),
                                    ordered = TRUE))
-    }
+
+      save(gt_other_tools_tbl,
+           file = file.path(input_data_dir, "gt_other_tools_tbl.RData"))
+
+      rm(gt_other_tools_tbl)
 
     }
 
+  }
 
   # IBD segment ancestry
 
@@ -1186,6 +1356,11 @@ if (file.exists(input_data_path_str)) {
                                levels = str_c("chr", seq(1:22)),
                                ordered = TRUE))
 
+  save(segment_ancestry_tbl,
+       file = file.path(input_data_dir, "segment_ancestry_tbl.RData"))
+
+  rm(segment_ancestry_tbl)
+
   # IBD segment overlap
 
   segment_overlap_tbl <- NULL
@@ -1224,8 +1399,13 @@ if (file.exists(input_data_path_str)) {
                                levels = str_c("chr", seq(1:22)),
                                ordered = TRUE))
 
+  save(segment_overlap_tbl,
+       file = file.path(input_data_dir, "segment_overlap_tbl.RData"))
+
+  rm(segment_overlap_tbl)
+
   sv_barcodes_tbl <- list()
-  #for (sample_id in c("27522_1", "27522_3", "77570")) {
+
   for (sample_id in c("27522_1", "77570")) {
     sv_barcodes_tbl[[sample_id]] <- read_tsv(str_c("data/SVs/", sample_id, ".sv_reads.tsv"),
                                              col_types = "ccicicdd") %>%
@@ -1239,6 +1419,11 @@ if (file.exists(input_data_path_str)) {
                                      levels = c(0,1),
                                      ordered = TRUE))
   }
+
+  save(sv_barcodes_tbl,
+       file = file.path(input_data_dir, "sv_barcodes_tbl.RData"))
+
+  rm(sv_barcodes_tbl)
 
   sv_haplotypes_tbl <- NULL
 
@@ -1261,6 +1446,11 @@ if (file.exists(input_data_path_str)) {
                                       levels = str_c("chr", seq(1:22)),
                                       ordered = TRUE)) %>%
     left_join(patient_sample_names_tbl, by = "sample")
+
+  save(sv_haplotypes_tbl,
+       file = file.path(input_data_dir, "sv_haplotypes_tbl.RData"))
+
+  rm(sv_haplotypes_tbl)
 
   # # NOT USED
   # # allele specific copy number variation
@@ -1291,11 +1481,18 @@ if (file.exists(input_data_path_str)) {
     purrr::map(\(x) tibble(tumor_purity = x)) %>%
     purrr::list_rbind(names_to = "sample")
 
+  save(tumor_purity_tbl,
+       file = file.path(input_data_dir, "tumor_purity_tbl.RData"))
+
+  rm(tumor_purity_tbl)
+
   # clean up
 
   rm(sample_id)
   rm(sample_id_lr)
   rm(chromosome)
+
+  # rm(patient_sample_names_tbl, normal_samples_tbl, chromosome_tbl,
 
   # save current session info
   dir.create("session_info", recursive = TRUE, showWarnings = FALSE)
@@ -1303,9 +1500,7 @@ if (file.exists(input_data_path_str)) {
   print(devtools::session_info())
   sink()
 
-  # save current objects to load next time
-  save(list = ls(pattern = "_tbl"), file = str_c(input_data_path_str), envir = .GlobalEnv)
-  rm(last_updated, input_data_path_str)
+  rm(last_updated, input_data_dir)
 
 }
 
