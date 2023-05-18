@@ -62,9 +62,7 @@ manuscript_numbers[["01_overview"]] <- list()
   write_tsv(patient_sample_names_tbl %>%
               mutate(sv_status = case_when(sample %in% sv_haplotypes_tbl$sample ~ TRUE,
                                            TRUE ~ FALSE)) %>%
-              select(patient, sample, timepoint, display_name, my_color_100,
-                     sorted, cnv_maf_status, sv_status, display_name) %>%
-              rename(Patient = patient,
+              select(Patient = patient,
                      Sample = sample,
                      Disease_Stage = timepoint,
                      Display_Name = display_name,
@@ -72,8 +70,11 @@ manuscript_numbers[["01_overview"]] <- list()
                      CD138_Sorted = sorted,
                      WGS_CNV_and_Somatic_Mutation_Calls_Available = cnv_maf_status,
                      WGS_SV_Calls_Available = sv_status) %>%
+              left_join(tumor_purity_tbl,
+                        by = c("Sample" = "sample")) %>%
               mutate(Notes = case_when(Sample == "27522_3" ~ "Timepoint 4 (second relapse collection) used as WGS match",
                                        Sample == "77570" ~ "SV calls based on lrWGS sample",
+                                       Sample == "60359_1" ~ "Tumor purity based on low number of variant calls",
                                        TRUE ~ ".")),
             str_c(supp, "data_available.tsv"))
 
