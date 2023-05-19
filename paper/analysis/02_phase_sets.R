@@ -132,7 +132,7 @@ if (FALSE) {
     facet_wrap(~sample) +
     scale_color_identity()
 
-  rm(coverage_of_phase_sets)
+  rm(coverage_of_phase_sets, get_coverage)
 
 }
 
@@ -362,6 +362,14 @@ if (FALSE) {
 # draw phase sets for all samples
 {
 
+  plot_chr <- chromosome_length_tbl %>% mutate(chr_num = as.numeric(contig))
+
+  write_tsv(plot_chr,
+            file = file.path(data_dir, "plot_chr.tsv"))
+
+  phase_sets_dir <- file.path(data_dir, "phase_sets")
+  dir.create(path = phase_sets_dir, recursive = TRUE, showWarnings = FALSE)
+
   for (this_sample in patient_sample_names_tbl$sample) {
 
     if (patient_sample_names_tbl %>% filter(sample == this_sample) %>% pull(timepoint) != "Normal") {
@@ -383,7 +391,8 @@ if (FALSE) {
       plot_df <- phase_sets_tbl_long %>% bind_rows(phase_sets_tbl_short) %>%
         mutate(chr_num = as.numeric(chromosome))
 
-      plot_chr <- chromosome_length_tbl %>% mutate(chr_num = as.numeric(contig))
+      write_tsv(plot_df,
+                file = file.path(phase_sets_dir, str_c(this_sample, ".tsv")))
 
       ggplot(plot_df) +
         geom_segment(data = plot_chr,
@@ -414,15 +423,16 @@ if (FALSE) {
               axis.text.x = element_text(size = 8),
               strip.background = element_blank(),
               strip.text = element_text(size = 8),
-              plot.margin = unit(c(0,0,0,0), "lines")) +
-        ggsave(str_c(supp, "phase_sets/", this_sample, ".phase_sets.pdf"),
-               height = 4.875, width = 7.25, useDingbats = FALSE)
+              plot.margin = unit(c(0,0,0,0), "lines"))
 
-      rm(phase_sets_tbl_short, phase_sets_tbl_long, plot_df, print_name, plot_chr)
+      ggsave(str_c(supp, "phase_sets/", this_sample, ".phase_sets.pdf"),
+             height = 4.875, width = 7.25, useDingbats = FALSE)
+
+      rm(phase_sets_tbl_short, phase_sets_tbl_long, plot_df, print_name)
     }
   }
 
-  rm(this_sample)
+  rm(this_sample, plot_chr, phase_sets_dir)
 }
 
 
@@ -447,4 +457,4 @@ manuscript_numbers[["02_phase_sets"]][["HLA_stats"]] <- phase_sets_tbl %>%
             n_phase_sets_min = min(total),
             n_phase_sets_max = max(total))
 
-rm(main, supp)
+rm(main, supp, data_dir)
