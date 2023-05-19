@@ -4,5 +4,7 @@ __pycache__
 paper
 test_data*
 
-!paper/analysis
+!paper/analysis/
+!paper/analysis/*
 !paper/session_info
+!paper/session_info/*
