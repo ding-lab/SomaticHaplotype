@@ -3,3 +3,6 @@ __pycache__
 .Rproj.user
 paper
 test_data*
+
+!paper/analysis
+!paper/session_info
