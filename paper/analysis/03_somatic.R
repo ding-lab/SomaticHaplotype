@@ -164,6 +164,9 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
     filter(phased_by_linked_alleles == "NC" & phased_by_barcodes == "NC") %>%
     nrow()
 
+  write_tsv(tibble(n_nc = n_nc),
+            file = file.path(data_dir, "n_nc.tsv"))
+
   methods_phasing_plot_df <- phasing_variants_mapq20_tbl %>%
     select(phased_by_linked_alleles, phased_by_barcodes) %>%
     group_by(phased_by_barcodes, phased_by_linked_alleles) %>%
