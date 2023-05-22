@@ -2,6 +2,9 @@
 # Closer look at allele relationships
 ################################################################################
 
+data_dir = file.path("data_for_plots/04_alleles")
+dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
+
 main = "figures/04_alleles/main/"
 supp = "figures/04_alleles/supplementary/"
 
@@ -19,6 +22,7 @@ manuscript_numbers[["04_alleles"]] <- list()
     mutate(Variant = Variant1) %>%
     select(sample, Variant) %>%
     unique()
+
   cnv_neutral_mutation_sites <- bind_rows(cnv_neutral_mutation_sites,
                                           variant_pairs_mapq20_tbl %>%
                                             filter(cnv_position2 > -0.25,
@@ -30,17 +34,22 @@ manuscript_numbers[["04_alleles"]] <- list()
 
   # coverage at mutation sites
 
-  cnv_neutral_mutation_sites %>%
+  phased_coverage_plot_df <- cnv_neutral_mutation_sites %>%
     left_join(phasing_variants_mapq20_tbl,
               by = c("sample", "Variant")) %>%
     group_by(sample, display_name, my_color_100, Variant) %>%
     summarize(phased_barcode_coverage = sum(barcode_REF_H1, barcode_REF_H2,
                                             barcode_ALT_H1, barcode_ALT_H2),
-              phased_alt_barcode_coverage = sum(barcode_ALT_H1, barcode_ALT_H2)) %>%
-    filter(phased_barcode_coverage > 0) %>%
-    ungroup() %>%
-    ggplot(aes(x = log2(phased_barcode_coverage),
-               y = phased_alt_barcode_coverage)) +
+              phased_alt_barcode_coverage = sum(barcode_ALT_H1, barcode_ALT_H2),
+              .groups = "drop") %>%
+    filter(phased_barcode_coverage > 0)
+
+  write_tsv(phased_coverage_plot_df,
+            file = file.path(data_dir, "phased_coverage_plot_df.tsv"))
+
+  ggplot(data = phased_coverage_plot_df,
+         aes(x = log2(phased_barcode_coverage),
+             y = phased_alt_barcode_coverage)) +
     geom_vline(xintercept = log2(10), lty = 2) +
     geom_vline(xintercept = log2(100), lty = 2) +
     geom_hline(yintercept = 1, lty = 2) +
@@ -57,11 +66,12 @@ manuscript_numbers[["04_alleles"]] <- list()
           panel.background = element_blank(),
           panel.grid = element_line(size = 0.5),
           strip.background = element_blank(),
-          strip.text = element_text(size = 8)) +
-    ggsave(str_c(supp, "phased_coverage.pdf"),
-           width = 7.25,
-           height = 6.75,
-           useDingbats = FALSE)
+          strip.text = element_text(size = 8))
+
+  ggsave(str_c(supp, "phased_coverage.pdf"),
+         width = 7.25,
+         height = 6.75,
+         useDingbats = FALSE)
 
   # distance between mutations
 
@@ -71,8 +81,8 @@ manuscript_numbers[["04_alleles"]] <- list()
     group_by(sample, my_color_100, Variant) %>%
     summarize(phased_barcode_coverage = sum(barcode_REF_H1, barcode_REF_H2,
                                             barcode_ALT_H1, barcode_ALT_H2),
-              phased_alt_barcode_coverage = sum(barcode_ALT_H1, barcode_ALT_H2)) %>%
-    ungroup() %>%
+              phased_alt_barcode_coverage = sum(barcode_ALT_H1, barcode_ALT_H2),
+              .groups = "drop") %>%
     filter(phased_barcode_coverage >= 10) %>%
     filter(phased_barcode_coverage <= 100) %>%
     filter(phased_alt_barcode_coverage > 0)
@@ -107,7 +117,7 @@ manuscript_numbers[["04_alleles"]] <- list()
     filter(distance_between_variants >= 100) %>%
     pull(n_overlapping_barcodes) %>% max() %>% plyr::round_any(10, f = ceiling)
 
-  p <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>%
+  overlapping_barcodes_plot_df <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>%
     filter(distance_between_variants <= median_molecule_length) %>%
     filter(distance_between_variants >= 100) %>%
     mutate(overlap_category = case_when(n_overlapping_barcodes == 0 ~ "Zero",
@@ -116,8 +126,13 @@ manuscript_numbers[["04_alleles"]] <- list()
                                         n_overlapping_barcodes <= max_overlapping_bx ~ str_c("<= ", as.character(max_overlapping_bx)))) %>%
     mutate(overlap_category = fct_rev(factor(overlap_category,
                                              levels = c("Zero", "<= 10", "<= 20", str_c("<= ", as.character(max_overlapping_bx))),
-                                             ordered = TRUE))) %>%
-    ggplot(aes(x = distance_between_variants/1000)) +
+                                             ordered = TRUE)))
+
+  write_tsv(overlapping_barcodes_plot_df,
+            file = file.path(data_dir, "overlapping_barcodes_plot_df.tsv"))
+
+  p <- ggplot(data = overlapping_barcodes_plot_df,
+              aes(x = distance_between_variants/1000)) +
     geom_histogram(aes(fill = overlap_category),
                    boundary = 0, binwidth = 1000/500) +
     scale_fill_viridis(discrete = TRUE, option = "C") +
@@ -140,14 +155,14 @@ manuscript_numbers[["04_alleles"]] <- list()
           strip.text = element_text(size = 8),
           plot.margin = unit(c(0,0,0,0), "lines"))
 
-    ggsave(str_c(main, "overlapping_barcodes.with_legend.pdf"), p,
+  ggsave(str_c(main, "overlapping_barcodes.with_legend.pdf"), p,
          width = 2, height = 2, useDingbats = FALSE)
-    ggsave(str_c(main, "overlapping_barcodes.without_legend.pdf"), p + guides(fill = FALSE),
-           width = 2, height = 2, useDingbats = FALSE)
+  ggsave(str_c(main, "overlapping_barcodes.without_legend.pdf"), p + guides(fill = FALSE),
+         width = 2, height = 2, useDingbats = FALSE)
 
-    rm(p)
+  rm(p, overlapping_barcodes_plot_df, phased_coverage_plot_df)
 
-  variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>%
+  overlapping_barcodes_lt_100_plot_df <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>%
     filter(distance_between_variants < 100) %>%
     mutate(overlap_category = case_when(n_overlapping_barcodes == 0 ~ "Zero",
                                         n_overlapping_barcodes <= 10 ~ "<= 10",
@@ -158,8 +173,13 @@ manuscript_numbers[["04_alleles"]] <- list()
     mutate(overlap_category = fct_rev(factor(overlap_category,
                                              levels = c("Zero", "<= 10", "<= 20",
                                                         "<= 50", "<= 100", "> 100"),
-                                             ordered = TRUE))) %>%
-    ggplot(aes(x = distance_between_variants)) +
+                                             ordered = TRUE)))
+
+  write_tsv(overlapping_barcodes_lt_100_plot_df,
+            file = file.path(data_dir, "overlapping_barcodes_lt_100_plot_df.tsv"))
+
+  ggplot(data = overlapping_barcodes_lt_100_plot_df,
+         aes(x = distance_between_variants)) +
     geom_histogram(aes(fill = overlap_category),
                    boundary = 0.5, binwidth = 1) +
     scale_fill_brewer(palette = "Set2") +
@@ -180,9 +200,10 @@ manuscript_numbers[["04_alleles"]] <- list()
           legend.background = element_blank(),
           strip.background = element_blank(),
           strip.text = element_text(size = 8),
-          plot.margin = unit(c(0,0,0,0), "lines")) +
-    ggsave(str_c(supp, "overlapping_barcodes.lt_100.pdf"),
-           width = 7.25, height = 2, useDingbats = FALSE)
+          plot.margin = unit(c(0,0,0,0), "lines"))
+
+  ggsave(str_c(supp, "overlapping_barcodes.lt_100.pdf"),
+         width = 7.25, height = 2, useDingbats = FALSE)
 
   manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% nrow()
   manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_gt62kb"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% filter(distance_between_variants > median_molecule_length) %>% nrow()
@@ -212,7 +233,7 @@ manuscript_numbers[["04_alleles"]] <- list()
   manuscript_numbers[["04_alleles"]][["pct_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte1_overlap"]] <- 100*(manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte1_overlap"]]/manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb"]])
   manuscript_numbers[["04_alleles"]][["pct_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte1_overlap_gte1_mutation"]] <- 100*(manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte1_overlap_gte1_mutation"]]/manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte1_overlap"]])
 
-  rm(cnv_neutral_mutation_sites, cnv_neutral_good_coverage_sites, max_overlapping_bx, sample_id, this_sample)
+  rm(cnv_neutral_mutation_sites, cnv_neutral_good_coverage_sites, max_overlapping_bx, sample_id, this_sample, overlapping_barcodes_lt_100_plot_df)
 }
 
 # automated allele combination stats
@@ -236,28 +257,33 @@ manuscript_numbers[["04_alleles"]] <- list()
     filter(n_barcodes_with_mutation > 0) %>% nrow()
   p_within_length_share_barcode_share_variant <- 100*n_within_length_share_barcode_share_variant/n_within_length_share_barcode
 
-  plot_df <- tribble(~level1, ~level2, ~value,
-                     "Within\nLength",  "Yes",                                   p_within_length,
-                     "Within\nLength",   "No",                             100 - p_within_length,
-                     "Share\nBarcode",  "Yes",                     p_within_length_share_barcode,
-                     "Share\nBarcode",   "No",               100 - p_within_length_share_barcode,
-                     "Share\nVariant",  "Yes",       p_within_length_share_barcode_share_variant,
-                     "Share\nVariant",   "No", 100 - p_within_length_share_barcode_share_variant) %>%
+  n_variant_pairs_plot_df <- tribble(~level1, ~level2, ~value,
+                                     "Within\nLength",  "Yes",                                   p_within_length,
+                                     "Within\nLength",   "No",                             100 - p_within_length,
+                                     "Share\nBarcode",  "Yes",                     p_within_length_share_barcode,
+                                     "Share\nBarcode",   "No",               100 - p_within_length_share_barcode,
+                                     "Share\nVariant",  "Yes",       p_within_length_share_barcode_share_variant,
+                                     "Share\nVariant",   "No", 100 - p_within_length_share_barcode_share_variant) %>%
     mutate(level1 = factor(level1,
                            levels = c("Within\nLength", "Share\nBarcode", "Share\nVariant"),
                            labels = c(str_c("Within\n", median_molecule_length/1000, " Kb"), "Share\nBarcode", "Share\nVariant"),
                            ordered = TRUE))
 
+  write_tsv(n_variant_pairs_plot_df,
+            file = file.path("n_variant_pairs_plot_df.tsv"))
+
   bar_width = 0.5
-  ggplot(data = plot_df, aes(x = level1, y = value, fill = level2)) +
+
+  ggplot(data = n_variant_pairs_plot_df,
+         aes(x = level1, y = value, fill = level2)) +
     geom_bar(stat = "identity", width = bar_width, show.legend = FALSE) +
-    geom_text(data = plot_df %>% filter(level2 == "Yes"),
+    geom_text(data = n_variant_pairs_plot_df %>% filter(level2 == "Yes"),
               aes(label = str_c(round(value, 1), "%")),
               vjust = 1, nudge_y = -0.5,
               color = "white",
               size = 6/ggplot2:::.pt,
               fontface = "bold") +
-    geom_text(data = plot_df %>% filter(level2 == "No"),
+    geom_text(data = n_variant_pairs_plot_df %>% filter(level2 == "No"),
               aes(label = str_c(round(value, 1), "%"), y = 100),
               vjust = 1, nudge_y = -0.5,
               color = "white",
@@ -293,13 +319,14 @@ manuscript_numbers[["04_alleles"]] <- list()
           strip.background = element_blank(),
           strip.text = element_text(size = 8),
           plot.margin = unit(c(0,0,0,0), "lines")) +
-    labs(x = NULL, y = "Somatic Mutation Pairs (%)", fill = NULL) +
-    ggsave(str_c(main, "n_variant_pairs.pdf"),
-           width = 2, height = 2, useDingbats = FALSE)
+    labs(x = NULL, y = "Somatic Mutation Pairs (%)", fill = NULL)
+
+  ggsave(str_c(main, "n_variant_pairs.pdf"),
+         width = 2, height = 2, useDingbats = FALSE)
 
   ### Other parts
 
-  text_df <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>%
+  allele_combinations_text_df <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>%
     filter(distance_between_variants <= median_molecule_length) %>%
     filter(n_overlapping_barcodes > 0) %>%
     filter(n_barcodes_with_mutation > 0) %>%
@@ -319,7 +346,10 @@ manuscript_numbers[["04_alleles"]] <- list()
                                         "1011", "1101", "Other"),
                              ordered = TRUE))
 
-  plot_df <- tribble(~alleles, ~category, ~filled,
+  write_tsv(allele_combinations_text_df,
+            file = file.path("allele_combinations_text_df.tsv"))
+
+  allele_combinations_plot_df <- tribble(~alleles, ~category, ~filled,
                      4, "1001", 1,
                      3, "1001", 0,
                      2, "1001", 0,
@@ -353,15 +383,18 @@ manuscript_numbers[["04_alleles"]] <- list()
                                         "1011", "1101", "Other"),
                              ordered = TRUE))
 
+  write_tsv(allele_combinations_plot_df,
+            file = file.path("allele_combinations_plot_df.tsv"))
+
   ggplot() +
-    geom_tile(data = plot_df,
+    geom_tile(data = allele_combinations_plot_df,
               aes(x = category, y = alleles, fill = as.factor(filled)),
               #color = NA,
               width = 0.8,
               height = 0.95) +
-    geom_text(data = text_df, aes(x = category, y = 5.5, label = total),
+    geom_text(data = allele_combinations_text_df, aes(x = category, y = 5.5, label = total),
               size = 2) +
-    geom_text(data = text_df, aes(x = category, y = 5, label = str_c(round(100*total/n_within_length_share_barcode_share_variant, 1), "%")),
+    geom_text(data = allele_combinations_text_df, aes(x = category, y = 5, label = str_c(round(100*total/n_within_length_share_barcode_share_variant, 1), "%")),
               size = 2) +
     scale_fill_manual(values = c("#80cdc1", "#01665e", "#bdbdbd")) +
     scale_y_continuous(breaks = c(seq(1,5), 5.5),
@@ -384,15 +417,16 @@ manuscript_numbers[["04_alleles"]] <- list()
           legend.background = element_blank(),
           strip.background = element_blank(),
           strip.text = element_text(size = 8),
-          plot.margin = unit(c(0,0,0,0), "lines")) +
-    ggsave(str_c(main, "allele_combinations.pdf"), height = 2, width = 3, useDingbats = FALSE)
+          plot.margin = unit(c(0,0,0,0), "lines"))
 
-  manuscript_numbers[["04_alleles"]][["allele_pair_combinations"]] <- text_df %>% mutate(pct = 100*total/n_within_length_share_barcode_share_variant)
+  ggsave(str_c(main, "allele_combinations.pdf"), height = 2, width = 3, useDingbats = FALSE)
+
+  manuscript_numbers[["04_alleles"]][["allele_pair_combinations"]] <- allele_combinations_text_df %>% mutate(pct = 100*total/n_within_length_share_barcode_share_variant)
 
   rm(n_total, n_within_length, p_within_length,
      n_within_length_share_barcode, p_within_length_share_barcode,
      n_within_length_share_barcode_share_variant, p_within_length_share_barcode_share_variant,
-     plot_df, text_df,
+     allele_combinations_plot_df, allele_combinations_text_df,
      variant_pairs_mapq20_tbl_cnv_neutral_good_coverage,
      median_molecule_length,
      bar_width)
@@ -515,8 +549,9 @@ manuscript_numbers[["04_alleles"]] <- list()
             strip.background = element_blank(),
             strip.text = element_text(size = 8),
             plot.margin = unit(c(0,0,0,0), "lines")
-      ) +
-      ggsave(str_c(output_dir, output_filename), width = 7.5, height = 10, useDingbats = FALSE)
+      )
+
+    ggsave(str_c(output_dir, output_filename), width = 7.5, height = 10, useDingbats = FALSE)
   }
 
   pv <- phasing_variants_mapq20_tbl
@@ -751,8 +786,9 @@ manuscript_numbers[["04_alleles"]][["57075_RUNX1_VAFs"]] <- driver_mutations_vaf
             strip.text = element_text(size = 8),
             plot.margin = unit(c(0,0,0,0), "lines"),
             legend.background = element_blank(),
-            legend.text = element_text(size = 6)) +
-      ggsave(str_c(main, "allele_pairs.", sample_id, ".", gene, ".pdf"),
+            legend.text = element_text(size = 6))
+
+    ggsave(str_c(main, "allele_pairs.", sample_id, ".", gene, ".pdf"),
              width = 1.5, height = 1.75, useDingbats = FALSE)
   }
 
