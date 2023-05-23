@@ -2,6 +2,9 @@
 # Use ancestry information
 ################################################################################
 
+data_dir = file.path("data_for_plots/07_ancestry")
+dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
+
 main = "figures/07_ancestry/main/"
 supp = "figures/07_ancestry/supplementary/"
 
@@ -51,7 +54,7 @@ ps <- segment_overlap_tbl %>%
                                     Phase_set_end_position > x_limits[2] ~ median(c(x_limits[2], Phase_set_start_position)),
                                     TRUE ~ median(c(Phase_set_start_position, Phase_set_end_position))))
 
-tibble(my_row = c(rep("Phase Sets", n_alleles_ps1), rep("Phase Sets", n_alleles_ps2)),
+ibd_overlap_plot_df <- tibble(my_row = c(rep("Phase Sets", n_alleles_ps1), rep("Phase Sets", n_alleles_ps2)),
        position = c(as.numeric(positions_list[[1]]), as.numeric(positions_list[[4]])),
        matches_h1 = c(IBD_allele_list[[1]] == H1_allele_list[[1]],
                       IBD_allele_list[[4]] == H1_allele_list[[4]]),
@@ -63,8 +66,13 @@ tibble(my_row = c(rep("Phase Sets", n_alleles_ps1), rep("Phase Sets", n_alleles_
                                  labels = c("Neither", "X", "Y", "H1", "H2"),
                                  ordered = TRUE)) %>%
   bind_rows(ps) %>%
-  bind_rows(ibd) %>%
-  ggplot(aes(x = position/1e6, y = my_row)) +
+  bind_rows(ibd)
+
+write_tsv(ibd_overlap_plot_df,
+          file = file.path(data_dir, "ibd_overlap_plot_df.tsv"))
+
+ggplot(data = ibd_overlap_plot_df,
+       aes(x = position/1e6, y = my_row)) +
   geom_segment(aes(x = Phase_set_start_position/1e6, xend = Phase_set_end_position/1e6,
                    y = my_row, yend = my_row)) +
   geom_segment(aes(x = IBD_start_position/1e6, xend = IBD_end_position/1e6,
@@ -90,9 +98,10 @@ tibble(my_row = c(rep("Phase Sets", n_alleles_ps1), rep("Phase Sets", n_alleles_
         legend.title = element_blank(),
         legend.text = element_text(size = 8),
         legend.margin = margin(0,0,0,0),
-        legend.box.margin = margin(-10,-10,-10,-10)) +
-  ggsave(str_c(main, "ibd_overlap.pdf"),
-         width = 7.25, height = 1.5, useDingbats = FALSE)
+        legend.box.margin = margin(-10,-10,-10,-10))
+
+ggsave(str_c(main, "ibd_overlap.pdf"),
+       width = 7.25, height = 1.5, useDingbats = FALSE)
 
 rm(main, supp, positions_list, H1_allele_list, H2_allele_list, IBD_allele_list,
-  n_alleles_ps1, n_alleles_ps2, x_limits, ibd, ps)
+   n_alleles_ps1, n_alleles_ps2, x_limits, ibd, ps)
