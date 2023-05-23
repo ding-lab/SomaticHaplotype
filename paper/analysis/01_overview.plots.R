@@ -3,6 +3,8 @@
 # Data available and QC
 ################################################################################
 
+library(tidyverse)
+
 data_dir = file.path("data_for_plots/01_overview")
 dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -80,11 +82,16 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
          width = 7.5,
          useDingbats = FALSE)
 
-  rm(qc_metrics_plot_df, data_columns, data_multiplier, data_multiplier_label, multiplier_tbl)
+  rm(qc_metrics_plot_df)
 }
 
 # Data QC (top metrics)
 {
+
+  highlight_columns <- sort(c("n50_linked_reads_per_molecule",
+                              "n50_phase_block",
+                              "molecule_length_mean"))
+
   top_qc_metrics_plot_df <- read_tsv(file = file.path(data_dir, "top_qc_metrics_plot_df.tsv"),
                                      na = c("", "NA", "NaN"),
                                      show_col_types = FALSE) %>%
@@ -125,8 +132,8 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
          height = 2.5,
          width = 4.25)
 
-  rm(top_qc_metrics_plot_df, data_columns, data_multiplier, data_multiplier_label, highlight_columns, multiplier_tbl)
+  rm(top_qc_metrics_plot_df, highlight_columns)
 
 }
 
-rm(main, supp)
+rm(main, supp, data_dir)
