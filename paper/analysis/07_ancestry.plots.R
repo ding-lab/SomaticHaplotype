@@ -2,6 +2,8 @@
 # Use ancestry information
 ################################################################################
 
+library(tidyverse)
+
 data_dir = file.path("data_for_plots/07_ancestry")
 dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -53,4 +55,4 @@ ggplot(data = ibd_overlap_plot_df,
 ggsave(str_c(main, "ibd_overlap.pdf"),
        width = 7.25, height = 1.5, useDingbats = FALSE)
 
-rm(main, supp, x_limits, ibd_overlap_plot_df)
+rm(main, supp, x_limits, ibd_overlap_plot_df, data_dir)
