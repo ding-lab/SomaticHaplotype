@@ -258,19 +258,20 @@ manuscript_numbers[["04_alleles"]] <- list()
   p_within_length_share_barcode_share_variant <- 100*n_within_length_share_barcode_share_variant/n_within_length_share_barcode
 
   n_variant_pairs_plot_df <- tribble(~level1, ~level2, ~value,
-                                     "Within\nLength",  "Yes",                                   p_within_length,
-                                     "Within\nLength",   "No",                             100 - p_within_length,
-                                     "Share\nBarcode",  "Yes",                     p_within_length_share_barcode,
-                                     "Share\nBarcode",   "No",               100 - p_within_length_share_barcode,
-                                     "Share\nVariant",  "Yes",       p_within_length_share_barcode_share_variant,
-                                     "Share\nVariant",   "No", 100 - p_within_length_share_barcode_share_variant) %>%
-    mutate(level1 = factor(level1,
-                           levels = c("Within\nLength", "Share\nBarcode", "Share\nVariant"),
-                           labels = c(str_c("Within\n", median_molecule_length/1000, " Kb"), "Share\nBarcode", "Share\nVariant"),
-                           ordered = TRUE))
+                                     "Within Length",  "Yes",                                   p_within_length,
+                                     "Within Length",   "No",                             100 - p_within_length,
+                                     "Share Barcode",  "Yes",                     p_within_length_share_barcode,
+                                     "Share Barcode",   "No",               100 - p_within_length_share_barcode,
+                                     "Share Variant",  "Yes",       p_within_length_share_barcode_share_variant,
+                                     "Share Variant",   "No", 100 - p_within_length_share_barcode_share_variant)
 
   write_tsv(n_variant_pairs_plot_df,
             file = file.path("n_variant_pairs_plot_df.tsv"))
+
+  n_variant_pairs_plot_df <- n_variant_pairs_plot_df %>%  mutate(level1 = factor(level1,
+                           levels = c("Within Length", "Share Barcode", "Share Variant"),
+                           labels = c(str_c("Within\n", median_molecule_length/1000, " Kb"), "Share\nBarcode", "Share\nVariant"),
+                           ordered = TRUE))
 
   bar_width = 0.5
 
