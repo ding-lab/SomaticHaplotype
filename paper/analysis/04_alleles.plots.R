@@ -2,6 +2,10 @@
 # Closer look at allele relationships
 ################################################################################
 
+library(tidyverse)
+library(viridis)
+library(fishplot)
+
 data_dir = file.path("data_for_plots/04_alleles")
 dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -11,8 +15,6 @@ supp = "figures/04_alleles/supplementary/"
 # Create directories
 dir.create(main, recursive = TRUE, showWarnings = FALSE)
 dir.create(supp, recursive = TRUE, showWarnings = FALSE)
-
-manuscript_numbers[["04_alleles"]] <- list()
 
 # mutation coverage at CNV neutral sites
 {
@@ -119,6 +121,8 @@ manuscript_numbers[["04_alleles"]] <- list()
 {
   # allele combinations (handmade with known figures)
 
+  median_molecule_length <- 62000
+
   n_variant_pairs_plot_df <- read_tsv(file = file.path("n_variant_pairs_plot_df.tsv"),
                                       show_col_types = FALSE) %>%
     mutate(level1 = factor(level1,
@@ -127,6 +131,10 @@ manuscript_numbers[["04_alleles"]] <- list()
                            ordered = TRUE))
 
   bar_width = 0.5
+
+  p_within_length <- n_variant_pairs_plot_df$value[1]
+  p_within_length_share_barcode <- n_variant_pairs_plot_df$value[3]
+  p_within_length_share_barcode_share_variant <- n_variant_pairs_plot_df$value[5]
 
   ggplot(data = n_variant_pairs_plot_df,
          aes(x = level1, y = value, fill = level2)) +
@@ -186,6 +194,8 @@ manuscript_numbers[["04_alleles"]] <- list()
   allele_combinations_plot_df <- read_tsv(file = file.path("allele_combinations_plot_df.tsv"),
                                           show_col_types = FALSE)
 
+  n_within_length_share_barcode_share_variant <- sum(allele_combinations_text_df$total)
+
   ggplot() +
     geom_tile(data = allele_combinations_plot_df,
               aes(x = category, y = alleles, fill = as.factor(filled)),
@@ -221,11 +231,11 @@ manuscript_numbers[["04_alleles"]] <- list()
 
   ggsave(str_c(main, "allele_combinations.pdf"), height = 2, width = 3, useDingbats = FALSE)
 
-  rm(n_total, n_within_length, p_within_length,
-     n_within_length_share_barcode, p_within_length_share_barcode,
-     n_within_length_share_barcode_share_variant, p_within_length_share_barcode_share_variant,
+  rm(p_within_length,
+     p_within_length_share_barcode,
+     n_within_length_share_barcode_share_variant,
+     p_within_length_share_barcode_share_variant,
      allele_combinations_plot_df, allele_combinations_text_df,
-     variant_pairs_mapq20_tbl_cnv_neutral_good_coverage,
      median_molecule_length,
      bar_width)
 }
@@ -696,4 +706,4 @@ if (TRUE) {
   rm(frac.table, parents, colors_to_use, fish, timepoints)
 }
 
-rm(i, main, supp)
+rm(data_dir, main, supp, n_variant_pairs_plot_df)
