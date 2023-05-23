@@ -2,6 +2,8 @@
 # Extend phase sets
 ################################################################################
 
+library(tidyverse)
+
 data_dir = file.path("data_for_plots/06_extend")
 dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -255,4 +257,4 @@ manuscript_numbers[["06_extend"]] <- list()
   rm(plot_df_dist_before_plot_df, plot_df_dist_after_plot_df)
 }
 
-rm(main, supp)
+rm(main, supp, data_dir, extension_landscape_plot_df)
