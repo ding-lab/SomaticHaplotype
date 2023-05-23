@@ -3,6 +3,9 @@
 # Data available and QC
 ################################################################################
 
+data_dir = file.path("data_for_plots/01_overview")
+dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
+
 main = "figures/01_overview/main/"
 supp = "figures/01_overview/supplementary/"
 
@@ -14,7 +17,7 @@ manuscript_numbers[["01_overview"]] <- list()
 
 # Data available
 {
-  plot_df <- patient_sample_names_tbl %>%
+  samples_plot_df <- patient_sample_names_tbl %>%
     mutate(timepoint = factor(timepoint,
                               levels = c("SMM",
                                          "Primary",
@@ -32,9 +35,9 @@ manuscript_numbers[["01_overview"]] <- list()
                                          "Normal (N)"),
                               ordered = TRUE))
 
-  ggplot(plot_df, aes(x = timepoint, y = patient)) +
+  ggplot(samples_plot_df, aes(x = timepoint, y = patient)) +
     geom_point(aes(color = my_color_100), shape = 16, size = 3, show.legend = FALSE) +
-    geom_point(data = plot_df %>% filter(sorted), shape = 16, color = "#ffffff") +
+    geom_point(data = samples_plot_df %>% filter(sorted), shape = 16, color = "#ffffff") +
     scale_color_identity() +
     labs(x = NULL, y = NULL) +
     theme_bw() +
@@ -46,11 +49,15 @@ manuscript_numbers[["01_overview"]] <- list()
           panel.grid = element_line(size = 0.5),
           panel.spacing = unit(c(0,0,0,0), "null"),
           plot.margin = unit(c(0,0,0,0), "null"),
-          strip.text = element_text(size = 8)) +
-    ggsave(str_c(main, "samples.pdf"),
-           width = 2.75,
-           height = 2.5,
-           useDingbats = FALSE)
+          strip.text = element_text(size = 8))
+
+  ggsave(str_c(main, "samples.pdf"),
+         width = 2.75,
+         height = 2.5,
+         useDingbats = FALSE)
+
+  write_tsv(samples_plot_df,
+            file = file.path(data_dir, "samples_plot_df.tsv"))
 
   manuscript_numbers[["01_overview"]][["n_patients"]] <- patient_sample_names_tbl %>% pull(patient) %>% unique() %>% length()
   manuscript_numbers[["01_overview"]][["n_tumor_samples"]] <- patient_sample_names_tbl %>% filter(timepoint != "Normal") %>% pull(sample) %>% unique() %>% length()
@@ -78,7 +85,7 @@ manuscript_numbers[["01_overview"]] <- list()
                                        TRUE ~ ".")),
             str_c(supp, "data_available.tsv"))
 
-  rm(plot_df)
+  rm(samples_plot_df)
 }
 
 # Data QC (all metrics)
@@ -102,23 +109,22 @@ manuscript_numbers[["01_overview"]] <- list()
 
   multiplier_tbl <- tibble(category = data_columns, data_multiplier, data_multiplier_label)
 
-  plot_df <- lr_summary_tbl %>%
+  qc_metrics_plot_df <- lr_summary_tbl %>%
     bind_rows(lr_summary_1000G_tbl) %>%
     gather(all_of(data_columns), key = "category", value = "result") %>%
-    #select(-c(vcf_column, cnv_maf_status, longranger_version)) %>%
     mutate(normal_sample = case_when(timepoint == "Normal" ~ "Normal",
                                      TRUE ~ "Tumor")) %>%
     left_join(multiplier_tbl, by = "category")
 
-  ggplot(plot_df %>% filter(!str_detect(patient, "NA1")),
+  ggplot(qc_metrics_plot_df %>% filter(!str_detect(patient, "NA1")),
          aes(x = normal_sample, y = result*data_multiplier)) +
     geom_violin(show.legend = FALSE, draw_quantiles = .5) +
     geom_jitter(aes(color = my_color_100, shape = my_shape),
                 height = 0, width = 0.25, show.legend = FALSE) +
-    geom_point(data = plot_df %>% filter(str_detect(patient, "NA1")),
+    geom_point(data = qc_metrics_plot_df %>% filter(str_detect(patient, "NA1")),
                aes(color = my_color_100, shape = my_shape),
                show.legend = FALSE) +
-    geom_label(data = plot_df %>%
+    geom_label(data = qc_metrics_plot_df %>%
                  select(category, data_multiplier_label, normal_sample) %>%
                  filter(normal_sample == "Tumor") %>% unique(),
                aes(label = data_multiplier_label),
@@ -136,11 +142,15 @@ manuscript_numbers[["01_overview"]] <- list()
           panel.grid = element_line(size = 0.5),
           strip.background = element_blank(),
           strip.text = element_text(size = 8)
-          ) +
-    ggsave(str_c(supp, "qc_metrics.pdf"),
-           height = 7.5,
-           width = 7.5,
-           useDingbats = FALSE)
+    )
+
+  ggsave(str_c(supp, "qc_metrics.pdf"),
+         height = 7.5,
+         width = 7.5,
+         useDingbats = FALSE)
+
+  write_tsv(qc_metrics_plot_df,
+            file = file.path(data_dir, "qc_metrics_plot_df.tsv"))
 
   # write summary stats to table
   write_tsv(lr_summary_tbl %>%
@@ -150,7 +160,7 @@ manuscript_numbers[["01_overview"]] <- list()
                      -starts_with("my")),
             str_c(supp, "qc_metrics.tsv"))
 
-  rm(plot_df, data_columns, data_multiplier, data_multiplier_label, multiplier_tbl)
+  rm(qc_metrics_plot_df, data_columns, data_multiplier, data_multiplier_label, multiplier_tbl)
 }
 
 # Data QC (top metrics)
@@ -180,25 +190,32 @@ manuscript_numbers[["01_overview"]] <- list()
                            data_multiplier, data_multiplier_label) %>%
     filter(category %in% highlight_columns)
 
-  plot_df <- lr_summary_tbl %>%
+  top_qc_metrics_plot_df <- lr_summary_tbl %>%
     bind_rows(lr_summary_1000G_tbl) %>%
     select(patient, sample, timepoint, n50_linked_reads_per_molecule, n50_phase_block, molecule_length_mean, my_color_100, my_shape) %>%
     gather(all_of(highlight_columns), key = "category", value = "result") %>%
     mutate(normal_sample = case_when(timepoint == "Normal" ~ "Normal",
                                      TRUE ~ "Tumor")) %>%
-    left_join(multiplier_tbl, by = "category") %>%
+    left_join(multiplier_tbl, by = "category")
+
+  write_tsv(top_qc_metrics_plot_df,
+            file = file.path(data_dir, "top_qc_metrics_plot_df.tsv"))
+
+  top_qc_metrics_plot_df %>%
     mutate(category = factor(category,
                              levels = highlight_columns,
-                             labels = c("Molecule Length\n(mean, Kb)",
-                                        "Linked-reads per\nmolecule (N50)",
-                                        "Phase Set Length\n(N50, Mb)")))
+                             labels = c("Molecule Length\\n(mean, Kb)",
+                                        "Linked-reads per\\nmolecule (N50)",
+                                        "Phase Set Length\\n(N50, Mb)")))
 
-  ggplot(plot_df %>% filter(!str_detect(patient, "NA1")),
+  ggplot(top_qc_metrics_plot_df %>%
+           filter(!str_detect(patient, "NA1")),
          aes(x = normal_sample, y = result*data_multiplier)) +
     geom_violin(show.legend = FALSE, draw_quantiles = .5) +
     geom_jitter(aes(color = my_color_100, shape = my_shape),
                 height = 0, width = 0.25, show.legend = FALSE) +
-    geom_point(data = plot_df %>% filter(str_detect(patient, "NA1")),
+    geom_point(data = top_qc_metrics_plot_df %>%
+                 filter(str_detect(patient, "NA1")),
                aes(color = my_color_100, shape = my_shape),
                show.legend = FALSE) +
     expand_limits(y = 0) +
@@ -215,13 +232,14 @@ manuscript_numbers[["01_overview"]] <- list()
           panel.grid = element_line(size = 0.5),
           strip.background = element_blank(),
           strip.text = element_text(size = 8),
-          plot.margin = unit(c(0,0,0,0), "lines")) +
-    ggsave(str_c(main, "top_qc_metrics.pdf"),
-           useDingbats = FALSE,
-           height = 2.5,
-           width = 4.25)
+          plot.margin = unit(c(0,0,0,0), "lines"))
 
-  rm(plot_df, data_columns, data_multiplier, data_multiplier_label, highlight_columns, multiplier_tbl)
+  ggsave(str_c(main, "top_qc_metrics.pdf"),
+         useDingbats = FALSE,
+         height = 2.5,
+         width = 4.25)
+
+  rm(top_qc_metrics_plot_df, data_columns, data_multiplier, data_multiplier_label, highlight_columns, multiplier_tbl)
 
   manuscript_numbers[["01_overview"]][["mean_molecule_length_tumor"]] <- lr_summary_tbl %>% filter(timepoint != "Normal") %>% select(molecule_length_mean) %>% summary()
   manuscript_numbers[["01_overview"]][["mean_molecule_length_normal"]] <- lr_summary_tbl %>% filter(timepoint == "Normal") %>% select(molecule_length_mean) %>% summary()

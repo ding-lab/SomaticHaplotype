@@ -2,6 +2,10 @@
 # Closer look at allele relationships
 ################################################################################
 
+library(tidyverse)
+library(viridis)
+library(fishplot)
+
 data_dir = file.path("data_for_plots/04_alleles")
 dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -12,40 +16,11 @@ supp = "figures/04_alleles/supplementary/"
 dir.create(main, recursive = TRUE, showWarnings = FALSE)
 dir.create(supp, recursive = TRUE, showWarnings = FALSE)
 
-manuscript_numbers[["04_alleles"]] <- list()
-
 # mutation coverage at CNV neutral sites
 {
-  cnv_neutral_mutation_sites <- variant_pairs_mapq20_tbl %>%
-    filter(cnv_position1 > -0.25,
-           cnv_position1 < 0.2) %>%
-    mutate(Variant = Variant1) %>%
-    select(sample, Variant) %>%
-    unique()
 
-  cnv_neutral_mutation_sites <- bind_rows(cnv_neutral_mutation_sites,
-                                          variant_pairs_mapq20_tbl %>%
-                                            filter(cnv_position2 > -0.25,
-                                                   cnv_position2 < 0.2) %>%
-                                            mutate(Variant = Variant2) %>%
-                                            select(sample, Variant) %>%
-                                            unique()) %>%
-    unique()
-
-  # coverage at mutation sites
-
-  phased_coverage_plot_df <- cnv_neutral_mutation_sites %>%
-    left_join(phasing_variants_mapq20_tbl,
-              by = c("sample", "Variant")) %>%
-    group_by(sample, display_name, my_color_100, Variant) %>%
-    summarize(phased_barcode_coverage = sum(barcode_REF_H1, barcode_REF_H2,
-                                            barcode_ALT_H1, barcode_ALT_H2),
-              phased_alt_barcode_coverage = sum(barcode_ALT_H1, barcode_ALT_H2),
-              .groups = "drop") %>%
-    filter(phased_barcode_coverage > 0)
-
-  write_tsv(phased_coverage_plot_df,
-            file = file.path(data_dir, "phased_coverage_plot_df.tsv"))
+  phased_coverage_plot_df <- read_tsv(file = file.path(data_dir, "phased_coverage_plot_df.tsv"),
+                                      show_col_types = FALSE)
 
   ggplot(data = phased_coverage_plot_df,
          aes(x = log2(phased_barcode_coverage),
@@ -75,61 +50,8 @@ manuscript_numbers[["04_alleles"]] <- list()
 
   # distance between mutations
 
-  cnv_neutral_good_coverage_sites <- cnv_neutral_mutation_sites %>%
-    left_join(phasing_variants_mapq20_tbl,
-              by = c("sample", "Variant")) %>%
-    group_by(sample, my_color_100, Variant) %>%
-    summarize(phased_barcode_coverage = sum(barcode_REF_H1, barcode_REF_H2,
-                                            barcode_ALT_H1, barcode_ALT_H2),
-              phased_alt_barcode_coverage = sum(barcode_ALT_H1, barcode_ALT_H2),
-              .groups = "drop") %>%
-    filter(phased_barcode_coverage >= 10) %>%
-    filter(phased_barcode_coverage <= 100) %>%
-    filter(phased_alt_barcode_coverage > 0)
-
-  variant_pairs_mapq20_tbl_cnv_neutral_good_coverage <- NULL
-
-  for (sample_id in patient_sample_names_tbl %>%
-       filter(cnv_maf_status) %>% pull(sample)) {
-    this_sample <- cnv_neutral_good_coverage_sites %>% filter(sample == sample_id)
-    if (is.null(variant_pairs_mapq20_tbl_cnv_neutral_good_coverage)) {
-      variant_pairs_mapq20_tbl_cnv_neutral_good_coverage <- variant_pairs_mapq20_tbl %>%
-        filter(sample == sample_id,
-               Variant1 %in% this_sample$Variant,
-               Variant2 %in% this_sample$Variant)
-    } else {
-      variant_pairs_mapq20_tbl_cnv_neutral_good_coverage <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>%
-        bind_rows(variant_pairs_mapq20_tbl %>%
-                    filter(sample == sample_id,
-                           Variant1 %in% this_sample$Variant,
-                           Variant2 %in% this_sample$Variant))
-    }
-  }
-
-  median_molecule_length <- lr_summary_tbl %>%
-    filter(timepoint != "Normal") %>%
-    pull(molecule_length_mean) %>%
-    median() %>%
-    plyr::round_any(2000)
-
-  max_overlapping_bx <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>%
-    filter(distance_between_variants <= median_molecule_length) %>%
-    filter(distance_between_variants >= 100) %>%
-    pull(n_overlapping_barcodes) %>% max() %>% plyr::round_any(10, f = ceiling)
-
-  overlapping_barcodes_plot_df <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>%
-    filter(distance_between_variants <= median_molecule_length) %>%
-    filter(distance_between_variants >= 100) %>%
-    mutate(overlap_category = case_when(n_overlapping_barcodes == 0 ~ "Zero",
-                                        n_overlapping_barcodes <= 10 ~ "<= 10",
-                                        n_overlapping_barcodes <= 20 ~ "<= 20",
-                                        n_overlapping_barcodes <= max_overlapping_bx ~ str_c("<= ", as.character(max_overlapping_bx)))) %>%
-    mutate(overlap_category = fct_rev(factor(overlap_category,
-                                             levels = c("Zero", "<= 10", "<= 20", str_c("<= ", as.character(max_overlapping_bx))),
-                                             ordered = TRUE)))
-
-  write_tsv(overlapping_barcodes_plot_df,
-            file = file.path(data_dir, "overlapping_barcodes_plot_df.tsv"))
+  overlapping_barcodes_plot_df <- read_tsv(file = file.path(data_dir, "overlapping_barcodes_plot_df.tsv"),
+                                           show_col_types = FALSE)
 
   p <- ggplot(data = overlapping_barcodes_plot_df,
               aes(x = distance_between_variants/1000)) +
@@ -162,21 +84,8 @@ manuscript_numbers[["04_alleles"]] <- list()
 
   rm(p, overlapping_barcodes_plot_df, phased_coverage_plot_df)
 
-  overlapping_barcodes_lt_100_plot_df <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>%
-    filter(distance_between_variants < 100) %>%
-    mutate(overlap_category = case_when(n_overlapping_barcodes == 0 ~ "Zero",
-                                        n_overlapping_barcodes <= 10 ~ "<= 10",
-                                        n_overlapping_barcodes <= 20 ~ "<= 20",
-                                        n_overlapping_barcodes <= 50 ~ "<= 50",
-                                        n_overlapping_barcodes <= 100 ~ "<= 100",
-                                        n_overlapping_barcodes > 100 ~ "> 100")) %>%
-    mutate(overlap_category = fct_rev(factor(overlap_category,
-                                             levels = c("Zero", "<= 10", "<= 20",
-                                                        "<= 50", "<= 100", "> 100"),
-                                             ordered = TRUE)))
-
-  write_tsv(overlapping_barcodes_lt_100_plot_df,
-            file = file.path(data_dir, "overlapping_barcodes_lt_100_plot_df.tsv"))
+  overlapping_barcodes_lt_100_plot_df <- read_tsv(file = file.path(data_dir, "overlapping_barcodes_lt_100_plot_df.tsv"),
+                                                  show_col_types = FALSE)
 
   ggplot(data = overlapping_barcodes_lt_100_plot_df,
          aes(x = distance_between_variants)) +
@@ -205,75 +114,27 @@ manuscript_numbers[["04_alleles"]] <- list()
   ggsave(str_c(supp, "overlapping_barcodes.lt_100.pdf"),
          width = 7.25, height = 2, useDingbats = FALSE)
 
-  manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% nrow()
-  manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_gt62kb"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% filter(distance_between_variants > median_molecule_length) %>% nrow()
-  manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_gt62kb_no_shared_barcodes"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% filter(distance_between_variants > median_molecule_length) %>% filter(n_overlapping_barcodes == 0) %>% nrow()
-  manuscript_numbers[["04_alleles"]][["pct_variant_pairs_cnv_neutral_good_coverage_gt62kb_no_shared_barcodes"]] <- 100*manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_gt62kb_no_shared_barcodes"]]/manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_gt62kb"]]
-
-  manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% filter(distance_between_variants <= median_molecule_length) %>% nrow()
-  manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte1_overlap"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% filter(distance_between_variants <= median_molecule_length) %>% filter(n_overlapping_barcodes >= 1) %>% nrow()
-  manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte1_overlap_gte1_mutation"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% filter(distance_between_variants <= median_molecule_length) %>% filter(n_overlapping_barcodes >= 1) %>% filter(n_barcodes_with_mutation >= 1) %>% nrow()
-
-  manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% filter(distance_between_variants <= median_molecule_length, distance_between_variants >= 100) %>% nrow()
-  manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp_0_overlap"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% filter(distance_between_variants <= median_molecule_length, distance_between_variants >= 100) %>% filter(n_overlapping_barcodes == 0) %>% nrow()
-  manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp_lte10_overlap"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% filter(distance_between_variants <= median_molecule_length, distance_between_variants >= 100) %>% filter(n_overlapping_barcodes <= 10, n_overlapping_barcodes > 0) %>% nrow()
-  manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp_lte20_overlap"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% filter(distance_between_variants <= median_molecule_length, distance_between_variants >= 100) %>% filter(n_overlapping_barcodes <= 20, n_overlapping_barcodes > 10) %>% nrow()
-  manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp_gt20_overlap"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% filter(distance_between_variants <= median_molecule_length, distance_between_variants >= 100) %>% filter(n_overlapping_barcodes > 20) %>% nrow()
-
-  manuscript_numbers[["04_alleles"]][["pct_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp_0_overlap"]] <- 100*manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp_0_overlap"]]/manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp"]]
-  manuscript_numbers[["04_alleles"]][["pct_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp_lte10_overlap"]] <- 100*manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp_lte10_overlap"]]/manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp"]]
-  manuscript_numbers[["04_alleles"]][["pct_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp_lte20_overlap"]] <- 100*manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp_lte20_overlap"]]/manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp"]]
-  manuscript_numbers[["04_alleles"]][["pct_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp_gt20_overlap"]] <- 100*manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp_gt20_overlap"]]/manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte100bp"]]
-
-  manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_lt100bp"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% filter(distance_between_variants <= median_molecule_length, distance_between_variants < 100) %>% nrow()
-  manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_lt100bp_0_overlap"]] <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% filter(distance_between_variants <= median_molecule_length, distance_between_variants < 100) %>% filter(n_overlapping_barcodes == 0) %>% nrow()
-  manuscript_numbers[["04_alleles"]][["pct_variant_pairs_cnv_neutral_good_coverage_lte62kb_lt100bp_0_overlap"]] <- 100*manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_lt100bp_0_overlap"]]/manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_lt100bp"]]
-
-  manuscript_numbers[["04_alleles"]][["pct_variant_pairs_cnv_neutral_good_coverage_lte62kb"]] <- 100*manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb"]]/manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage"]]
-  manuscript_numbers[["04_alleles"]][["pct_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte1_overlap"]] <- 100*(manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte1_overlap"]]/manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb"]])
-  manuscript_numbers[["04_alleles"]][["pct_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte1_overlap_gte1_mutation"]] <- 100*(manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte1_overlap_gte1_mutation"]]/manuscript_numbers[["04_alleles"]][["n_variant_pairs_cnv_neutral_good_coverage_lte62kb_gte1_overlap"]])
-
-  rm(cnv_neutral_mutation_sites, cnv_neutral_good_coverage_sites, max_overlapping_bx, sample_id, this_sample, overlapping_barcodes_lt_100_plot_df)
+  rm(overlapping_barcodes_lt_100_plot_df)
 }
 
 # automated allele combination stats
 {
   # allele combinations (handmade with known figures)
 
-  n_total <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>% nrow()
+  median_molecule_length <- 62000
 
-  n_within_length <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>%
-    filter(distance_between_variants <= median_molecule_length) %>% nrow()
-  p_within_length <- 100*n_within_length/n_total
-
-  n_within_length_share_barcode <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>%
-    filter(distance_between_variants <= median_molecule_length) %>%
-    filter(n_overlapping_barcodes > 0) %>% nrow()
-  p_within_length_share_barcode <- 100*n_within_length_share_barcode/n_within_length
-
-  n_within_length_share_barcode_share_variant <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>%
-    filter(distance_between_variants <= median_molecule_length) %>%
-    filter(n_overlapping_barcodes > 0) %>%
-    filter(n_barcodes_with_mutation > 0) %>% nrow()
-  p_within_length_share_barcode_share_variant <- 100*n_within_length_share_barcode_share_variant/n_within_length_share_barcode
-
-  n_variant_pairs_plot_df <- tribble(~level1, ~level2, ~value,
-                                     "Within Length",  "Yes",                                   p_within_length,
-                                     "Within Length",   "No",                             100 - p_within_length,
-                                     "Share Barcode",  "Yes",                     p_within_length_share_barcode,
-                                     "Share Barcode",   "No",               100 - p_within_length_share_barcode,
-                                     "Share Variant",  "Yes",       p_within_length_share_barcode_share_variant,
-                                     "Share Variant",   "No", 100 - p_within_length_share_barcode_share_variant)
-
-  write_tsv(n_variant_pairs_plot_df,
-            file = file.path("n_variant_pairs_plot_df.tsv"))
-
-  n_variant_pairs_plot_df <- n_variant_pairs_plot_df %>%  mutate(level1 = factor(level1,
+  n_variant_pairs_plot_df <- read_tsv(file = file.path("n_variant_pairs_plot_df.tsv"),
+                                      show_col_types = FALSE) %>%
+    mutate(level1 = factor(level1,
                            levels = c("Within Length", "Share Barcode", "Share Variant"),
                            labels = c(str_c("Within\n", median_molecule_length/1000, " Kb"), "Share\nBarcode", "Share\nVariant"),
                            ordered = TRUE))
 
   bar_width = 0.5
+
+  p_within_length <- n_variant_pairs_plot_df$value[1]
+  p_within_length_share_barcode <- n_variant_pairs_plot_df$value[3]
+  p_within_length_share_barcode_share_variant <- n_variant_pairs_plot_df$value[5]
 
   ggplot(data = n_variant_pairs_plot_df,
          aes(x = level1, y = value, fill = level2)) +
@@ -327,65 +188,13 @@ manuscript_numbers[["04_alleles"]] <- list()
 
   ### Other parts
 
-  allele_combinations_text_df <- variant_pairs_mapq20_tbl_cnv_neutral_good_coverage %>%
-    filter(distance_between_variants <= median_molecule_length) %>%
-    filter(n_overlapping_barcodes > 0) %>%
-    filter(n_barcodes_with_mutation > 0) %>%
-    mutate(category = str_c(as.numeric(n_bx_overlap_00 > 0),
-                            as.numeric(n_bx_overlap_01 > 0),
-                            as.numeric(n_bx_overlap_10 > 0),
-                            as.numeric(n_bx_overlap_11 > 0))) %>%
-    group_by(category) %>%
-    summarize(count = n()) %>%
-    mutate(category = case_when(str_starts(category, "0") ~ "Other",
-                                category == "1111" ~ "Other",
-                                TRUE ~ category)) %>%
-    group_by(category) %>%
-    summarize(total = sum(count)) %>%
-    mutate(category = factor(category,
-                             levels = c("1001", "1010", "1100", "1110",
-                                        "1011", "1101", "Other"),
-                             ordered = TRUE))
+  allele_combinations_text_df <- read_tsv(file = file.path("allele_combinations_text_df.tsv"),
+                                          show_col_types = FALSE)
 
-  write_tsv(allele_combinations_text_df,
-            file = file.path("allele_combinations_text_df.tsv"))
+  allele_combinations_plot_df <- read_tsv(file = file.path("allele_combinations_plot_df.tsv"),
+                                          show_col_types = FALSE)
 
-  allele_combinations_plot_df <- tribble(~alleles, ~category, ~filled,
-                     4, "1001", 1,
-                     3, "1001", 0,
-                     2, "1001", 0,
-                     1, "1001", 1,
-                     4, "1010", 1,
-                     3, "1010", 0,
-                     2, "1010", 1,
-                     1, "1010", 0,
-                     4, "1100", 1,
-                     3, "1100", 1,
-                     2, "1100", 0,
-                     1, "1100", 0,
-                     4, "1110", 1,
-                     3, "1110", 1,
-                     2, "1110", 1,
-                     1, "1110", 0,
-                     4, "1011", 1,
-                     3, "1011", 0,
-                     2, "1011", 1,
-                     1, "1011", 1,
-                     4, "1101", 1,
-                     3, "1101", 1,
-                     2, "1101", 0,
-                     1, "1101", 1,
-                     4, "Other", 2,
-                     3, "Other", 2,
-                     2, "Other", 2,
-                     1, "Other", 2) %>%
-    mutate(category = factor(category,
-                             levels = c("1001", "1010", "1100", "1110",
-                                        "1011", "1101", "Other"),
-                             ordered = TRUE))
-
-  write_tsv(allele_combinations_plot_df,
-            file = file.path("allele_combinations_plot_df.tsv"))
+  n_within_length_share_barcode_share_variant <- sum(allele_combinations_text_df$total)
 
   ggplot() +
     geom_tile(data = allele_combinations_plot_df,
@@ -422,19 +231,17 @@ manuscript_numbers[["04_alleles"]] <- list()
 
   ggsave(str_c(main, "allele_combinations.pdf"), height = 2, width = 3, useDingbats = FALSE)
 
-  manuscript_numbers[["04_alleles"]][["allele_pair_combinations"]] <- allele_combinations_text_df %>% mutate(pct = 100*total/n_within_length_share_barcode_share_variant)
-
-  rm(n_total, n_within_length, p_within_length,
-     n_within_length_share_barcode, p_within_length_share_barcode,
-     n_within_length_share_barcode_share_variant, p_within_length_share_barcode_share_variant,
+  rm(p_within_length,
+     p_within_length_share_barcode,
+     n_within_length_share_barcode_share_variant,
+     p_within_length_share_barcode_share_variant,
      allele_combinations_plot_df, allele_combinations_text_df,
-     variant_pairs_mapq20_tbl_cnv_neutral_good_coverage,
      median_molecule_length,
      bar_width)
 }
 
 # simplified variant pairs
-{
+if (FALSE) {
 
   plot_barcode_variants <- function(barcodes_variants,
                                     sample,
@@ -729,14 +536,8 @@ manuscript_numbers[["04_alleles"]] <- list()
 
 }
 
-manuscript_numbers[["04_alleles"]][["27522_NRAS_allele_combinations"]] <- variant_pairs_driver_mapq20_tbl %>% filter(sample == "27522_1", Variant1 == "chr1:114713909:G:T", Variant2 == "chr1:114716124:C:G") %>% select(starts_with("n_bx_overlap"))
-manuscript_numbers[["04_alleles"]][["27522_NRAS_VAFs"]] <- driver_mutations_vaf_tbl %>% filter(patient == "27522", gene == "NRAS") %>% select(sample, gene, vaf, protein)
-
-manuscript_numbers[["04_alleles"]][["37692_RUNX1_allele_combinations"]] <- variant_pairs_driver_mapq20_tbl %>% filter(sample == "37692_2", Variant1 == "chr21:34792263:A:C", Variant2 == "chr21:34792313:T:G") %>% select(starts_with("n_bx_overlap"))
-manuscript_numbers[["04_alleles"]][["57075_RUNX1_VAFs"]] <- driver_mutations_vaf_tbl %>% filter(patient == "37692", gene == "RUNX1") %>% select(sample, gene, vaf, protein)
-
 # plot interesting allele pairs
-{
+if (FALSE) {
   plot_allele_pairs <- function(sample_id, gene, variant1, variant2, protein1, protein2, barcodes_variants){
     barcodes_variants[[sample_id]] %>%
       filter(Somatic_Variant %in% c(variant1, variant2),
@@ -905,16 +706,4 @@ if (TRUE) {
   rm(frac.table, parents, colors_to_use, fish, timepoints)
 }
 
-manuscript_numbers[["04_alleles"]][["27522_ACTG1_VAF"]] <- driver_mutations_vaf_tbl %>% filter(gene == "ACTG1", patient == "27522", pos %in% c(81511522, 81511954))
-manuscript_numbers[["04_alleles"]][["27522_ACTG1_CNV_ratio"]] <- cnv_tbl %>% filter(sample == "27522_3", chrom == "chr17", start < 81511522, end > 81511954) %>% pull(log2.copyRatio)
-manuscript_numbers[["04_alleles"]][["27522_ACTG1_CNV_raw"]] <- 2*(2^manuscript_numbers[["04_alleles"]][["27522_ACTG1_CNV_ratio"]])
-
-manuscript_numbers[["04_alleles"]][["27522_NRAS_VAF"]] <- driver_mutations_vaf_tbl %>% filter(gene == "NRAS", patient == "27522", pos %in% c(114713909, 114716124))
-manuscript_numbers[["04_alleles"]][["27522_NRAS_CNV_ratio"]] <- cnv_tbl %>% filter(sample == "27522_3", chrom == "chr1", start < 114713909, end > 114716124) %>% pull(log2.copyRatio)
-manuscript_numbers[["04_alleles"]][["27522_NRAS_CNV_raw"]] <- 2*(2^manuscript_numbers[["04_alleles"]][["27522_NRAS_CNV_ratio"]])
-
-manuscript_numbers[["04_alleles"]][["27522_TP53_VAF"]] <- driver_mutations_vaf_tbl %>% filter(gene == "TP53", patient == "27522", pos == 7674220)
-manuscript_numbers[["04_alleles"]][["27522_TP53_CNV_ratio"]] <- cnv_tbl %>% filter(sample == "27522_3", chrom == "chr17", start < 7674220, end > 7674220) %>% pull(log2.copyRatio)
-manuscript_numbers[["04_alleles"]][["27522_TP53_CNV_raw"]] <- 2*(2^manuscript_numbers[["04_alleles"]][["27522_TP53_CNV_ratio"]])
-
-rm(i, plot_barcode_variants, plot_allele_pairs, main, supp)
+rm(data_dir, main, supp, n_variant_pairs_plot_df)

@@ -5,6 +5,9 @@
 # Mutation pairs per phase set
 ################################################################################
 
+data_dir = file.path("data_for_plots/03_somatic")
+dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
+
 main = "figures/03_somatic_phasing/main/"
 supp = "figures/03_somatic_phasing/supplementary/"
 
@@ -57,7 +60,13 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
   prec = tp/(tp + fp)
   rec = tp/(tp + fn)
 
-  ggplot(tibble(proportions, prec, rec), aes(x = prec, y = rec)) +
+  precision_recall_plot_df <- tibble(proportions, prec, rec)
+
+  write_tsv(precision_recall_plot_df,
+            file = file.path(data_dir, "precision_recall_plot_df.tsv"))
+
+  ggplot(data = precision_recall_plot_df,
+         aes(x = prec, y = rec)) +
     geom_point() +
     geom_label_repel(aes(label = proportions), size = 3) +
     expand_limits(x = c(.99,1), y = c(.9,1)) +
@@ -74,9 +83,10 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
           panel.grid = element_line(size = 0.5),
           strip.background = element_blank(),
           strip.text = element_text(size = 8),
-          plot.margin = unit(c(0,0,0,0), "lines")) +
-    ggsave(str_c(supp, "precision_recall.pdf"),
-           width = 3.5, height = 3.5, useDingbats = FALSE)
+          plot.margin = unit(c(0,0,0,0), "lines"))
+
+  ggsave(str_c(supp, "precision_recall.pdf"),
+         width = 3.5, height = 3.5, useDingbats = FALSE)
 
   manuscript_numbers[["03_somatic"]][["precision_at_phase_proportion"]] <- prec[which(proportions == phase_proportion)]
   manuscript_numbers[["03_somatic"]][["recall_at_phase_proportion"]] <- rec[which(proportions == phase_proportion)]
@@ -97,14 +107,13 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
   manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_added_by_bc"]] <- sum(manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_phased_table"]][3:4,1:2])
   manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_added_by_la"]] <- sum(manuscript_numbers[["03_somatic"]][["n_somatic_mutations_with_enough_coverage_phased_table"]][1:2,3:4])
 
-
-
-  rm(proportions, tp, tn, fp, fn, prec, rec, i)
+  rm(proportions, tp, tn, fp, fn, prec, rec, i, precision_recall_plot_df)
 }
 
 # Concordance with longranger
 {
-  phasing_variants_mapq20_tbl %>%
+
+  longranger_concordance_plot_df <- phasing_variants_mapq20_tbl %>%
     #filter(phased_by != "NC") %>%
     #filter(!is.na(Genotype)) %>%
     replace_na(list(pct_ALT_on_H1 = 0.5)) %>%
@@ -120,8 +129,13 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
     group_by(Genotype, phasing_pair, phased_by) %>%
     count(Genotype, phasing_pair, phased_by) %>%
     mutate(my_color = case_when(phasing_pair == "NC/NC" & Genotype == "Missing" ~ "white",
-                                TRUE ~ "black")) %>%
-    ggplot(aes(x = Genotype, y = fct_rev(phasing_pair), fill = n)) +
+                                TRUE ~ "black"))
+
+  write_tsv(longranger_concordance_plot_df,
+            file = file.path(data_dir, "longranger_concordance_plot_df.tsv"))
+
+  ggplot(data = longranger_concordance_plot_df,
+         aes(x = Genotype, y = fct_rev(phasing_pair), fill = n)) +
     geom_tile(color = "black", show.legend = FALSE) +
     geom_text(aes(label = n, color = my_color), size = 8/ggplot2:::.pt) +
     facet_wrap(~ phased_by, ncol = 1, scales = "free_y") +
@@ -139,24 +153,36 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
           panel.grid = element_blank(),
           strip.background = element_blank(),
           strip.text = element_text(size = 8),
-          plot.margin = unit(c(0,0,0,0), "lines")) +
-    ggsave(str_c(supp, "longranger_concordance.pdf"),
-           width = 3.5, height = 7.25, useDingbats = FALSE)
+          plot.margin = unit(c(0,0,0,0), "lines"))
+
+  ggsave(str_c(supp, "longranger_concordance.pdf"),
+         width = 3.5, height = 7.25, useDingbats = FALSE)
+
+  rm(longranger_concordance_plot_df)
 
   n_nc <- phasing_variants_mapq20_tbl %>%
     filter(phased_by_linked_alleles == "NC" & phased_by_barcodes == "NC") %>%
     nrow()
 
-  phasing_variants_mapq20_tbl %>%
+  write_tsv(tibble(n_nc = n_nc),
+            file = file.path(data_dir, "n_nc.tsv"))
+
+  methods_phasing_plot_df <- phasing_variants_mapq20_tbl %>%
     select(phased_by_linked_alleles, phased_by_barcodes) %>%
     group_by(phased_by_barcodes, phased_by_linked_alleles) %>%
-    summarize(count = n()) %>%
+    summarize(count = n(),
+              .groups = "drop") %>%
     filter(!(phased_by_linked_alleles == "NC" & phased_by_barcodes == "NC")) %>%
     mutate(my_color = case_when(phased_by_linked_alleles == phased_by_barcodes ~ "white",
-                                TRUE ~ "black")) %>%
-    ggplot(aes(x = phased_by_linked_alleles,
-               y = phased_by_barcodes,
-               fill = count)) +
+                                TRUE ~ "black"))
+
+  write_tsv(methods_phasing_plot_df,
+            file = file.path(data_dir, "methods_phasing_plot_df.tsv"))
+
+  ggplot(data = methods_phasing_plot_df,
+         aes(x = phased_by_linked_alleles,
+             y = phased_by_barcodes,
+             fill = count)) +
     geom_tile(color = "black", show.legend = FALSE) +
     geom_text(aes(label = count, color = my_color), size = 8/ggplot2:::.pt) +
     annotate("text", x = "NC", y = "NC", label = str_c("(", n_nc, ")"), size = 8/ggplot2:::.pt) +
@@ -177,11 +203,12 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
           panel.grid.minor.y = element_blank(),
           strip.background = element_blank(),
           strip.text = element_text(size = 8),
-          plot.margin = unit(c(0,0,0,0), "lines")) +
-    ggsave(str_c(main, "methods_phasing.pdf"),
-           width = 2.25, height = 2.25, useDingbats = FALSE)
+          plot.margin = unit(c(0,0,0,0), "lines"))
 
-  rm(n_nc)
+  ggsave(str_c(main, "methods_phasing.pdf"),
+         width = 2.25, height = 2.25, useDingbats = FALSE)
+
+  rm(n_nc, methods_phasing_plot_df)
 }
 
 # Phased somatic mutations on haplotypes
@@ -204,9 +231,14 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
                                  color_vector = case_when(alternating_01 == 0 ~ my_color_100,
                                                           TRUE ~ my_color_50))
 
-  plot_df_together <- bind_rows(plot_df1, plot_df2) %>% arrange(ps_id)
+  somatic_phase_sets_plot_df <- bind_rows(plot_df1, plot_df2) %>% arrange(ps_id)
 
-  mut_df <- phasing_variants_mapq20_tbl %>%
+  rm(plot_df, plot_df1, plot_df2)
+
+  write_tsv(somatic_phase_sets_plot_df,
+            file = file.path(data_dir, "somatic_phase_sets_plot_df.tsv"))
+
+  somatic_mutation_plot_df <- phasing_variants_mapq20_tbl %>%
     filter(sample == sample_id, Chromosome == chromosome_of_interest) %>%
     mutate(haplotype_of_variant_shape = case_when(
       !enough_coverage ~ "Not Enough Coverage",
@@ -223,7 +255,10 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
                                                   TRUE ~ 1)) %>%
     filter(haplotype_of_variant_shape != "Not Enough Coverage")
 
-  ggplot(plot_df_together) +
+  write_tsv(somatic_mutation_plot_df,
+            file = file.path(data_dir, "somatic_mutation_plot_df.tsv"))
+
+  ggplot(somatic_phase_sets_plot_df) +
     geom_segment(data = chromosome_length_tbl %>%
                    filter(contig == chromosome_of_interest),
                  aes(y = 1.5, yend = 1.45, x = 0, xend = size/1e6)) +
@@ -242,9 +277,10 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
                   ymax = y_max,
                   fill = color_vector),
               show.legend = FALSE) +
-    geom_point(data = mut_df, aes(x = Position/1e6,
-                                  y = haplotype_of_variant_yaxis,
-                                  shape = factor(haplotype_of_variant_shape)),
+    geom_point(data = somatic_mutation_plot_df,
+               aes(x = Position/1e6,
+                   y = haplotype_of_variant_yaxis,
+                   shape = factor(haplotype_of_variant_shape)),
                fill = "#000000",
                alpha = 0.5,
                size = 2,
@@ -272,11 +308,13 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
           axis.text.x = element_text(size = 8),
           strip.background = element_blank(),
           strip.text = element_text(size = 8),
-          plot.margin = unit(c(0,0,0,0), "lines")) +
-  ggsave(str_c(main, "somatic_mutations_on_phase_sets.pdf"),
-         width = 4.75, height = 1.125, useDingbats = FALSE)
+          plot.margin = unit(c(0,0,0,0), "lines"))
 
-  rm(plot_df, plot_df1, plot_df2, plot_df_together, mut_df,
+  ggsave(str_c(main, "somatic_mutations_on_phase_sets.pdf"),
+           width = 4.75, height = 1.125, useDingbats = FALSE)
+
+  rm(somatic_phase_sets_plot_df,
+     somatic_mutation_plot_df,
      min_length, sample_id, chromosome_of_interest)
 
 }
@@ -288,7 +326,8 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
     filter(enough_coverage, Phase_Set_Length >= 1e3) %>%
     group_by(sample, Phase_Set, Phase_Set_Length) %>%
     summarize(n_somatic_variants = n(),
-              n_phased = sum(phased == "Phased")) %>%
+              n_phased = sum(phased == "Phased"),
+              .groups = "drop") %>%
     mutate(somatic_mutations_per_Mb = 1e6 * n_somatic_variants/Phase_Set_Length,
            proportion_variants_phased = n_phased / n_somatic_variants,
            n_pairs_phased = choose(n_phased, 2))
@@ -302,7 +341,7 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
   manuscript_numbers[["03_somatic"]][["pct_phase_sets_1kb_0_somatic_mutations"]] <- 100*manuscript_numbers[["03_somatic"]][["n_phase_sets_1kb_0_somatic_mutations"]]/manuscript_numbers[["03_somatic"]][["n_phase_sets_1kb"]]
   manuscript_numbers[["03_somatic"]][["pct_phase_sets_1kb_1_somatic_mutation"]] <- 100*manuscript_numbers[["03_somatic"]][["n_phase_sets_1kb_1_somatic_mutations"]]/manuscript_numbers[["03_somatic"]][["n_phase_sets_1kb"]]
 
-  plot_data <- phasing_variants_grouped %>%
+  somatic_mutations_per_Mb_plot_df <- phasing_variants_grouped %>%
     filter(Phase_Set_Length >= 1e3, n_pairs_phased >= 1) %>%
     mutate(n_pairs_color = case_when(n_pairs_phased == 1 ~ "1 pair",
                                      n_pairs_phased <= 3 ~ "<= 3",
@@ -314,10 +353,13 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
                                   ordered = TRUE)) %>%
     arrange(n_pairs_color)
 
-  n_phase_sets <- plot_data %>% nrow()
-  manuscript_numbers[["03_somatic"]][["n_phase_sets_gt_1kb_1_pair_by_n_pairs"]] <- plot_data %>% pull(n_pairs_color) %>% table()/n_phase_sets
-  n_phase_sets_1.0 <- plot_data %>% filter(proportion_variants_phased == 1) %>% nrow()
-  n_phase_sets_0.75 <- plot_data %>% filter(proportion_variants_phased >= 0.75) %>% nrow()
+  write_tsv(somatic_mutations_per_Mb_plot_df,
+            file = file.path(data_dir, "somatic_mutations_per_Mb_plot_df.tsv"))
+
+  n_phase_sets <- somatic_mutations_per_Mb_plot_df %>% nrow()
+  manuscript_numbers[["03_somatic"]][["n_phase_sets_gt_1kb_1_pair_by_n_pairs"]] <- somatic_mutations_per_Mb_plot_df %>% pull(n_pairs_color) %>% table()/n_phase_sets
+  n_phase_sets_1.0 <- somatic_mutations_per_Mb_plot_df %>% filter(proportion_variants_phased == 1) %>% nrow()
+  n_phase_sets_0.75 <- somatic_mutations_per_Mb_plot_df %>% filter(proportion_variants_phased >= 0.75) %>% nrow()
   manuscript_numbers[["03_somatic"]][["n_phase_sets_gt_1kb_1_pair"]] <- n_phase_sets
   manuscript_numbers[["03_somatic"]][["n_phase_sets_gt_1kb_1_pair_all_phased"]] <- n_phase_sets_1.0
   manuscript_numbers[["03_somatic"]][["n_phase_sets_gt_1kb_1_pair_0.75_phased"]] <- n_phase_sets_0.75
@@ -325,9 +367,9 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
   manuscript_numbers[["03_somatic"]][["pct_phase_sets_all_variants_phased"]] <- 100*n_phase_sets_1.0/n_phase_sets
   manuscript_numbers[["03_somatic"]][["pct_phase_sets_0.75_variants_phased"]] <- 100*n_phase_sets_0.75/n_phase_sets
 
-  min_log2 <- plot_data %>% pull(somatic_mutations_per_Mb) %>%
+  min_log2 <- somatic_mutations_per_Mb_plot_df %>% pull(somatic_mutations_per_Mb) %>%
     log2() %>% min() %>% round(digits = 0)
-  max_log2 <- plot_data %>% pull(somatic_mutations_per_Mb) %>%
+  max_log2 <- somatic_mutations_per_Mb_plot_df %>% pull(somatic_mutations_per_Mb) %>%
     log2() %>% max() %>% round(digits = 0)
   my_breaks <- seq(from = min_log2, to = max_log2, by = 1)
 
@@ -335,9 +377,9 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
   manuscript_numbers[["03_somatic"]][["max_log2_somatic_mutations_per_Mb"]] <- max_log2
   manuscript_numbers[["03_somatic"]][["min_somatic_mutations_per_Mb"]] <- 2^min_log2
   manuscript_numbers[["03_somatic"]][["max_somatic_mutations_per_Mb"]] <- 2^max_log2
-  manuscript_numbers[["03_somatic"]][["median_somatic_mutations_per_Mb"]] <- plot_data %>% pull(somatic_mutations_per_Mb) %>% summary()
+  manuscript_numbers[["03_somatic"]][["median_somatic_mutations_per_Mb"]] <- somatic_mutations_per_Mb_plot_df %>% pull(somatic_mutations_per_Mb) %>% summary()
 
-  p <- ggplot(data = plot_data,
+  p <- ggplot(data = somatic_mutations_per_Mb_plot_df,
               aes(x = log2(somatic_mutations_per_Mb),
                   y = proportion_variants_phased,
                   color = n_pairs_color)) +
@@ -366,7 +408,7 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
           plot.margin = unit(c(0,0,0,0), "lines"))
 
   q_with_legend <- ggExtra::ggMarginal(p, type = "histogram", groupFill = TRUE, color = NA)
-  q <- ggExtra::ggMarginal(p + guides(color = FALSE, size = FALSE),
+  q <- ggExtra::ggMarginal(p + guides(color = FALSE, size = FALSE, scale = "none"),
                            type = "histogram",
                            groupFill = TRUE,
                            color = NA)
@@ -377,7 +419,8 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
   ggsave(str_c(main, "somatic_mutations_per_Mb.pdf"), q,
          width = 4.75, height = 1.5*2.25, useDingbats = FALSE)
 
-  rm(phasing_variants_grouped, plot_data, p, q, q_with_legend,
+  rm(somatic_mutations_per_Mb_plot_df,
+     phasing_variants_grouped, p, q, q_with_legend,
      n_phase_sets, n_phase_sets_1.0, n_phase_sets_0.75,
      min_log2, max_log2, my_breaks)
 }
@@ -400,7 +443,7 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
     mutate(normal_vaf = vaf,
            normal_alleles = alleles)
 
-  plot_df <- sombx_driver_mapq20_tbl %>%
+  vaf_correlation_plot_df <- sombx_driver_mapq20_tbl %>%
     mutate(Variant = str_c(chromosome, position, ref, alt, sep = ":")) %>%
     left_join(drivers, by = c("Variant", "ref", "alt")) %>%
     filter(!synonymous) %>%
@@ -410,13 +453,13 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
            n_ref_h2_bx = case_when(is.na(ref_barcodes_H2) ~ 0,
                                    TRUE ~ as.double(length(str_split(ref_barcodes_H2, ";", simplify = TRUE)))),
            n_ref_none_bx = case_when(is.na(ref_barcodes_None) ~ 0,
-                                   TRUE ~ as.double(length(str_split(ref_barcodes_None, ";", simplify = TRUE)))),
+                                     TRUE ~ as.double(length(str_split(ref_barcodes_None, ";", simplify = TRUE)))),
            n_alt_h1_bx = case_when(is.na(alt_barcodes_H1) ~ 0,
                                    TRUE ~ as.double(length(str_split(alt_barcodes_H1, ";", simplify = TRUE)))),
            n_alt_h2_bx = case_when(is.na(alt_barcodes_H2) ~ 0,
                                    TRUE ~ as.double(length(str_split(alt_barcodes_H2, ";", simplify = TRUE)))),
            n_alt_none_bx = case_when(is.na(alt_barcodes_None) ~ 0,
-                                   TRUE ~ as.double(length(str_split(alt_barcodes_None, ";", simplify = TRUE)))),
+                                     TRUE ~ as.double(length(str_split(alt_barcodes_None, ";", simplify = TRUE)))),
            total_ref = sum(n_ref_h1_bx, n_ref_h2_bx, n_ref_none_bx),
            total_alt = sum(n_alt_h1_bx, n_alt_h2_bx, n_alt_none_bx),
            barcode_vaf = total_alt/(total_alt + total_ref)) %>%
@@ -464,9 +507,13 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
                                              "Phase inconsistent", "Phased non-call",
                                              "Not phased"), ordered = TRUE))
 
-  correlation_value <- round(as.numeric(cor.test(plot_df$vaf, plot_df$barcode_vaf)$estimate), 2)
+  write_tsv(vaf_correlation_plot_df,
+            file = file.path(data_dir, "vaf_correlation_plot_df.tsv"))
 
-  ggplot(plot_df, aes(x = vaf, y = barcode_vaf)) +
+  correlation_value <- round(as.numeric(cor.test(vaf_correlation_plot_df$vaf,
+                                                 vaf_correlation_plot_df$barcode_vaf)$estimate), 2)
+
+  ggplot(vaf_correlation_plot_df, aes(x = vaf, y = barcode_vaf)) +
     geom_abline(lty = 2) +
     geom_smooth(method = "lm") +
     geom_point() +
@@ -486,11 +533,13 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
           panel.grid.minor.x = element_blank(),
           strip.background = element_blank(),
           strip.text = element_text(size = 8),
-          plot.margin = unit(c(0,0,0,0), "lines")) +
-    ggsave(str_c(supp, "vaf_correlation.pdf"),
-           height = 3.5, width = 3.5, useDingbats = FALSE)
+          plot.margin = unit(c(0,0,0,0), "lines"))
 
-  p <- ggplot(plot_df, aes(y = variant_name, x = display_name)) +
+  ggsave(str_c(supp, "vaf_correlation.pdf"),
+         height = 3.5, width = 3.5, useDingbats = FALSE)
+
+  p <- ggplot(vaf_correlation_plot_df,
+              aes(y = variant_name, x = display_name)) +
     geom_point(aes(shape = plot_category), fill = "black", size = 3, stroke = 0.75) +
     scale_shape_manual(values = c(9, 23, 13, 5, 4), drop = FALSE) +
     labs(shape = "GT", color = "Hap") +
@@ -517,66 +566,71 @@ manuscript_numbers[["03_somatic"]][["n_somatic_mutations_from_10Xmapping_enough_
   ggsave(str_c(main, "mm_mutations.pdf"), p + guides(color = FALSE, shape = FALSE),
          height = 3.375, width = 2.25, useDingbats = FALSE)
 
-  manuscript_numbers[["03_somatic"]][["ATR_pct_ALT_on_H1"]] <- plot_df %>% filter(gene == "ATR") %>% select(pct_ALT_on_H1, pct_ALT_on_H2)
+  manuscript_numbers[["03_somatic"]][["ATR_pct_ALT_on_H1"]] <- vaf_correlation_plot_df %>% filter(gene == "ATR") %>% select(pct_ALT_on_H1, pct_ALT_on_H2)
 
-  rm(drivers, plot_df, correlation_value, tumor_vafs, normal_vafs, p)
+  rm(drivers, vaf_correlation_plot_df, correlation_value, tumor_vafs, normal_vafs, p)
 
 }
 
 # Can we correct for copy number using linked alleles
+if (FALSE) {
 
-for (this_sample in cnv_tbl %>% pull(sample) %>% unique()) {
-  print(this_sample)
-  # Somatic variants phased with CNV data
-  x <- phasing_variants_driver_mapq20_tbl %>%
-    filter(phased_by_linked_alleles %in% c("H1", "H2"),
-           cnv_maf_status == TRUE) %>%
-    select(Variant, Chromosome, Position, Reference, Alternate,
-           Phase_Set, sample, phased_by_linked_alleles) %>%
-    filter(sample == this_sample)
+  for (this_sample in cnv_tbl %>% pull(sample) %>% unique()) {
+    print(this_sample)
+    # Somatic variants phased with CNV data
+    x <- phasing_variants_driver_mapq20_tbl %>%
+      filter(phased_by_linked_alleles %in% c("H1", "H2"),
+             cnv_maf_status == TRUE) %>%
+      select(Variant, Chromosome, Position, Reference, Alternate,
+             Phase_Set, sample, phased_by_linked_alleles) %>%
+      filter(sample == this_sample)
 
-  # Multiplication factors
-  y <- barcodes_variants_driver_mapq20_tbl[[this_sample]] %>%
-    filter(Phased_Heterozygote == "True",
-           Variant != Somatic_Variant) %>%
-    group_by(Somatic_Variant, Variant) %>%
-    summarize(n_H1 = sum(Haplotype == "H1"),
-              n_H2 = sum(Haplotype == "H2"),
-              n_total = n_H1 + n_H2,
-              mult_H1 = 0.5*n_total/n_H1,
-              mult_H2 = 0.5*n_total/n_H2) %>%
-    filter(n_H1 >= 5, n_H2 >= 5) %>%
-    ungroup() %>% group_by(Somatic_Variant) %>%
-    summarize(total_variants = n(),
-              mult_H1_mean = mean(mult_H1), mult_H1_sd = sd(mult_H1),
-              mult_H2_mean = mean(mult_H2), mult_H2_sd = sd(mult_H2)) %>%
-    filter(total_variants >= 10)
+    # Multiplication factors
+    y <- barcodes_variants_driver_mapq20_tbl[[this_sample]] %>%
+      filter(Phased_Heterozygote == "True",
+             Variant != Somatic_Variant) %>%
+      group_by(Somatic_Variant, Variant) %>%
+      summarize(n_H1 = sum(Haplotype == "H1"),
+                n_H2 = sum(Haplotype == "H2"),
+                n_total = n_H1 + n_H2,
+                mult_H1 = 0.5*n_total/n_H1,
+                mult_H2 = 0.5*n_total/n_H2) %>%
+      filter(n_H1 >= 5, n_H2 >= 5) %>%
+      ungroup() %>% group_by(Somatic_Variant) %>%
+      summarize(total_variants = n(),
+                mult_H1_mean = mean(mult_H1), mult_H1_sd = sd(mult_H1),
+                mult_H2_mean = mean(mult_H2), mult_H2_sd = sd(mult_H2)) %>%
+      filter(total_variants >= 10)
 
-  get_cnv_for_position <- function(cnv, my_chr, my_pos, my_sample){
-    return_value <- cnv %>%
-      filter(sample == my_sample,
-             chrom == my_chr,
-             start <= my_pos,
-             end >= my_pos) %>%
-      pull(log2.copyRatio)
+    get_cnv_for_position <- function(cnv, my_chr, my_pos, my_sample){
+      return_value <- cnv %>%
+        filter(sample == my_sample,
+               chrom == my_chr,
+               start <= my_pos,
+               end >= my_pos) %>%
+        pull(log2.copyRatio)
 
-    if (length(return_value) == 0) {
-      return_value <- NA
+      if (length(return_value) == 0) {
+        return_value <- NA
+      }
+      return(return_value)
+
     }
-    return(return_value)
+
+    x %>%
+      left_join(y, by = c("Variant" = "Somatic_Variant")) %>%
+      filter(!is.na(total_variants)) %>%
+      rowwise() %>%
+      mutate(log2.copyRatio = get_cnv_for_position(cnv_tbl,
+                                                   my_chr = Chromosome,
+                                                   my_pos = Position,
+                                                   my_sample = sample)) %>%
+      ungroup() %>%
+      View()
+
+    rm(x, y)
 
   }
-
-  x %>%
-    left_join(y, by = c("Variant" = "Somatic_Variant")) %>%
-    filter(!is.na(total_variants)) %>%
-    rowwise() %>%
-    mutate(log2.copyRatio = get_cnv_for_position(cnv_tbl,
-                                                 my_chr = Chromosome,
-                                                 my_pos = Position,
-                                                 my_sample = sample)) %>%
-    ungroup() %>%
-    View()
 
 }
 
@@ -586,8 +640,7 @@ rm(main, supp)
 tool_comparison_df <- phasing_variants_mapq20_tbl %>%
   filter(enough_coverage) %>%
   select(sample, Chromosome, Position,
-         phased, Genotype) %>%
-  rename("Genotype_LR" = "Genotype") %>%
+         phased, Genotype_LR = Genotype) %>%
   left_join(gt_other_tools_tbl,
             by = c("sample", "Chromosome", "Position")) %>%
   drop_na() %>%

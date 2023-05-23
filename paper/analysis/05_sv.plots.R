@@ -2,6 +2,8 @@
 # SVs in our data
 ################################################################################
 
+library(tidyverse)
+
 data_dir = file.path("data_for_plots/05_sv")
 dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -12,44 +14,27 @@ supp = "figures/05_sv/supplementary/"
 dir.create(main, recursive = TRUE, showWarnings = FALSE)
 dir.create(supp, recursive = TRUE, showWarnings = FALSE)
 
-manuscript_numbers[["05_sv"]] <- list()
-
-# overview stats using high confidence SVs from Manta with sorted WGS
-if (TRUE) {
-
-  by_sample_sv <- sv_haplotypes_tbl %>%
-    group_by(sample, sorted) %>%
-    summarize(count_total = n(),
-              count_0 = sum(total_barcodes == 0),
-              count_1 = sum(total_barcodes == 1),
-              count_gte_2 = sum(total_barcodes >= 2),
-              count_consistent = sum(total_barcodes >= 2 & haplotypes_consistent)) %>%
-    mutate(pct_gte_2 = 100*count_gte_2/count_total,
-           pct_consistent = case_when(pct_gte_2 > 0 ~ 100*count_consistent/count_gte_2))
-
-  summary_sv <- sv_haplotypes_tbl %>%
-    summarize(count_total = n(),
-              count_0 = sum(total_barcodes == 0),
-              count_1 = sum(total_barcodes == 1),
-              count_gte_2 = sum(total_barcodes >= 2),
-              count_consistent = sum(total_barcodes >= 2 & haplotypes_consistent)) %>%
-    mutate(pct_gte_2 = 100*count_gte_2/count_total,
-           pct_consistent = case_when(pct_gte_2 > 0 ~ 100*count_consistent/count_gte_2),
-           sample = "All samples",
-           sorted = NA) %>%
-    bind_rows(by_sample_sv) %>%
-    select(sample, sorted, everything())
-
-  manuscript_numbers[["05_sv"]][["summary_of_SV_events"]] <- summary_sv
-  rm(by_sample_sv, summary_sv)
-}
-
 # plot barcodes
 if (TRUE) {
 
-  purrr::map(names(sv_barcodes_tbl),
-             function(x) write_tsv(sv_barcodes_tbl[[x]],
-                                   file = file.path(data_dir, str_c("sv_barcodes_plot_df.", x, ".tsv"))))
+  sample_ids <- list.files(data_dir) %>%
+    str_split(pattern = "\\.") %>%
+    purrr::map_chr(function(x) x[2])
+
+  sv_barcodes_tbl <- purrr::map(sample_ids,
+                                function(x) read_tsv(file = file.path(data_dir, str_c("sv_barcodes_plot_df.", x, ".tsv")),
+                                                     show_col_types = FALSE) %>%
+                                  mutate(chrom = factor(chrom,
+                                                        levels = str_c("chr", seq(1:22)),
+                                                        ordered = TRUE)) %>%
+                                  mutate(read_haplotype = factor(read_haplotype,
+                                                                 levels = c(0,1,2),
+                                                                 ordered = TRUE)) %>%
+                                  mutate(supports_trans = factor(supports_trans,
+                                                                 levels = c(0,1),
+                                                                 ordered = TRUE)))
+
+  names(sv_barcodes_tbl) <- sample_ids
 
   large_barcode_plot_translocation_only <- function(barcodes_tbl, sample_id,
                                                     breakpoint_pair,
@@ -278,8 +263,8 @@ if (TRUE) {
           plot.margin = unit(c(0,0,0,0), "lines")) #+
     #ggsave(str_c(supp, "sample_translocations.pdf"), width = 5, height = 2, useDingbats = FALSE)
 
-  rm(barcodes_tbl, large_barcode_plot_translocation_only)
+  rm(barcodes_tbl)
 
 }
 
-rm(main, supp)
+rm(main, supp, data_dir, sample_ids, sv_barcodes_tbl)

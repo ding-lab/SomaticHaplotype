@@ -1,5 +1,9 @@
 .DS_store
 __pycache__
 .Rproj.user
-paper
 test_data*
+
+paper/data*
+paper/figures
+paper/manuscript
+paper/submission
