@@ -5,6 +5,8 @@
 # Heterozygotes/Coverage in unphased regions
 ################################################################################
 
+library(tidyverse)
+
 data_dir = file.path("data_for_plots/02_overview")
 dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -76,8 +78,6 @@ dir.create(str_c(supp, "/phase_sets"), recursive = TRUE, showWarnings = FALSE)
 
   ggsave(str_c(supp, "phase_set_by_sample.pdf"),
          useDingbats = FALSE, width = 7.25, height = 1.5)
-
-  rm(phase_set_by_sample_plot_df)
 }
 
 # coverage of phase sets
@@ -294,6 +294,12 @@ if (FALSE) {
   phase_sets_dir <- file.path(data_dir, "phase_sets")
   dir.create(path = phase_sets_dir, recursive = TRUE, showWarnings = FALSE)
 
+  patient_sample_names_tbl <- phase_set_by_sample_plot_df %>%
+    select(sample,
+           timepoint,
+           display_name) %>%
+    unique()
+
   for (this_sample in patient_sample_names_tbl$sample) {
 
     if (patient_sample_names_tbl %>% filter(sample == this_sample) %>% pull(timepoint) != "Normal") {
@@ -341,7 +347,7 @@ if (FALSE) {
     }
   }
 
-  rm(this_sample, plot_chr, phase_sets_dir)
+  rm(this_sample, plot_chr, phase_sets_dir, patient_sample_names_tbl)
 }
 
-rm(main, supp, data_dir)
+rm(main, supp, data_dir, phase_set_by_sample_plot_df)
