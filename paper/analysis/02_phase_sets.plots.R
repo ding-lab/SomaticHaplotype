@@ -7,7 +7,7 @@
 
 library(tidyverse)
 
-data_dir = file.path("data_for_plots/02_overview")
+data_dir = file.path("data_for_plots/02_phase_sets")
 dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
 
 main = "figures/02_phase_sets/main/"

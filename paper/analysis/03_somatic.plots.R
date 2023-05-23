@@ -5,6 +5,9 @@
 # Mutation pairs per phase set
 ################################################################################
 
+library(tidyverse)
+library(ggrepel)
+
 data_dir = file.path("data_for_plots/03_somatic")
 dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -122,6 +125,9 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
   chromosome_of_interest <- "chr1"
   min_length = 1e3
 
+  chromosome_length_tbl <- read_tsv(file = file.path("data_for_plots/02_phase_sets/plot_chr.tsv"),
+                                    show_col_types = FALSE)
+
   somatic_phase_sets_plot_df <- read_tsv(file = file.path(data_dir, "somatic_phase_sets_plot_df.tsv"),
                                          show_col_types = FALSE)
 
@@ -201,12 +207,6 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
     log2() %>% max() %>% round(digits = 0)
   my_breaks <- seq(from = min_log2, to = max_log2, by = 1)
 
-  manuscript_numbers[["03_somatic"]][["min_log2_somatic_mutations_per_Mb"]] <- min_log2
-  manuscript_numbers[["03_somatic"]][["max_log2_somatic_mutations_per_Mb"]] <- max_log2
-  manuscript_numbers[["03_somatic"]][["min_somatic_mutations_per_Mb"]] <- 2^min_log2
-  manuscript_numbers[["03_somatic"]][["max_somatic_mutations_per_Mb"]] <- 2^max_log2
-  manuscript_numbers[["03_somatic"]][["median_somatic_mutations_per_Mb"]] <- somatic_mutations_per_Mb_plot_df %>% pull(somatic_mutations_per_Mb) %>% summary()
-
   p <- ggplot(data = somatic_mutations_per_Mb_plot_df,
               aes(x = log2(somatic_mutations_per_Mb),
                   y = proportion_variants_phased,
@@ -248,8 +248,7 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
          width = 4.75, height = 1.5*2.25, useDingbats = FALSE)
 
   rm(somatic_mutations_per_Mb_plot_df,
-     phasing_variants_grouped, p, q, q_with_legend,
-     n_phase_sets, n_phase_sets_1.0, n_phase_sets_0.75,
+     p, q, q_with_legend,
      min_log2, max_log2, my_breaks)
 }
 
@@ -380,4 +379,4 @@ if (FALSE) {
 
 }
 
-rm(main, supp)
+rm(main, supp, data_dir, chromosome_length_tbl)
