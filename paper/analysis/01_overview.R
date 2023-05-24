@@ -82,6 +82,7 @@ manuscript_numbers[["01_overview"]] <- list()
               mutate(Notes = case_when(Sample == "27522_3" ~ "Timepoint 4 (second relapse collection) used as WGS match",
                                        Sample == "77570" ~ "SV calls based on lrWGS sample",
                                        Sample == "60359_1" ~ "Tumor purity based on low number of variant calls",
+                                       Disease_Stage == "Normal" ~ "Normal skin sample",
                                        TRUE ~ ".")),
             str_c(supp, "data_available.tsv"))
 
