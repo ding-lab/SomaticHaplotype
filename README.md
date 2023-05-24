@@ -92,6 +92,6 @@ The following script runs `SomaticHaplotype.py` on data in `test_data/` and crea
 ```
 bash run_SomaticHaplotype_on_test_data.sh
 ```
-## Data availabilty
+## Data availability
 
-Controlled access to lrWGS and WGS data will be available soon. Please contact the authors.
+We are in the process of sharing controlled access to lrWGS and WGS data from this study through dbGaP. (updated 2023-05-24)
