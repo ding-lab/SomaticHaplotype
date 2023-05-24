@@ -188,10 +188,10 @@ dir.create(supp, recursive = TRUE, showWarnings = FALSE)
 
   ### Other parts
 
-  allele_combinations_text_df <- read_tsv(file = file.path("allele_combinations_text_df.tsv"),
+  allele_combinations_text_df <- read_tsv(file = file.path(data_dir, "allele_combinations_text_df.tsv"),
                                           show_col_types = FALSE)
 
-  allele_combinations_plot_df <- read_tsv(file = file.path("allele_combinations_plot_df.tsv"),
+  allele_combinations_plot_df <- read_tsv(file = file.path(data_dir, "allele_combinations_plot_df.tsv"),
                                           show_col_types = FALSE)
 
   n_within_length_share_barcode_share_variant <- sum(allele_combinations_text_df$total)

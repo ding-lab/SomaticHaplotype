@@ -348,7 +348,7 @@ manuscript_numbers[["04_alleles"]] <- list()
                              ordered = TRUE))
 
   write_tsv(allele_combinations_text_df,
-            file = file.path("allele_combinations_text_df.tsv"))
+            file = file.path(data_dir, "allele_combinations_text_df.tsv"))
 
   allele_combinations_plot_df <- tribble(~alleles, ~category, ~filled,
                      4, "1001", 1,
@@ -385,7 +385,7 @@ manuscript_numbers[["04_alleles"]] <- list()
                              ordered = TRUE))
 
   write_tsv(allele_combinations_plot_df,
-            file = file.path("allele_combinations_plot_df.tsv"))
+            file = file.path(data_dir, "allele_combinations_plot_df.tsv"))
 
   ggplot() +
     geom_tile(data = allele_combinations_plot_df,
