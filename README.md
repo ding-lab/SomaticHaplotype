@@ -94,4 +94,4 @@ bash run_SomaticHaplotype_on_test_data.sh
 ```
 ## Data availability
 
-We are in the process of sharing controlled access to lrWGS and WGS data from this study through dbGaP. (updated 2023-05-24)
+We are in the process of sharing controlled access to lrWGS and WGS data from this study. (updated 2023-08-14)
